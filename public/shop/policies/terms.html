@@ -3,572 +3,436 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Điều khoản dịch vụ Vòng dâu tằm by Ánh - Quy định về sử dụng dịch vụ và mua sắm tại website.">
-    <meta name="theme-color" content="#ff9a9e">
-    <title>Điều khoản dịch vụ | Vòng dâu tằm by Ánh</title>
+    <meta name="description" content="Điều khoản dịch vụ Vòng Dâu Tằm By Ánh — quy định đặt hàng, vận chuyển, giá, bảo mật và sử dụng website.">
+    <meta name="theme-color" content="#f4a261">
+    <title>Điều khoản dịch vụ | Vòng Dâu Tằm By Ánh</title>
     <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-
-    <!-- Tailwind CSS đã build sẵn -->
-    <link rel="stylesheet" href="../assets/css/tailwind-built.css?v=1">
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
-    <!-- CSS chung -->
-    <link rel="stylesheet" href="../styles.css?v=14">
-    <!-- CSS riêng cho trang chính sách -->
-    <link rel="stylesheet" href="../assets/css/policy-page.css?v=1">
+    <style>
+        :root {
+            --peach: #f4a261;
+            --coral: #e76f51;
+            --cream: #f8edeb;
+            --ink: #3f3a36;
+            --muted: #7a706a;
+            --line: #f0e2d8;
+            --card: #ffffff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--cream);
+            color: var(--ink);
+            font-family: "Quicksand", sans-serif;
+            line-height: 1.7;
+        }
+
+        a { color: inherit; }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.94);
+            border-bottom: 1px solid rgba(244, 162, 97, 0.28);
+            backdrop-filter: blur(8px);
+        }
+
+        .topbar-inner,
+        .wrap {
+            width: min(760px, calc(100% - 2rem));
+            margin: 0 auto;
+        }
+
+        .topbar-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 64px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-width: 0;
+            text-decoration: none;
+        }
+
+        .brand svg { width: 1.35rem; height: 1.35rem; color: var(--peach); flex: none; }
+
+        .brand span {
+            font-family: "Pacifico", cursive;
+            color: var(--peach);
+            font-size: 1.15rem;
+            line-height: 1;
+            white-space: nowrap;
+        }
+
+        main { padding: 2.25rem 0 3rem; }
+
+        .intro { margin-bottom: 1.5rem; }
+
+        .eyebrow {
+            display: inline-block;
+            margin: 0 0 0.75rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 999px;
+            background: #fff;
+            color: var(--coral);
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+
+        h1 {
+            margin: 0 0 0.85rem;
+            font-size: clamp(1.8rem, 4vw, 2.35rem);
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        .lead {
+            margin: 0;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .lead + .lead { margin-top: 0.75rem; }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 1.25rem 1.25rem 1.15rem;
+            margin-top: 0.85rem;
+        }
+
+        h2 {
+            margin: 0 0 0.7rem;
+            font-size: 1.12rem;
+            line-height: 1.4;
+        }
+
+        h3 {
+            margin: 1.05rem 0 0.45rem;
+            font-size: 0.98rem;
+        }
+
+        .num {
+            display: inline-grid;
+            place-items: center;
+            width: 1.8rem;
+            height: 1.8rem;
+            margin-right: 0.55rem;
+            border-radius: 999px;
+            background: var(--cream);
+            color: var(--coral);
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        p { margin: 0 0 0.75rem; }
+        p:last-child { margin-bottom: 0; }
+
+        ul, ol { margin: 0.35rem 0 0.85rem; padding-left: 1.2rem; }
+        li { margin: 0.35rem 0; }
+        li:last-child { margin-bottom: 0; }
+
+        .note {
+            margin-top: 0.85rem;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            background: var(--cream);
+            color: var(--ink);
+        }
+
+        .facts {
+            list-style: none;
+            margin: 0.2rem 0 0.85rem;
+            padding: 0;
+        }
+
+        .facts li {
+            display: grid;
+            gap: 0.1rem;
+            margin: 0;
+            padding: 0.75rem 0;
+            border-top: 1px solid var(--line);
+        }
+
+        .facts li:first-child { border-top: 0; padding-top: 0; }
+        .facts strong { font-size: 0.98rem; }
+        .facts span { color: var(--muted); }
+
+        .steps { list-style: none; padding: 0; margin: 0.2rem 0 0.4rem; }
+        .steps li {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.75rem;
+            align-items: start;
+            margin: 0;
+            padding: 0.75rem 0;
+            border-top: 1px solid var(--line);
+        }
+        .steps li:first-child { border-top: 0; padding-top: 0; }
+        .step {
+            width: 1.8rem;
+            height: 1.8rem;
+            border-radius: 999px;
+            background: var(--peach);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .contact {
+            margin-top: 0.85rem;
+            padding: 1.35rem 1.25rem;
+            border-radius: 18px;
+            background: #fff;
+            border: 1px solid var(--line);
+            text-align: center;
+        }
+
+        .contact h2 { text-align: center; }
+
+        .phone {
+            display: inline-block;
+            margin: 0.15rem 0 0.35rem;
+            color: var(--coral);
+            font-size: 1.35rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .mail {
+            display: inline-block;
+            margin: 0 0 0.85rem;
+            color: var(--coral);
+            font-weight: 700;
+            text-decoration: none;
+            overflow-wrap: anywhere;
+        }
+
+        .zalo {
+            display: inline-block;
+            padding: 0.7rem 1.2rem;
+            border-radius: 999px;
+            background: var(--coral);
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .zalo:hover { background: #d85d41; }
+
+        .inline-link { color: var(--coral); font-weight: 700; text-decoration: none; }
+
+        footer {
+            border-top: 1px solid rgba(244, 162, 97, 0.25);
+            padding: 1.25rem 0 1.6rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        footer nav {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        footer a { color: var(--coral); text-decoration: none; font-weight: 600; }
+
+        @media (max-width: 420px) {
+            .brand span { font-size: 1rem; }
+        }
+
+        @media (min-width: 720px) {
+            .card, .contact { padding: 1.4rem 1.5rem; }
+        }
+    </style>
 </head>
-<body class="policy-page">
-
-    <!-- ============ HEADER ============ -->
-    <header class="bg-white/95 backdrop-blur-sm shadow-sm sticky top-0 z-50 border-b-2 border-primary/20">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-16 md:h-20">
-                <a href="../index.html" class="flex items-center space-x-2">
-                    <div class="relative">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 1.5rem; height: 1.5rem;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-accent absolute -top-1 -right-1" style="width: 0.75rem; height: 0.75rem;"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>
-                    </div>
-                    <div class="flex flex-col">
-                        <span class="font-handwritten text-xl md:text-2xl text-primary leading-none">Vòng dâu tằm by Ánh</span>
-                    </div>
-                </a>
-                <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="../index.html" class="text-gray-700 hover:text-primary transition font-medium text-sm">Trang chủ</a>
-                    <a href="../index.html#products" class="text-gray-700 hover:text-primary transition font-medium text-sm">Sản phẩm</a>
-                    <a href="../index.html#process" class="text-gray-700 hover:text-primary transition font-medium text-sm">Quy trình</a>
-                    <a href="../index.html#reviews" class="text-gray-700 hover:text-primary transition font-medium text-sm">Lời mẹ chia sẻ</a>
-                    <a href="../index.html#faq" class="text-gray-700 hover:text-primary transition font-medium text-sm">Câu hỏi</a>
-                </nav>
-                <div class="flex items-center space-x-2">
-                    <button class="relative text-gray-700 hover:text-primary transition p-2" id="cartBtn">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem; display: inline-block;">
-                            <path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" />
-                        </svg>
-                        <span class="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-md" id="cartCount">0</span>
-                    </button>
-                    <button class="lg:hidden text-gray-600 hover:text-primary transition p-2" id="menuBtn">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem; display: inline-block;"><path fill-rule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75ZM3 12a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /></svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="lg:hidden hidden bg-white border-t border-primary/20" id="mobileMenu">
-            <nav class="container mx-auto px-4 py-4 flex flex-col space-y-3 items-center text-center">
-                <a href="../index.html" class="text-gray-700 hover:text-primary transition font-medium py-2">Trang chủ</a>
-                <a href="../index.html#products" class="text-gray-700 hover:text-primary transition font-medium py-2">Sản phẩm</a>
-                <a href="../index.html#process" class="text-gray-700 hover:text-primary transition font-medium py-2">Quy trình</a>
-                <a href="../index.html#reviews" class="text-gray-700 hover:text-primary transition font-medium py-2">Lời mẹ chia sẻ</a>
-                <a href="../index.html#faq" class="text-gray-700 hover:text-primary transition font-medium py-2">Câu hỏi</a>
-            </nav>
+<body>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="brand" href="../index.html">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z"/>
+                </svg>
+                <span>Vòng dâu tằm by Ánh</span>
+            </a>
         </div>
     </header>
 
-    <!-- ============ BREADCRUMB ============ -->
-    <nav class="policy-breadcrumb" aria-label="Breadcrumb">
-        <div class="policy-container">
-            <ol class="policy-breadcrumb-list">
-                <li>
-                    <a href="../index.html">Trang chủ</a>
-                </li>
-                <li class="separator">/</li>
-                <li>
-                    <a href="../index.html">Hỗ trợ</a>
-                </li>
-                <li class="separator">/</li>
-                <li class="current">Điều khoản dịch vụ</li>
-            </ol>
-        </div>
-    </nav>
+    <main>
+        <div class="wrap">
+            <header class="intro">
+                <p class="eyebrow">Khi mẹ mua hàng tại shop</p>
+                <h1>Điều khoản dịch vụ</h1>
+                <p class="lead">Chào mừng mẹ đến với Vòng Dâu Tằm By Ánh. Khi dùng website và đặt hàng, mẹ đồng ý với các quy định bên dưới.</p>
+                <p class="lead">Shop có thể cập nhật điều khoản theo thời gian và đăng bản mới trên website. Nếu mẹ tiếp tục mua hàng sau khi có thay đổi, nghĩa là mẹ chấp nhận bản mới.</p>
+            </header>
 
-    <!-- ============ HERO BANNER ============ -->
-    <header class="policy-hero">
-        <div class="policy-hero-content">
-            <div class="policy-hero-badge">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1rem;height:1rem;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd"/></svg>
-                Quy định minh bạch &amp; công bằng
-            </div>
-            <h1>Điều khoản dịch vụ</h1>
-            <p>Các điều khoản và quy định khi sử dụng dịch vụ mua sắm tại Vòng dâu tằm by Ánh. Chúng tôi cam kết mang đến trải nghiệm mua sắm công bằng và minh bạch cho tất cả khách hàng.</p>
-        </div>
-    </header>
+            <section class="card" id="gioi-thieu">
+                <h2><span class="num">1</span> Giới thiệu</h2>
+                <p>Vòng Dâu Tằm By Ánh bán vòng dâu tằm handmade cho bé và gia đình. Website do shop sở hữu và vận hành.</p>
+                <p>Các mục tiếp theo nói về cách đặt hàng, giao hàng, giá, thông tin cá nhân và những việc không được làm trên website.</p>
+            </section>
 
-    <!-- ============ MAIN CONTENT ============ -->
-    <main class="policy-container">
-        <div class="policy-main">
+            <section class="card" id="dat-hang">
+                <h2><span class="num">2</span> Đặt hàng và thanh toán</h2>
+                <h3>Cách đặt hàng</h3>
+                <ol class="steps">
+                    <li><span class="step">1</span><span>Chọn sản phẩm và thêm vào giỏ hàng.</span></li>
+                    <li><span class="step">2</span><span>Điền họ tên, số điện thoại và địa chỉ giao hàng.</span></li>
+                    <li><span class="step">3</span><span>Chọn phương thức thanh toán.</span></li>
+                    <li><span class="step">4</span><span>Xác nhận đơn. Nếu thanh toán trước, hoàn tất chuyển khoản.</span></li>
+                    <li><span class="step">5</span><span>Nhận xác nhận đơn qua Zalo hoặc email.</span></li>
+                </ol>
 
-            <!-- ===== Sidebar: Table of Contents ===== -->
-            <aside class="policy-toc" aria-label="Mục lục">
-                <h2 class="policy-toc-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1rem;height:1rem;"><path d="M3.75 6.75A.75.75 0 0 1 4.5 6h15a.75.75 0 0 1 0 1.5h-15a.75.75 0 0 1-.75-.75ZM3.75 12a.75.75 0 0 1 .75-.75h15a.75.75 0 0 1 0 1.5h-15a.75.75 0 0 1-.75-.75ZM4.5 17.25a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5H4.5Z"/></svg>
-                    Mục lục
-                </h2>
-                <ul class="policy-toc-list">
-                    <li><a href="#section-1"><span class="toc-number">1</span>Giới thiệu</a></li>
-                    <li><a href="#section-2"><span class="toc-number">2</span>Đặt hàng &amp; thanh toán</a></li>
-                    <li><a href="#section-3"><span class="toc-number">3</span>Vận chuyển &amp; giao hàng</a></li>
-                    <li><a href="#section-4"><span class="toc-number">4</span>Chính sách giá &amp; khuyến mãi</a></li>
-                    <li><a href="#section-5"><span class="toc-number">5</span>Bảo mật &amp; quyền riêng tư</a></li>
-                    <li><a href="#section-6"><span class="toc-number">6</span>Quy định sử dụng</a></li>
-                    <li><a href="#section-7"><span class="toc-number">7</span>Liên hệ</a></li>
+                <h3>Cách thanh toán</h3>
+                <ul>
+                    <li><strong>Khi nhận hàng (COD):</strong> trả tiền mặt cho người giao hàng.</li>
+                    <li><strong>Chuyển khoản ngân hàng:</strong> shop gửi số tài khoản sau khi đặt hàng.</li>
+                    <li><strong>Ví điện tử:</strong> MoMo hoặc ZaloPay, theo hướng dẫn shop gửi.</li>
                 </ul>
-            </aside>
+                <p class="note">Đơn chỉ được xử lý khi có đủ họ tên, số điện thoại và địa chỉ giao hàng. Đơn chuyển khoản được giao sau khi shop xác nhận đã nhận tiền.</p>
 
-            <!-- ===== Content ===== -->
-            <div class="policy-content">
+                <h3>Sau khi đặt</h3>
+                <ul>
+                    <li>Zalo hoặc email xác nhận, kèm mã đơn và danh sách sản phẩm.</li>
+                    <li>Thông tin theo dõi khi đơn được giao cho đơn vị vận chuyển.</li>
+                    <li>Báo khi giao hàng thành công.</li>
+                </ul>
+            </section>
 
-                <!-- Section 1: Giới thiệu -->
-                <section class="policy-section" id="section-1">
-                    <div class="policy-section-header">
-                        <div class="policy-section-number">1</div>
-                        <div>
-                            <h2>Giới thiệu</h2>
-                            <span class="subtitle">Về các điều khoản này</span>
-                        </div>
-                    </div>
+            <section class="card" id="giao-hang">
+                <h2><span class="num">3</span> Vận chuyển và giao hàng</h2>
+                <h3>Thời gian dự kiến</h3>
+                <ul class="facts">
+                    <li>
+                        <strong>Hà Nội và TP.HCM</strong>
+                        <span>1–2 ngày. Đặt trước 14h có thể giao trong ngày.</span>
+                    </li>
+                    <li>
+                        <strong>Tỉnh thành khác</strong>
+                        <span>2–5 ngày, tùy địa chỉ.</span>
+                    </li>
+                    <li>
+                        <strong>Vùng sâu, vùng xa</strong>
+                        <span>5–7 ngày, khu vực hẻo lánh có thể lâu hơn.</span>
+                    </li>
+                </ul>
 
-                    <p>Chào mừng bạn đến với Vòng dâu tằm by Ánh! Khi sử dụng website và dịch vụ của chúng tôi, bạn đồng ý tuân thủ các điều khoản và quy định được nêu trong tài liệu này.</p>
+                <h3>Phí vận chuyển</h3>
+                <ul>
+                    <li><strong>Miễn phí</strong> cho đơn từ 2 sản phẩm trở lên, giao toàn quốc.</li>
+                    <li><strong>25.000đ</strong> cho đơn 1 sản phẩm, nội thành Hà Nội và TP.HCM.</li>
+                    <li><strong>30.000–40.000đ</strong> cho tỉnh thành khác, tùy cân nặng và kích thước.</li>
+                </ul>
 
-                    <div class="policy-callout info">
-                        <div class="policy-callout-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem;"><path d="M11.25 4.5A7.5 7.5 0 0 1 18.75 12c0 .974-.199 1.902-.557 2.748l1.62 1.62A9 9 0 1 1 12 3v1.5ZM12 5.25a.75.75 0 0 1 .75.75v5.25l3.75 2.25a.75.75 0 0 1-.75 1.3l-4-2.4a.75.75 0 0 1-.375-.65V6a.75.75 0 0 1 .75-.75Z"/></svg>
-                        </div>
-                        <div class="policy-callout-content">
-                            <p class="policy-callout-title">Cập nhật điều khoản</p>
-                            <p class="policy-callout-text">Chúng tôi có thể cập nhật các điều khoản này theo thời gian. Thông tin cập nhật sẽ được thông báo trên website. Việc tiếp tục sử dụng dịch vụ sau khi có thay đổi đồng nghĩa với việc bạn chấp nhận các điều khoản mới.</p>
-                        </div>
-                    </div>
+                <h3>Theo dõi đơn</h3>
+                <ul>
+                    <li>Xem liên kết trong Zalo hoặc email xác nhận.</li>
+                    <li>Gọi hoặc nhắn <strong>0972.483.892</strong> để hỏi trạng thái.</li>
+                </ul>
+            </section>
 
-                    <p>Vòng dâu tằm by Ánh là website bán hàng thuộc sở hữu và vận hành bởi cá nhân/tổ chức, chuyên cung cấp các sản phẩm vòng dâu tằm handmade cao cấp dành cho trẻ em và gia đình.</p>
-                </section>
+            <section class="card" id="gia">
+                <h2><span class="num">4</span> Giá và khuyến mãi</h2>
+                <p>Giá trên website tính bằng đồng Việt Nam và đã gồm VAT. Giá có thể đổi mà không cần báo trước.</p>
+                <p class="note">Vòng làm thủ công nên màu và kích thước có thể lệch nhẹ so với ảnh. Đây không phải lỗi và không ảnh hưởng chất lượng.</p>
 
-                <!-- Section 2: Đặt hàng & Thanh toán -->
-                <section class="policy-section" id="section-2">
-                    <div class="policy-section-header">
-                        <div class="policy-section-number">2</div>
-                        <div>
-                            <h2>Đặt hàng &amp; thanh toán</h2>
-                            <span class="subtitle">Quy trình mua hàng tại Vòng dâu tằm by Ánh</span>
-                        </div>
-                    </div>
+                <h3>Mã giảm giá</h3>
+                <ul>
+                    <li>Chỉ dùng trong thời gian ghi trên mã, không quy đổi thành tiền mặt.</li>
+                    <li>Mỗi đơn chỉ áp dụng <strong>một mã</strong>.</li>
+                    <li>Không áp dụng cho sản phẩm đang sale đặc biệt (giảm trên 30%).</li>
+                    <li>Chương trình có thể kết thúc sớm khi hết suất.</li>
+                </ul>
 
-                    <h3>Quy trình đặt hàng</h3>
-                    <ol>
-                        <li>Chọn sản phẩm và thêm vào giỏ hàng.</li>
-                        <li>Điền thông tin giao hàng (họ tên, số điện thoại, địa chỉ).</li>
-                        <li>Chọn phương thức thanh toán.</li>
-                        <li>Xác nhận đơn hàng và hoàn tất thanh toán (nếu thanh toán trước).</li>
-                        <li>Nhận email/xác nhận đơn hàng qua Zalo/email.</li>
-                    </ol>
+                <h3>Sản phẩm sale trên 30%</h3>
+                <p>Có thể không áp dụng:</p>
+                <ul>
+                    <li>Đổi trả khi đổi ý. Shop vẫn hỗ trợ nếu lỗi từ shop. Chi tiết xem <a class="inline-link" href="return.html">chính sách đổi trả</a>.</li>
+                    <li>Gộp thêm mã giảm giá khác.</li>
+                    <li>Đổi sang sản phẩm có giá cao hơn.</li>
+                </ul>
+            </section>
 
-                    <h3>Phương thức thanh toán</h3>
-                    <p>Chúng tôi hỗ trợ các phương thức thanh toán sau:</p>
-                    <ul>
-                        <li><strong>Thanh toán khi nhận hàng (COD):</strong> Trả tiền mặt cho nhân viên giao hàng khi nhận được sản phẩm.</li>
-                        <li><strong>Chuyển khoản ngân hàng:</strong> Thông tin tài khoản sẽ được gửi sau khi đặt hàng thành công.</li>
-                        <li><strong>Ví điện tử:</strong> Hỗ trợ MoMo, ZaloPay theo thông tin được cung cấp.</li>
-                    </ul>
+            <section class="card" id="bao-mat">
+                <h2><span class="num">5</span> Bảo mật và quyền riêng tư</h2>
+                <p>Shop bảo vệ thông tin cá nhân của mẹ theo pháp luật Việt Nam.</p>
 
-                    <div class="policy-callout warning">
-                        <div class="policy-callout-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem;"><path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
-                        </div>
-                        <div class="policy-callout-content">
-                            <p class="policy-callout-title">Lưu ý quan trọng</p>
-                            <p class="policy-callout-text">Đơn hàng chỉ được xử lý khi nhận đủ thông tin bắt buộc (họ tên, số điện thoại, địa chỉ giao hàng chi tiết). Với đơn hàng thanh toán chuyển khoản, chúng tôi sẽ giao hàng sau khi xác nhận thanh toán thành công.</p>
-                        </div>
-                    </div>
+                <h3>Shop có thể nhận</h3>
+                <ul>
+                    <li>Họ và tên</li>
+                    <li>Số điện thoại</li>
+                    <li>Email</li>
+                    <li>Địa chỉ giao hàng</li>
+                    <li>Thông tin thanh toán, nếu có</li>
+                </ul>
 
-                    <h3>Xác nhận đơn hàng</h3>
-                    <p>Sau khi đặt hàng thành công, bạn sẽ nhận được:</p>
-                    <ul>
-                        <li>Email/xác nhận Zalo với mã đơn hàng và chi tiết sản phẩm.</li>
-                        <li>Thông tin theo dõi vận chuyển khi đơn hàng được giao cho đơn vị vận chuyển.</li>
-                        <li>Thông báo giao hàng thành công qua Zalo/email.</li>
-                    </ul>
-                </section>
+                <h3>Dùng để</h3>
+                <ul>
+                    <li>Xử lý đơn và giao hàng.</li>
+                    <li>Xác nhận đơn và hỗ trợ mẹ.</li>
+                    <li>Cải thiện dịch vụ.</li>
+                    <li>Gửi khuyến mãi, chỉ khi mẹ đồng ý.</li>
+                </ul>
+                <p class="note">Shop không bán hoặc chia sẻ thông tin của mẹ cho bên thứ ba để kiếm lời. Thông tin chỉ chuyển cho đơn vị vận chuyển để giao hàng.</p>
+                <p>Shop không lưu số thẻ hoặc thông tin ngân hàng của mẹ trên hệ thống của mình.</p>
+            </section>
 
-                <!-- Section 3: Vận chuyển & Giao hàng -->
-                <section class="policy-section" id="section-3">
-                    <div class="policy-section-header">
-                        <div class="policy-section-number">3</div>
-                        <div>
-                            <h2>Vận chuyển &amp; giao hàng</h2>
-                            <span class="subtitle">Thời gian và phí vận chuyển</span>
-                        </div>
-                    </div>
+            <section class="card" id="quy-dinh">
+                <h2><span class="num">6</span> Quy định khi dùng website</h2>
+                <p>Ảnh, chữ, thiết kế và logo trên website là tài sản của shop, được luật sở hữu trí tuệ bảo vệ. Không sao chép để kinh doanh nếu chưa có sự đồng ý bằng văn bản.</p>
 
-                    <h3>Thời gian giao hàng</h3>
-                    <div class="policy-table-wrapper">
-                        <table class="policy-table">
-                            <thead>
-                                <tr>
-                                    <th>Khu vực</th>
-                                    <th>Thời gian dự kiến</th>
-                                    <th>Ghi chú</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Hà Nội &amp; TP.HCM</td>
-                                    <td class="highlight"><strong>1-2 ngày</strong></td>
-                                    <td>Giao nhanh trong ngày nếu đặt trước 14h</td>
-                                </tr>
-                                <tr>
-                                    <td>Các tỉnh thành khác</td>
-                                    <td class="highlight"><strong>2-5 ngày</strong></td>
-                                    <td>Tùy thuộc vào địa chỉ cụ thể</td>
-                                </tr>
-                                <tr>
-                                    <td>Vùng sâu, vùng xa</td>
-                                    <td class="highlight"><strong>5-7 ngày</strong></td>
-                                    <td>Có thể lâu hơn với khu vực hẻo lánh</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <h3>Không được</h3>
+                <ul>
+                    <li>Dùng website cho việc trái pháp luật.</li>
+                    <li>Xâm nhập hoặc tấn công hệ thống.</li>
+                    <li>Đặt hàng giả hoặc khai thông tin sai.</li>
+                    <li>Làm phiền hoặc lạm dụng kênh hỗ trợ.</li>
+                    <li>Dùng bot hoặc script để đặt số lượng lớn.</li>
+                </ul>
+                <p class="note">Nếu vi phạm, shop có thể từ chối phục vụ, hủy đơn hoặc chặn truy cập website.</p>
 
-                    <h3>Phí vận chuyển</h3>
-                    <ul>
-                        <li><strong>Miễn phí vận chuyển</strong> cho đơn hàng từ 2 sản phẩm trở lên.</li>
-                        <li><strong>Phí ship 25.000đ</strong> áp dụng cho đơn hàng 1 sản phẩm (nội thành Hà Nội và TP.HCM).</li>
-                        <li><strong>Phí ship 30.000-40.000đ</strong> cho các tỉnh thành khác, tùy cân nặng và kích thước sản phẩm.</li>
-                    </ul>
+                <h3>Shop không chịu trách nhiệm về</h3>
+                <ul>
+                    <li>Thiệt hại gián tiếp do việc dùng website.</li>
+                    <li>Lỗi kỹ thuật ngoài tầm kiểm soát, như mất điện, đứt mạng, lỗi máy chủ.</li>
+                    <li>Chậm giao hàng do đơn vị vận chuyển.</li>
+                </ul>
+            </section>
 
-                    <div class="policy-callout success">
-                        <div class="policy-callout-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <div class="policy-callout-content">
-                            <p class="policy-callout-title">Ưu đãi vận chuyển</p>
-                            <p class="policy-callout-text">Đặt từ <strong>2 sản phẩm trở lên</strong>, bạn sẽ được <strong>miễn phí vận chuyển toàn quốc</strong>! Áp dụng cho tất cả sản phẩm trong cửa hàng.</p>
-                        </div>
-                    </div>
-
-                    <h3>Theo dõi đơn hàng</h3>
-                    <p>Bạn có thể theo dõi đơn hàng qua:</p>
-                    <ul>
-                        <li>Liên kết theo dõi trong email/xác nhận Zalo.</li>
-                        <li>Liên hệ trực tiếp hotline <strong>0972.483.892</strong> để hỏi trạng thái đơn hàng.</li>
-                        <li>Chat Zalo với đội ngũ chăm sóc khách hàng.</li>
-                    </ul>
-                </section>
-
-                <!-- Section 4: Chính sách giá & Khuyến mãi -->
-                <section class="policy-section" id="section-4">
-                    <div class="policy-section-header">
-                        <div class="policy-section-number">4</div>
-                        <div>
-                            <h2>Chính sách giá &amp; khuyến mãi</h2>
-                            <span class="subtitle">Giá sản phẩm và các chương trình ưu đãi</span>
-                        </div>
-                    </div>
-
-                    <h3>Giá sản phẩm</h3>
-                    <p>Tất cả giá sản phẩm trên website được hiển thị bằng đồng Việt Nam (VNĐ) và đã bao gồm thuế VAT. Giá có thể thay đổi theo thời gian mà không cần báo trước.</p>
-
-                    <div class="policy-callout info">
-                        <div class="policy-callout-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm9.75-5.625a.75.75 0 0 0-1.5 0v3.75a.75.75 0 0 0 .471.696l3 1.2a.75.75 0 0 0 .557-1.392l-2.528-1.01V6.375Z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <div class="policy-callout-content">
-                            <p class="policy-callout-title">Sản phẩm handmade</p>
-                            <p class="policy-callout-text">Do tính chất <strong>thủ công (handmade)</strong>, mỗi sản phẩm có thể có sự khác biệt nhỏ về màu sắc, kích thước so với hình ảnh minh họa. Đây không phải lỗi và không ảnh hưởng đến chất lượng sản phẩm.</p>
-                        </div>
-                    </div>
-
-                    <h3>Mã giảm giá &amp; khuyến mãi</h3>
-                    <ul>
-                        <li>Mã giảm giá chỉ có giá trị trong thời gian quy định và không có giá trị quy đổi tiền mặt.</li>
-                        <li>Mỗi đơn hàng chỉ áp dụng <strong>một mã giảm giá</strong>.</li>
-                        <li>Mã giảm giá không áp dụng cho sản phẩm đang trong chương trình sale đặc biệt (giảm trên 30%).</li>
-                        <li>Chương trình khuyến mãi có thể kết thúc sớm hơn dự kiến khi hết quota.</li>
-                    </ul>
-
-                    <h3>Sản phẩm sale</h3>
-                    <p>Sản phẩm giảm giá đặc biệt (trên 30%) có thể không áp dụng:</p>
-                    <ul>
-                        <li>Chính sách đổi trả khi đổi ý (chỉ hỗ trợ khi có lỗi từ shop).</li>
-                        <li>Kết hợp với mã giảm giá khác.</li>
-                        <li>Đổi sang sản phẩm khác có giá trị cao hơn.</li>
-                    </ul>
-                </section>
-
-                <!-- Section 5: Bảo mật & Quyền riêng tư -->
-                <section class="policy-section" id="section-5">
-                    <div class="policy-section-header">
-                        <div class="policy-section-number">5</div>
-                        <div>
-                            <h2>Bảo mật &amp; quyền riêng tư</h2>
-                            <span class="subtitle">Cam kết bảo vệ thông tin khách hàng</span>
-                        </div>
-                    </div>
-
-                    <p>Chúng tôi cam kết bảo vệ quyền riêng tư và thông tin cá nhân của khách hàng theo quy định của pháp luật Việt Nam.</p>
-
-                    <h3>Thông tin thu thập</h3>
-                    <p>Khi đặt hàng, chúng tôi có thể thu thập các thông tin sau:</p>
-                    <ul>
-                        <li>Họ và tên</li>
-                        <li>Số điện thoại</li>
-                        <li>Địa chỉ email</li>
-                        <li>Địa chỉ giao hàng</li>
-                        <li>Thông tin thanh toán (nếu có)</li>
-                    </ul>
-
-                    <h3>Mục đích sử dụng</h3>
-                    <p>Thông tin của bạn được sử dụng để:</p>
-                    <ul>
-                        <li>Xử lý đơn hàng và giao hàng.</li>
-                        <li>Liên hệ xác nhận và hỗ trợ khách hàng.</li>
-                        <li>Cải thiện chất lượng dịch vụ.</li>
-                        <li>Gửi thông tin khuyến mãi (nếu bạn đồng ý).</li>
-                    </ul>
-
-                    <div class="policy-callout success">
-                        <div class="policy-callout-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd"/></svg>
-                        </div>
-                        <div class="policy-callout-content">
-                            <p class="policy-callout-title">Cam kết bảo mật</p>
-                            <p class="policy-callout-text">Chúng tôi <strong>không bán, chia sẻ</strong> thông tin cá nhân của bạn cho bên thứ ba vì mục đích thương mại. Thông tin chỉ được chia sẻ với đối tác vận chuyển để giao hàng.</p>
-                        </div>
-                    </div>
-
-                    <h3>Bảo mật thanh toán</h3>
-                    <p>Thông tin thanh toán của bạn được xử lý an toàn. Chúng tôi không lưu trữ thông tin thẻ tín dụng hoặc thông tin ngân hàng của khách hàng trên hệ thống của mình.</p>
-                </section>
-
-                <!-- Section 6: Quy định sử dụng -->
-                <section class="policy-section" id="section-6">
-                    <div class="policy-section-header">
-                        <div class="policy-section-number">6</div>
-                        <div>
-                            <h2>Quy định sử dụng</h2>
-                            <span class="subtitle">Quy tắc khi sử dụng website</span>
-                        </div>
-                    </div>
-
-                    <h3>Nội dung website</h3>
-                    <p>Toàn bộ nội dung trên website Vòng dâu tằm by Ánh (hình ảnh, văn bản, thiết kế, logo) là tài sản của chúng tôi và được bảo vệ bởi luật sở hữu trí tuệ. Nghiêm cấm sao chép, sử dụng cho mục đích thương mại khi chưa có sự đồng ý bằng văn bản.</p>
-
-                    <h3>Hành vi bị nghiêm cấm</h3>
-                    <ul>
-                        <li>Sử dụng website cho mục đích bất hợp pháp.</li>
-                        <li>Cố tình xâm nhập, tấn công hệ thống.</li>
-                        <li>Đặt hàng giả mạo hoặc cung cấp thông tin sai lệch.</li>
-                        <li>Spam, quấy rối hoặc lạm dụng dịch vụ khách hàng.</li>
-                        <li>Sử dụng bot, script tự động để đặt hàng với số lượng lớn.</li>
-                    </ul>
-
-                    <div class="policy-callout danger">
-                        <div class="policy-callout-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem;"><path d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/></svg>
-                        </div>
-                        <div class="policy-callout-content">
-                            <p class="policy-callout-title">Hậu quả vi phạm</p>
-                            <p class="policy-callout-text">Chúng tôi có quyền <strong>từ chối phục vụ, hủy đơn hàng</strong> và/hoặc <strong>chặn quyền truy cập</strong> website đối với người dùng vi phạm các quy định trên.</p>
-                        </div>
-                    </div>
-
-                    <h3>Giới hạn trách nhiệm</h3>
-                    <p>Vòng dâu tằm by Ánh không chịu trách nhiệm về:</p>
-                    <ul>
-                        <li>Thiệt hại gián tiếp hoặc đặc biệt phát sinh từ việc sử dụng website.</li>
-                        <li>Lỗi kỹ thuật ngoài tầm kiểm soát (mất điện, lỗi mạng, server).</li>
-                        <li>Sự chậm trễ trong vận chuyển do đối tác giao hàng.</li>
-                    </ul>
-                </section>
-
-                <!-- Section 7: Liên hệ -->
-                <section class="policy-section" id="section-7">
-                    <div class="policy-section-header">
-                        <div class="policy-section-number">7</div>
-                        <div>
-                            <h2>Liên hệ</h2>
-                            <span class="subtitle">Kênh liên lạc với chúng tôi</span>
-                        </div>
-                    </div>
-
-                    <p>Nếu bạn có bất kỳ câu hỏi nào về các điều khoản dịch vụ này, vui lòng liên hệ:</p>
-
-                    <div class="policy-features">
-                        <div class="policy-feature-card">
-                            <div class="policy-feature-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.5rem;height:1.5rem;"><path d="M12 2C6.48 2 2 6.04 2 11c0 2.86 1.5 5.4 3.83 7.05L5 22l4.27-2.04A11.06 11.06 0 0 0 12 20c5.52 0 10-4.04 10-9s-4.48-9-10-9Z"/></svg>
-                            </div>
-                            <h4>Zalo</h4>
-                            <p>0972.483.892</p>
-                        </div>
-                        <div class="policy-feature-card">
-                            <div class="policy-feature-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.5rem;height:1.5rem;"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clip-rule="evenodd"/></svg>
-                            </div>
-                            <h4>Hotline</h4>
-                            <p>0972.483.892</p>
-                        </div>
-                        <div class="policy-feature-card">
-                            <div class="policy-feature-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.5rem;height:1.5rem;"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z"/><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z"/></svg>
-                            </div>
-                            <h4>Email</h4>
-                            <p>vongdautambyvui@gmail.com</p>
-                        </div>
-                    </div>
-
-                    <p>Đội ngũ chăm sóc khách hàng của chúng tôi luôn sẵn sàng hỗ trợ bạn từ <strong>8:00 - 22:00</strong> hàng ngày.</p>
-                </section>
-
-                <!-- CTA Section -->
-                <div class="policy-cta">
-                    <div class="policy-cta-content">
-                        <h3>Cần hỗ trợ thêm?</h3>
-                        <p>Đội ngũ chăm sóc khách hàng của chúng tôi luôn sẵn sàng giải đáp mọi thắc mắc của bạn.</p>
-                        <div class="policy-cta-buttons">
-                            <a href="https://zalo.me/0972483892" target="_blank" rel="noopener" class="policy-cta-btn">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem;"><path d="M12 2C6.48 2 2 6.04 2 11c0 2.86 1.5 5.4 3.83 7.05L5 22l4.27-2.04A11.06 11.06 0 0 0 12 20c5.52 0 10-4.04 10-9s-4.48-9-10-9Z"/></svg>
-                                Chat Zalo ngay
-                            </a>
-                            <a href="tel:0972483892" class="policy-cta-btn secondary">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:1.1rem;height:1.1rem;"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clip-rule="evenodd"/></svg>
-                                Gọi 0972.483.892
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+            <section class="contact" id="lien-he">
+                <h2><span class="num">7</span> Liên hệ</h2>
+                <p>Mẹ cần hỏi về điều khoản, nhắn shop trong khung giờ 8:00–22:00 mỗi ngày.</p>
+                <a class="phone" href="tel:0972483892">0972.483.892</a>
+                <p><a class="mail" href="mailto:vongdautambyvui@gmail.com">vongdautambyvui@gmail.com</a></p>
+                <p><a class="zalo" href="https://zalo.me/0972483892" target="_blank" rel="noopener">Nhắn Zalo</a></p>
+            </section>
         </div>
     </main>
 
-    <!-- ============ FOOTER ============ -->
-    <footer class="bg-gradient-to-br from-warm via-white to-primary/5 border-t-2 border-primary/10 py-16 md:py-20">
-        <div class="container mx-auto px-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10 mb-10">
-                <div class="text-center md:text-left">
-                    <div class="inline-flex items-center space-x-2 mb-4">
-                        <div class="relative">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 1.875rem; height: 1.875rem;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-accent absolute -top-1 -right-1" style="width: 0.75rem; height: 0.75rem;"><path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="font-handwritten text-2xl text-primary leading-none">Vòng dâu tằm by Ánh</span>
-                            <span class="text-xs text-gray-500 font-medium">Handmade với yêu thương</span>
-                        </div>
-                    </div>
-                    <p class="text-gray-600 mb-6 leading-relaxed text-sm">
-                        Mỗi chiếc vòng được làm thủ công tỉ mỉ, gửi gắm yêu thương và mong ước tốt đẹp nhất đến bé yêu của mẹ
-                    </p>
-                    <div class="flex space-x-3 justify-center md:justify-start">
-                        <a href="#" class="w-10 h-10 bg-white border-2 border-primary/30 hover:bg-primary hover:border-primary rounded-full flex items-center justify-center transition text-primary hover:text-white shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem;"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-white border-2 border-primary/30 hover:bg-primary hover:border-primary rounded-full flex items-center justify-center transition text-primary hover:text-white shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem;"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-white border-2 border-primary/30 hover:bg-primary hover:border-primary rounded-full flex items-center justify-center transition text-primary hover:text-white shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem;"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
-                        </a>
-                        <a href="#" class="w-10 h-10 bg-white border-2 border-primary/30 hover:bg-primary hover:border-primary rounded-full flex items-center justify-center transition text-primary hover:text-white shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem;"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                        </a>
-                    </div>
-                </div>
-                <div class="text-center md:text-left">
-                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-center md:justify-start gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 1rem; height: 1rem;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg>
-                        <span>Về chúng tôi</span>
-                    </h4>
-                    <ul class="space-y-2.5">
-                        <li><a href="../index.html#process" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
-                            <span>Giới thiệu</span>
-                        </a></li>
-                        <li><a href="../index.html#process" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
-                            <span>Quy trình thủ công</span>
-                        </a></li>
-                        <li><a href="return.html" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
-                            <span>Chính sách bảo hành</span>
-                        </a></li>
-                    </ul>
-                </div>
-                <div class="text-center md:text-left">
-                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-center md:justify-start gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 1rem; height: 1rem;"><path d="M16.881 4.345A23.112 23.112 0 0 1 8.25 6H7.5a5.25 5.25 0 0 0-.88 10.427 21.593 21.593 0 0 0 1.378 3.94c.464 1.004 1.674 1.32 2.582.796l.657-.379c.88-.508 1.165-1.593.772-2.468a17.116 17.116 0 0 1-.628-1.607c1.918.258 3.76.75 5.5 1.446A21.727 21.727 0 0 0 18 11.25c0-2.414-.393-4.735-1.119-6.905ZM18.26 3.74a23.22 23.22 0 0 1 1.24 7.51 23.22 23.22 0 0 1-1.41 7.992.75.75 0 1 0 1.409.516 24.555 24.555 0 0 0 1.415-6.43 2.992 2.992 0 0 0 .836-2.078c0-.807-.319-1.54-.836-2.078a24.65 24.65 0 0 0-1.415-6.43.75.75 0 1 0-1.409.516c.059.16.116.321.17.483Z" /></svg>
-                        <span>Hỗ trợ mẹ</span>
-                    </h4>
-                    <ul class="space-y-2.5">
-                        <li><a href="return.html" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
-                            <span>Chính sách đổi trả</span>
-                        </a></li>
-                        <li><a href="payment.html" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
-                            <span>Phương thức thanh toán</span>
-                        </a></li>
-                        <li><a href="../index.html#faq" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
-                            <span>Câu hỏi thường gặp</span>
-                        </a></li>
-                    </ul>
-                </div>
-                <div class="text-center md:text-left">
-                    <h4 class="text-lg font-bold text-gray-800 mb-4 flex items-center justify-center md:justify-start gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 1rem; height: 1rem;"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clip-rule="evenodd" /></svg>
-                        <span>Liên hệ</span>
-                    </h4>
-                    <ul class="space-y-3">
-                        <li class="flex items-center justify-center md:justify-start text-gray-600 text-sm">
-                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l1.105 4.423a1.875 1.875 0 0 1-.694 1.955l-1.293.97c-.135.101-.164.249-.126.352a11.285 11.285 0 0 0 6.697 6.697c.103.038.25.009.352-.126l.97-1.293a1.875 1.875 0 0 1 1.955-.694l4.423 1.105c.834.209 1.42.959 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clip-rule="evenodd" /></svg>
-                            </div>
-                            <span>0972.483.892</span>
-                        </li>
-                        <li class="flex items-center justify-center md:justify-start text-gray-600 text-sm">
-                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.75rem; height: 0.75rem;"><path d="M1.5 8.67v8.58a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3V8.67l-8.928 5.493a3 3 0 0 1-3.144 0L1.5 8.67Z" /><path d="M22.5 6.908V6.75a3 3 0 0 0-3-3h-15a3 3 0 0 0-3 3v.158l9.714 5.978a1.5 1.5 0 0 0 1.572 0L22.5 6.908Z" /></svg>
-                            </div>
-                            <span>vongdautambyvui@gmail.com</span>
-                        </li>
-                        <li class="flex items-center justify-center md:justify-start text-gray-600 text-sm">
-                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" /></svg>
-                            </div>
-                            <span>Thôn Đông Cao, Mê Linh, Hà Nội</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            <div class="flex items-center justify-center gap-3 mb-8">
-                <div class="w-24 h-0.5 bg-gradient-to-r from-transparent to-primary/30"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.875rem; height: 0.875rem;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-                <div class="w-24 h-0.5 bg-gradient-to-l from-transparent to-primary/30"></div>
-            </div>
-            <div class="text-center">
-                <p class="text-gray-600 text-sm mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.75rem; height: 0.75rem; display: inline-block; margin-right: 0.25rem; vertical-align: middle;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-                    Làm bằng tình yêu thương dành cho bé yêu
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.75rem; height: 0.75rem; display: inline-block; margin-left: 0.25rem; vertical-align: middle;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-                </p>
-                <p class="text-gray-500 text-xs">
-                    &copy; 2025 Vòng dâu tằm by Ánh. Tất cả quyền được bảo lưu.
-                </p>
-            </div>
-        </div>
+    <footer>
+        <nav aria-label="Trang khác">
+            <a href="../index.html">Trang chủ</a>
+            <a href="return.html">Đổi trả</a>
+            <a href="payment.html">Thanh toán</a>
+        </nav>
+        <p>© 2026 Vòng Dâu Tằm By Ánh</p>
     </footer>
-
-    <!-- ============ JAVASCRIPT ============ -->
-    <script type="module">
-        // Mobile menu toggle
-        const menuBtn = document.getElementById('menuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
-        if (menuBtn && mobileMenu) {
-            menuBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
-        }
-    </script>
-
 </body>
 </html>
