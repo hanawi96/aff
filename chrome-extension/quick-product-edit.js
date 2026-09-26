@@ -146,7 +146,11 @@
     const rows = products.map((p, idx) => {
       const safeName = escapeHtml(p.name || '');
       const qty = Number(p.quantity) || 1;
-      const qtyBadge = `<span class="shopvd-qpe-qty" aria-hidden="true">×${qty}</span>`;
+      const price = p.price || p.product_price || 0;
+      const priceText = price > 0 ? formatMoney(price) : '';
+      const qtyBadge = `<span class="shopvd-qpe-qty">${qty}×</span>`;
+      const priceDisplay = priceText ? `<span class="shopvd-qpe-price">${priceText}</span>` : '';
+      
       return `
         <button
           type="button"
@@ -157,9 +161,14 @@
           aria-label="Sửa tên: ${safeName}"
           title="Bấm để sửa tên sản phẩm"
         >
-          <span class="shopvd-qpe-row-name">${safeName}</span>
-          ${qtyBadge}
-          <svg class="shopvd-qpe-row-icon" width="12" height="12" viewBox="0 0 24 24" fill="none"
+          <div class="shopvd-qpe-row-content">
+            <span class="shopvd-qpe-row-name">${safeName}</span>
+            <div class="shopvd-qpe-row-meta">
+              ${qtyBadge}
+              ${priceDisplay}
+            </div>
+          </div>
+          <svg class="shopvd-qpe-row-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                aria-hidden="true">
             <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
@@ -171,12 +180,20 @@
     return `
       <div class="shopvd-qpe-list" data-order-id="${orderDbId}">
         <div class="shopvd-qpe-list-head">
-          <span class="shopvd-qpe-list-title">Sản phẩm trong đơn</span>
-          <span class="shopvd-qpe-list-hint">Bấm vào tên để sửa nhanh</span>
+          <svg class="shopvd-qpe-list-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 7h-9M14 17H5M6 3v4m0 14v-4"/>
+            <circle cx="18" cy="7" r="2"/><circle cx="6" cy="11" r="2"/><circle cx="18" cy="17" r="2"/>
+          </svg>
+          <span class="shopvd-qpe-list-title">Sản phẩm trong đơn (${products.length})</span>
         </div>
         <div class="shopvd-qpe-list-body">${rows || '<div class="shopvd-qpe-empty">Đơn chưa có sản phẩm</div>'}</div>
       </div>
     `;
+  }
+
+  function formatMoney(amount) {
+    if (!amount) return '0đ';
+    return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
   }
 
   // -------------------- Mount / re-render --------------------
@@ -275,14 +292,14 @@
     const bar = document.createElement('span');
     bar.className = 'shopvd-qpe-edit-bar';
     bar.innerHTML = `
-      <button type="button" class="shopvd-qpe-btn-save" title="Lưu (Enter)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      <button type="button" class="shopvd-qpe-btn-save" title="Lưu (Enter)" aria-label="Lưu">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
       </button>
-      <button type="button" class="shopvd-qpe-btn-cancel" title="Huỷ (ESC)">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      <button type="button" class="shopvd-qpe-btn-cancel" title="Hủy (ESC)" aria-label="Hủy">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
