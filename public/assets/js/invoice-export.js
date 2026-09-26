@@ -152,9 +152,11 @@ function createInvoiceExcelWorkbook(orders) {
             row['PhuongThucTT'] = paymentMethod;
             rows.push(row);
         } else {
-            products.forEach(p => {
+            // Chỉ điền MaHD ở dòng đầu tiên của mỗi đơn hàng
+            products.forEach((p, index) => {
                 const row = createBlankInvoiceRow();
-                row['MaHD'] = currentMaHD;
+                // Chỉ điền MaHD cho dòng đầu tiên (index === 0)
+                row['MaHD'] = index === 0 ? currentMaHD : '';
                 row['NgayHoaDon'] = orderDate;
                 row['TenDonVi'] = '';
                 row['TenNguoiMua'] = String(order.customer_name || '').trim();
