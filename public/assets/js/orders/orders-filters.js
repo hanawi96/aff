@@ -293,6 +293,10 @@ function filterOrdersData(preservePage = false) {
     const pageBeforeFilter = preservePage ? currentPage : null;
     const searchRaw = document.getElementById('searchInput')?.value || '';
     const searchTerm = searchRaw.toLowerCase();
+
+    // Kiểm tra ngầm: có đơn cũ hơn khớp từ khóa nhưng nằm ngoài 1000 đơn đã tải không?
+    // (debounce riêng bên trong, không ảnh hưởng tốc độ lọc local ở trên)
+    triggerServerSideSearchCheck(searchRaw);
     const searchScope = getSearchScope();
     // Mặc định đồng bộ với index.html: ưu tiên đơn chưa gửi (pending)
     const statusFilter = document.getElementById('statusFilter')?.value || 'pending';
@@ -1653,4 +1657,137 @@ function toggleTheTenBeFilter() {
     }
 
     filterOrdersData();
+}
+
+// ============================================
+// SERVER-SIDE SEARCH CHECK (đơn ngoài phạm vi 1000 đơn đã tải)
+// ============================================
+// Local search (searchIndexCache) chỉ lọc trong allOrdersData — vốn chỉ chứa
+// tối đa 1000 đơn mới nhất (xem loadOrdersData trong orders-data-loader.js).
+// Khi người dùng tìm 1 từ khóa cụ thể, đơn khớp có thể cũ hơn 1000 đơn đó và
+// sẽ KHÔNG xuất hiện trong bảng dù nó tồn tại trong database.
+//
+// Cơ chế dưới đây gọi API searchOrders (server-side, quét toàn bộ DB) ở nền,
+// debounce riêng 500ms để không tốn băng thông mỗi keystroke. Nếu server trả
+// về đơn có id KHÔNG nằm trong allOrdersData hiện tại → báo cho người dùng
+// bằng toast rõ ràng, KHÔNG tự chèn vào bảng (tránh phá logic sort/pagination
+// hiện có). Toàn bộ log console.log để dễ xác minh khi test.
+let _serverSearchDebounceTimer = null;
+let _serverSearchLastTerm = null;
+const SERVER_SEARCH_DEBOUNCE_MS = 500;
+const SERVER_SEARCH_MIN_CHARS = 2;
+
+/**
+ * Debounce wrapper — gọi checkServerSideSearchExtra sau khi người dùng ngừng gõ.
+ * @param {string} searchRaw - Giá trị thô của ô tìm kiếm (chưa lowercase)
+ */
+function triggerServerSideSearchCheck(searchRaw) {
+    const term = (searchRaw || '').trim();
+
+    if (_serverSearchDebounceTimer) {
+        clearTimeout(_serverSearchDebounceTimer);
+        _serverSearchDebounceTimer = null;
+    }
+
+    if (term.length < SERVER_SEARCH_MIN_CHARS) {
+        // Xóa ô tìm hoặc từ khóa quá ngắn — tắt banner loading và dừng theo dõi
+        _serverSearchLastTerm = null;
+        setServerSearchLoading(false);
+        return;
+    }
+
+    if (term === _serverSearchLastTerm) {
+        // Từ khóa không đổi so với lần kiểm tra gần nhất — không gọi lại API
+        console.log('[ServerSearch] Bỏ qua — từ khóa không đổi:', term);
+        return;
+    }
+
+    // Hiện banner "Đang tìm kiếm đơn hàng..." NGAY khi bắt đầu chờ debounce — người dùng
+    // biết hệ thống đang chuẩn bị tìm kiếm toàn bộ database (không chỉ 1000 đơn đã tải).
+    setServerSearchLoading(true);
+
+    _serverSearchDebounceTimer = setTimeout(() => {
+        checkServerSideSearchExtra(term);
+    }, SERVER_SEARCH_DEBOUNCE_MS);
+}
+
+/**
+ * Bật/tắt banner "Đang tìm kiếm đơn hàng..." ngay dưới tiêu đề bảng — hiện trong lúc
+ * đang chờ debounce hoặc đang gọi API searchOrders (tìm toàn bộ database).
+ * @param {boolean} isLoading
+ */
+function setServerSearchLoading(isLoading) {
+    const banner = document.getElementById('serverSearchLoadingBanner');
+    if (!banner) return;
+    banner.classList.toggle('hidden', !isLoading);
+}
+
+/**
+ * Gọi API searchOrders (quét toàn bộ DB) và so sánh với allOrdersData hiện tại.
+ * Nếu có đơn khớp từ khóa nhưng KHÔNG có trong allOrdersData (id không khớp) →
+ * đơn đó nằm ngoài phạm vi 1000 đơn đã tải → báo toast cho người dùng biết.
+ * @param {string} term - Từ khóa đã trim (>= 2 ký tự)
+ */
+async function checkServerSideSearchExtra(term) {
+    _serverSearchLastTerm = term;
+    console.log(`[ServerSearch] 🔍 Đang kiểm tra server cho từ khóa: "${term}"`);
+
+    try {
+        const url = `${CONFIG.API_URL}?action=searchOrders&q=${encodeURIComponent(term)}&limit=100`;
+        const startTime = Date.now();
+        const response = await fetch(url);
+        const elapsed = Date.now() - startTime;
+
+        if (!response.ok) {
+            console.warn(`[ServerSearch] ⚠️ Response không OK (status ${response.status}) — bỏ qua`);
+            return;
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+            console.warn('[ServerSearch] ⚠️ API trả lỗi:', data.error, data.code);
+            return;
+        }
+
+        console.log(`[ServerSearch] ✅ Server trả về ${data.orders.length} đơn khớp "${term}" (${elapsed}ms, queryTime server: ${data.queryTime}ms)`);
+
+        // So sánh với id đang có trong allOrdersData (1000 đơn đã tải)
+        const localIds = new Set((allOrdersData || []).map(o => Number(o.id)));
+        const extraOrders = data.orders.filter(o => !localIds.has(Number(o.id)));
+
+        if (extraOrders.length > 0) {
+            const localCountBefore = allOrdersData.length;
+            console.log(`[ServerSearch] 📦 Có ${extraOrders.length} đơn KHÔNG nằm trong ${localCountBefore} đơn đã tải (ngoài phạm vi local):`,
+                extraOrders.map(o => ({ id: o.id, order_id: o.order_id, customer_name: o.customer_name, created_at_unix: o.created_at_unix }))
+            );
+
+            // Gộp các đơn này vào allOrdersData để chúng thực sự HIỂN THỊ trên bảng
+            // (trước đây chỉ log + toast, không chèn vào bảng → người dùng thấy "Chưa có đơn hàng"
+            // dù server đã tìm thấy đơn — đây là bug đã fix).
+            let mergedCount = 0;
+            extraOrders.forEach((order) => {
+                if (typeof mergeOrderIntoLocalList === 'function' && mergeOrderIntoLocalList(order)) {
+                    mergedCount++;
+                }
+            });
+            console.log(`[ServerSearch] ➕ Đã gộp ${mergedCount}/${extraOrders.length} đơn vào allOrdersData (${localCountBefore} → ${allOrdersData.length})`);
+
+            if (mergedCount > 0) {
+                // allOrdersData vừa đổi độ dài → buộc build lại search index rồi lọc + render lại bảng.
+                // preservePage giữ trang hiện tại nếu còn hợp lệ; filterOrdersData sẽ tự gọi lại
+                // triggerServerSideSearchCheck nhưng vì searchTerm không đổi (_serverSearchLastTerm)
+                // nên sẽ bị bỏ qua, KHÔNG gọi lại API — an toàn, không lặp vô hạn.
+                invalidateSearchCache();
+                filterOrdersData(true);
+            }
+        } else {
+            console.log(`[ServerSearch] ✔️ Không có đơn nào ngoài phạm vi local — kết quả local search đã đầy đủ cho "${term}"`);
+        }
+    } catch (error) {
+        console.error('[ServerSearch] ❌ Lỗi khi gọi searchOrders:', error);
+    } finally {
+        // Luôn tắt banner loading khi xong — dù thành công, lỗi, hay không có gì thêm.
+        setServerSearchLoading(false);
+    }
 }

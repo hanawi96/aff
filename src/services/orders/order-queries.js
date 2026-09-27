@@ -190,6 +190,127 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
 }
 
 /**
+ * Tìm kiếm đơn hàng trên TOÀN BỘ database (không giới hạn bởi LIMIT 1000 của getRecentOrders).
+ * Dùng cho ô tìm kiếm trang admin khi cần tìm đơn cũ hơn số đơn đã tải về client.
+ *
+ * Query theo order_id, customer_name, customer_phone, address, notes (LOWER + LIKE '%term%').
+ * Cùng SELECT shape với getRecentOrders (đầy đủ) để frontend gắn thẳng vào allOrdersData/render table
+ * mà không cần xử lý riêng.
+ *
+ * @param {string} query - Từ khóa tìm kiếm (>= 2 ký tự)
+ * @param {number} limit - Số kết quả tối đa (default 100, max 500)
+ * @param {number} offset - Vị trí bắt đầu (phân trang, default 0)
+ * @param {object} env - Worker environment (env.DB)
+ * @param {object} corsHeaders
+ */
+export async function searchOrders(query, limit, offset, env, corsHeaders) {
+    const startTime = Date.now();
+    try {
+        const searchTerm = String(query || '').trim();
+        console.log(`🔍 [searchOrders] Bắt đầu tìm kiếm — term="${searchTerm}", limit=${limit}, offset=${offset}`);
+
+        if (searchTerm.length < 2) {
+            console.log('⚠️ [searchOrders] Từ khóa quá ngắn (< 2 ký tự) — trả lỗi validate');
+            return jsonResponse({
+                success: false,
+                error: 'Từ khóa tìm kiếm cần ít nhất 2 ký tự',
+                code: 'INVALID_SEARCH_TERM'
+            }, 400, corsHeaders);
+        }
+
+        if (searchTerm.length > 100) {
+            console.log('⚠️ [searchOrders] Từ khóa quá dài (> 100 ký tự) — trả lỗi validate');
+            return jsonResponse({
+                success: false,
+                error: 'Từ khóa tìm kiếm quá dài (tối đa 100 ký tự)',
+                code: 'INVALID_SEARCH_TERM'
+            }, 400, corsHeaders);
+        }
+
+        // Chuẩn hoá limit/offset — tránh query bất thường (âm, quá lớn, NaN)
+        const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 100, 1), 500);
+        const parsedOffset = Math.max(parseInt(offset, 10) || 0, 0);
+
+        // Pattern LIKE dùng chung cho mọi cột — search không phân biệt hoa/thường (LOWER ở cả 2 phía).
+        const pattern = `%${searchTerm.toLowerCase()}%`;
+
+        // Cùng cấu trúc SELECT với getRecentOrders (đầy đủ) — giữ nhất quán field cho frontend.
+        const sql = `
+            SELECT
+                orders.*,
+                ctv.commission_rate as ctv_commission_rate,
+                COALESCE(
+                    (SELECT SUM(oi.product_cost * oi.quantity)
+                     FROM order_items oi
+                     WHERE oi.order_id = orders.id),
+                    0
+                ) as product_cost,
+                (CASE WHEN COALESCE(orders.manual_invoice_exported, 0) = 1 THEN 1 ELSE 0 END)
+                + (SELECT COUNT(DISTINCT eh.id)
+                   FROM export_history eh
+                   WHERE eh.type='invoice'
+                     AND eh.status='downloaded'
+                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
+                  ) AS invoice_exported_count,
+                (SELECT MAX(eh.downloaded_at)
+                 FROM export_history eh
+                 WHERE eh.type='invoice'
+                   AND eh.status='downloaded'
+                   AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
+                ) AS last_invoice_downloaded_at,
+                (SELECT eh2.id FROM export_history eh2
+                    WHERE eh2.type='invoice' AND eh2.status='downloaded'
+                      AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
+                    ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_id,
+                (SELECT eh2.file_name FROM export_history eh2
+                    WHERE eh2.type='invoice' AND eh2.status='downloaded'
+                      AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
+                    ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name,
+                COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
+            FROM orders
+            LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
+            WHERE
+                LOWER(orders.order_id) LIKE ?
+                OR LOWER(orders.customer_phone) LIKE ?
+                OR LOWER(orders.customer_name) LIKE ?
+                OR LOWER(orders.address) LIKE ?
+                OR LOWER(orders.notes) LIKE ?
+            ORDER BY orders.created_at_unix DESC
+            LIMIT ? OFFSET ?
+        `;
+
+        const { results: orders } = await env.DB.prepare(sql)
+            .bind(pattern, pattern, pattern, pattern, pattern, parsedLimit, parsedOffset)
+            .all();
+
+        const queryTime = Date.now() - startTime;
+        console.log(`✅ [searchOrders] Xong — term="${searchTerm}", tìm được ${orders.length} đơn, thời gian ${queryTime}ms`);
+        if (queryTime > 500) {
+            console.warn(`🐢 [searchOrders] SLOW QUERY: ${queryTime}ms cho term="${searchTerm}" — xem xét index/FTS`);
+        }
+
+        return jsonResponse({
+            success: true,
+            orders: orders,
+            total: orders.length,
+            returned: orders.length,
+            hasMore: orders.length === parsedLimit,
+            searchTerm: searchTerm,
+            searchMode: 'server',
+            queryTime: queryTime
+        }, 200, corsHeaders);
+
+    } catch (error) {
+        console.error('❌ [searchOrders] Lỗi khi tìm kiếm đơn hàng:', error);
+        return jsonResponse({
+            success: false,
+            error: error.message || 'Không thể tìm kiếm đơn hàng',
+            code: 'DATABASE_ERROR'
+        }, 500, corsHeaders);
+    }
+}
+
+/**
  * Lấy 1 đơn hàng theo db id với FULL shape (đầy đủ mọi cột + ctv_commission_rate + product_cost),
  * dùng cho mobile khi mở SỬA đơn (vì danh sách lite đã bỏ bớt cột địa chỉ tách phần/đóng gói/thuế...).
  * Cùng shape với getRecentOrders (đầy đủ) để gắn thẳng vào allOrders.

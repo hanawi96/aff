@@ -26,7 +26,8 @@ import {
     getOrdersByReferralCode, 
     getOrdersByPhone, 
     getRecentOrders,
-    getOrderById 
+    getOrderById,
+    searchOrders
 } from '../services/orders/order-queries.js';
 
 import {
@@ -215,6 +216,14 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getOrderById':
             return await getOrderById(url.searchParams.get('id'), env, corsHeaders);
+
+        case 'searchOrders': {
+            const searchQ = url.searchParams.get('q') || '';
+            const searchLimit = url.searchParams.get('limit');
+            const searchOffset = url.searchParams.get('offset');
+            console.log(`📥 [GET] searchOrders — q="${searchQ}", limit=${searchLimit}, offset=${searchOffset}`);
+            return await searchOrders(searchQ, searchLimit, searchOffset, env, corsHeaders);
+        }
 
         case 'getPendingUnsavedOrders':
             return await listPendingUnsaved(env, corsHeaders);
