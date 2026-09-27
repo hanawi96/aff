@@ -940,19 +940,12 @@ function toggleCustomerSourceFilter(event) {
     const button = event.currentTarget;
     const wrap = button.parentElement;
 
-    const countBySource = { facebook: 0, zalo: 0, tiktok: 0, web: 0 };
-    allOrdersData.forEach((o) => {
-        const key = orderCustomerSourceFilterKey(o);
-        if (countBySource[key] != null) countBySource[key]++;
-    });
-    const totalOrders = allOrdersData.length;
-
     const sources = [
-        { value: 'all', label: 'Tất cả nguồn', color: 'gray', count: totalOrders },
-        { value: 'facebook', label: 'Facebook', color: 'blue', count: countBySource.facebook },
-        { value: 'zalo', label: 'Zalo', color: 'green', count: countBySource.zalo },
-        { value: 'tiktok', label: 'TikTok', color: 'slate', count: countBySource.tiktok },
-        { value: 'web', label: 'Web', color: 'violet', count: countBySource.web }
+        { value: 'all', label: 'Tất cả nguồn', color: 'gray' },
+        { value: 'facebook', label: 'Facebook', color: 'blue' },
+        { value: 'zalo', label: 'Zalo', color: 'green' },
+        { value: 'tiktok', label: 'TikTok', color: 'slate' },
+        { value: 'web', label: 'Web', color: 'violet' }
     ];
 
     const menu = document.createElement('div');
@@ -966,7 +959,6 @@ function toggleCustomerSourceFilter(event) {
         >
             <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
             <span class="text-sm text-gray-700 flex-1">${s.label}</span>
-            <span class="text-xs text-gray-400 font-medium tabular-nums">${s.count}</span>
             ${s.value === currentValue ? `
                 <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -1008,16 +1000,11 @@ function toggleCTVFilter(event) {
     const wrap = button.parentElement;
     const currentValue = document.getElementById('ctvFilter').value;
 
-    // Count orders
-    const totalOrders = allOrdersData.length;
-    const ordersWithCTV = allOrdersData.filter(o => o.referral_code).length;
-    const ordersWithoutCTV = totalOrders - ordersWithCTV;
-
-    // Simple 3 options
+    // Simple 3 options — chấm tròn màu (inline style để không phụ thuộc class Tailwind đã build)
     const options = [
-        { value: 'all', label: 'Tất cả đơn', icon: '📦', count: totalOrders },
-        { value: 'has_ctv', label: 'Đơn từ CTV', icon: '👥', count: ordersWithCTV },
-        { value: 'no_ctv', label: 'Không có CTV', icon: '🚫', count: ordersWithoutCTV }
+        { value: 'all', label: 'Tất cả đơn', dot: '#6b7280' },      // gray-500
+        { value: 'has_ctv', label: 'Đơn từ CTV', dot: '#3b82f6' },  // blue-500
+        { value: 'no_ctv', label: 'Không có CTV', dot: '#64748b' }  // slate-500
     ];
 
     // Create menu
@@ -1030,11 +1017,8 @@ function toggleCTVFilter(event) {
             onclick="selectCTVFilter('${opt.value}', '${opt.label}')"
             class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${opt.value === currentValue ? 'bg-blue-50' : ''}"
         >
-            <span class="text-xl flex-shrink-0">${opt.icon}</span>
-            <div class="flex-1 min-w-0">
-                <div class="text-sm text-gray-700 font-medium">${opt.label}</div>
-                <div class="text-xs text-gray-500">${opt.count} đơn hàng</div>
-            </div>
+            <span class="flex-shrink-0" style="width:12px;height:12px;border-radius:9999px;background:${opt.dot};"></span>
+            <span class="text-sm text-gray-700 flex-1">${opt.label}</span>
             ${opt.value === currentValue ? `
                 <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
