@@ -29,6 +29,7 @@ const RELATIVE_FILES = [
     'public/assets/js/orders/orders-sorting.js',
     'public/assets/js/orders/orders-stats.js',
     'public/assets/js/orders/orders-data-loader.js',
+    'public/assets/js/orders/orders-history.js',
     'public/assets/js/orders/orders-filters.js',
     'public/assets/js/orders/orders-bulk-actions.js',
     'public/assets/js/orders/orders-export-history.js',

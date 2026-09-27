@@ -189,6 +189,223 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
     }
 }
 
+// SELECT dùng chung (shape đầy đủ, giống getRecentOrders bản đầy đủ) — tránh lặp SQL dài.
+// {WHERE} và {ORDER_LIMIT} được thay ở từng hàm gọi.
+const ORDER_FULL_SELECT = `
+    SELECT
+        orders.*,
+        ctv.commission_rate as ctv_commission_rate,
+        COALESCE(
+            (SELECT SUM(oi.product_cost * oi.quantity)
+             FROM order_items oi
+             WHERE oi.order_id = orders.id),
+            0
+        ) as product_cost,
+        (CASE WHEN COALESCE(orders.manual_invoice_exported, 0) = 1 THEN 1 ELSE 0 END)
+        + (SELECT COUNT(DISTINCT eh.id)
+           FROM export_history eh
+           WHERE eh.type='invoice' AND eh.status='downloaded'
+             AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
+          ) AS invoice_exported_count,
+        (SELECT MAX(eh.downloaded_at)
+         FROM export_history eh
+         WHERE eh.type='invoice' AND eh.status='downloaded'
+           AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
+        ) AS last_invoice_downloaded_at,
+        (SELECT eh2.id FROM export_history eh2
+            WHERE eh2.type='invoice' AND eh2.status='downloaded'
+              AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
+            ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_id,
+        (SELECT eh2.file_name FROM export_history eh2
+            WHERE eh2.type='invoice' AND eh2.status='downloaded'
+              AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
+            ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name,
+        COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
+    FROM orders
+    LEFT JOIN ctv ON orders.referral_code = ctv.referral_code`;
+
+/**
+ * LUỒNG 1 — Lấy TOÀN BỘ đơn CHƯA GỬI HÀNG (pending / awaiting_reship / send_later),
+ * KHÔNG giới hạn số lượng, KHÔNG phân trang.
+ *
+ * Đây là tập dữ liệu nhỏ & bị chặn (đơn xử lý xong chuyển sang 'shipped' → rời khỏi tập),
+ * phục vụ mọi tính năng toàn cục ở client: banner "gửi sau cần làm", panel "thẻ tên bé",
+ * badge "chưa có size", chip chọn nhanh theo ngày, đếm số đơn chưa gửi. Vì tải đủ tập này
+ * nên các tính năng đó vẫn chính xác 100% như trước (không bị giới hạn top-1000 như getRecentOrders).
+ */
+export async function getUnshippedOrders(env, corsHeaders) {
+    const startTime = Date.now();
+    try {
+        const sql = `${ORDER_FULL_SELECT}
+            WHERE LOWER(TRIM(orders.status)) IN ('pending', 'awaiting_reship', 'send_later', 'processing')
+            ORDER BY orders.created_at_unix DESC`;
+
+        const { results: orders } = await env.DB.prepare(sql).all();
+
+        const queryTime = Date.now() - startTime;
+        console.log(`✅ [getUnshippedOrders] Tải ${orders.length} đơn chưa gửi hàng (${queryTime}ms)`);
+
+        return jsonResponse({
+            success: true,
+            orders: orders,
+            total: orders.length,
+            bucket: 'unshipped',
+            queryTime
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('❌ [getUnshippedOrders] Lỗi:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+/**
+ * LUỒNG 2 — Cursor pagination cho đơn ĐÃ GỬI / TẤT CẢ (dữ liệu phình to theo thời gian).
+ *
+ * Dùng khi người dùng lọc trạng thái "Đã gửi hàng" (shipped) hoặc "Tất cả trạng thái" (all).
+ * Cursor keyset: (sortValue, id) < (cursorSort, cursorId) — nhanh, không giảm tốc theo số trang.
+ * Chỉ hỗ trợ các filter ĐƠN GIẢN xử lý được bằng SQL (payment/source/ctv/invoice/date).
+ * Các filter phức tạp (search từ khóa, thiếu size, thẻ tên bé, có lưu ý) KHÔNG đi qua đây —
+ * frontend sẽ fallback về tải đầy đủ, nên không có rủi ro sai lệch.
+ *
+ * @param {object} params
+ * @param {string} params.statusFilter - 'shipped' | 'all'
+ * @param {string} params.paymentFilter - 'all' | 'bank' | 'cod'
+ * @param {string} params.customerSourceFilter - 'all' | zalo/facebook/tiktok/web
+ * @param {string} params.ctvFilter - 'all' | 'has_ctv' | 'no_ctv'
+ * @param {string} params.invoiceStatusFilter - 'all' | 'exported' | 'not_exported'
+ * @param {string} params.dateField - 'created' | 'shipped' (cột dùng để lọc ngày + sort)
+ * @param {number|null} params.dateStartMs - đầu khoảng (ms, VN) hoặc null
+ * @param {number|null} params.dateEndMs - cuối khoảng (ms, VN) hoặc null
+ * @param {'desc'|'asc'} params.sortDir - hướng sort theo dateField
+ * @param {number|null} params.cursorSort - giá trị sort của phần tử cuối trang trước
+ * @param {number|null} params.cursorId - id của phần tử cuối trang trước (tie-breaker)
+ * @param {number} params.limit - số đơn/trang
+ */
+export async function getOrdersHistoryPage(params, env, corsHeaders) {
+    const startTime = Date.now();
+    try {
+        const {
+            statusFilter = 'all',
+            paymentFilter = 'all',
+            customerSourceFilter = 'all',
+            ctvFilter = 'all',
+            invoiceStatusFilter = 'all',
+            dateField = 'created',
+            dateStartMs = null,
+            dateEndMs = null,
+            sortDir = 'desc',
+            cursorSort = null,
+            cursorId = null,
+            limit = 30
+        } = params || {};
+
+        const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 200);
+        const dir = sortDir === 'asc' ? 'ASC' : 'DESC';
+        // Cột sort/cursor: đơn đã gửi ưu tiên theo thời điểm gửi, còn lại theo thời điểm tạo.
+        const sortCol = dateField === 'shipped'
+            ? 'COALESCE(orders.shipped_at_unix, orders.created_at_unix)'
+            : 'orders.created_at_unix';
+
+        const where = [];
+        const binds = [];
+
+        // --- Trạng thái ---
+        if (statusFilter === 'shipped') {
+            where.push(`LOWER(TRIM(orders.status)) = 'shipped'`);
+        }
+        // 'all' → không thêm điều kiện status
+
+        // --- Phương thức thanh toán (DB lưu 'bank_transfer'/'bank' hoặc 'cod'/khác) ---
+        if (paymentFilter === 'bank') {
+            where.push(`LOWER(TRIM(COALESCE(orders.payment_method,''))) IN ('bank','bank_transfer','transfer','chuyen_khoan','ck')`);
+        } else if (paymentFilter === 'cod') {
+            where.push(`LOWER(TRIM(COALESCE(orders.payment_method,''))) NOT IN ('bank','bank_transfer','transfer','chuyen_khoan','ck')`);
+        }
+
+        // --- Nguồn khách (đơn thiếu field coi là facebook — đồng bộ client) ---
+        if (['zalo', 'facebook', 'tiktok', 'web'].includes(customerSourceFilter)) {
+            if (customerSourceFilter === 'facebook') {
+                where.push(`(LOWER(TRIM(COALESCE(orders.customer_source,''))) = 'facebook' OR COALESCE(orders.customer_source,'') = '')`);
+            } else {
+                where.push(`LOWER(TRIM(COALESCE(orders.customer_source,''))) = ?`);
+                binds.push(customerSourceFilter);
+            }
+        }
+
+        // --- CTV ---
+        if (ctvFilter === 'has_ctv') {
+            where.push(`(orders.referral_code IS NOT NULL AND TRIM(orders.referral_code) != '')`);
+        } else if (ctvFilter === 'no_ctv') {
+            where.push(`(orders.referral_code IS NULL OR TRIM(orders.referral_code) = '')`);
+        }
+
+        // --- Trạng thái HĐĐT (đã xuất = invoice_exported_at > 0 HOẶC manual_invoice_exported = 1) ---
+        if (invoiceStatusFilter === 'exported') {
+            where.push(`(COALESCE(orders.invoice_exported_at,0) > 0 OR COALESCE(orders.manual_invoice_exported,0) = 1)`);
+        } else if (invoiceStatusFilter === 'not_exported') {
+            where.push(`(COALESCE(orders.invoice_exported_at,0) = 0 AND COALESCE(orders.manual_invoice_exported,0) = 0)`);
+        }
+
+        // --- Khoảng ngày (theo sortCol) ---
+        if (dateStartMs != null && Number.isFinite(Number(dateStartMs))) {
+            where.push(`${sortCol} >= ?`);
+            binds.push(Number(dateStartMs));
+        }
+        if (dateEndMs != null && Number.isFinite(Number(dateEndMs))) {
+            where.push(`${sortCol} <= ?`);
+            binds.push(Number(dateEndMs));
+        }
+
+        // --- Cursor keyset: (sortCol, id) so với (cursorSort, cursorId) ---
+        if (cursorSort != null && cursorId != null
+            && Number.isFinite(Number(cursorSort)) && Number.isFinite(Number(cursorId))) {
+            const cmp = dir === 'ASC' ? '>' : '<';
+            // (sortCol > cursorSort) OR (sortCol = cursorSort AND id > cursorId)
+            where.push(`(${sortCol} ${cmp} ? OR (${sortCol} = ? AND orders.id ${cmp} ?))`);
+            binds.push(Number(cursorSort), Number(cursorSort), Number(cursorId));
+        }
+
+        const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+        // Lấy dư 1 dòng để biết còn trang sau không (hasMore) mà không cần COUNT.
+        const fetchLimit = parsedLimit + 1;
+        const sql = `${ORDER_FULL_SELECT}
+            ${whereClause}
+            ORDER BY ${sortCol} ${dir}, orders.id ${dir}
+            LIMIT ?`;
+        binds.push(fetchLimit);
+
+        const { results } = await env.DB.prepare(sql).bind(...binds).all();
+
+        const hasMore = results.length > parsedLimit;
+        const orders = hasMore ? results.slice(0, parsedLimit) : results;
+
+        // Cursor cho trang kế tiếp = giá trị sort + id của phần tử CUỐI trang này.
+        let nextCursor = null;
+        if (hasMore && orders.length > 0) {
+            const last = orders[orders.length - 1];
+            const lastSort = dateField === 'shipped'
+                ? (last.shipped_at_unix ?? last.created_at_unix)
+                : last.created_at_unix;
+            nextCursor = { sort: Number(lastSort), id: Number(last.id) };
+        }
+
+        const queryTime = Date.now() - startTime;
+        console.log(`✅ [getOrdersHistoryPage] status=${statusFilter} trả ${orders.length} đơn, hasMore=${hasMore} (${queryTime}ms)`);
+
+        return jsonResponse({
+            success: true,
+            orders,
+            returned: orders.length,
+            hasMore,
+            nextCursor,
+            queryTime
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('❌ [getOrdersHistoryPage] Lỗi:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
 /**
  * Tìm kiếm đơn hàng trên TOÀN BỘ database (không giới hạn bởi LIMIT 1000 của getRecentOrders).
  * Dùng cho ô tìm kiếm trang admin khi cần tìm đơn cũ hơn số đơn đã tải về client.

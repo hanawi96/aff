@@ -100,9 +100,18 @@ function renderOrdersTable(options = {}) {
     const endIndex = startIndex + itemsPerPage;
     const pageData = filteredOrdersData.slice(startIndex, endIndex);
 
+    // STT bắt đầu: ở HISTORY MODE (phân trang server), filteredOrdersData chỉ chứa 1 trang
+    // và currentPage luôn = 1, nên phải cộng offset theo trang server thật để STT tăng liên tục
+    // (trang 2 → 51..100). Local mode: offset = startIndex như bình thường.
+    let sttBase = startIndex;
+    if (typeof ordersHistoryState !== 'undefined' && ordersHistoryState.active) {
+        const pageIdx = ordersHistoryState.pageIndex || 1;
+        sttBase = (pageIdx - 1) * itemsPerPage;
+    }
+
     // Render rows for current page
     pageData.forEach((order, index) => {
-        const globalIndex = startIndex + index + 1;
+        const globalIndex = sttBase + index + 1;
         const row = createOrderRow(order, globalIndex, index, pageData.length, options);
         tbody.appendChild(row);
     });

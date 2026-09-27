@@ -125,12 +125,35 @@ function calculateOrderProfit(order) {
 // ORDER DATA UPDATE HELPER
 // ============================================
 
+/** Trạng thái được coi là "CHƯA GỬI HÀNG" — thuộc allOrdersData (LUỒNG 1). */
+const UNSHIPPED_STATUS_SET = new Set(['pending', 'awaiting_reship', 'send_later', 'processing']);
+
+function _isUnshippedStatus(status) {
+    return UNSHIPPED_STATUS_SET.has(String(status || 'pending').toLowerCase().trim());
+}
+
 // Helper function to update order data in both allOrdersData and filteredOrdersData
 function updateOrderData(orderId, updates) {
     // Update in allOrdersData
     const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
     if (orderIndex !== -1) {
         Object.assign(allOrdersData[orderIndex], updates);
+
+        // allOrdersData chỉ chứa đơn CHƯA GỬI (LUỒNG 1). Nếu đơn vừa đổi sang trạng thái
+        // ĐÃ GỬI (shipped/...) thì phải LOẠI khỏi allOrdersData để banner/badge/đếm đơn
+        // chưa gửi luôn chính xác. (Chiều ngược lại — shipped→pending — xử lý ở dưới.)
+        if (Object.prototype.hasOwnProperty.call(updates, 'status')
+            && !_isUnshippedStatus(updates.status)) {
+            allOrdersData.splice(orderIndex, 1);
+        }
+    } else if (Object.prototype.hasOwnProperty.call(updates, 'status')
+        && _isUnshippedStatus(updates.status)) {
+        // Đơn không có trong allOrdersData nhưng vừa chuyển VỀ trạng thái chưa gửi
+        // (vd. từ history mode "Đã gửi" đổi lại thành "Chưa gửi hàng"). Nạp lại bucket
+        // để đơn xuất hiện đúng chỗ — nhẹ, chỉ chạy khi thao tác hiếm này xảy ra.
+        if (typeof loadOrdersData === 'function') {
+            void loadOrdersData({ skipCache: true, silent: true, skipRender: true });
+        }
     }
 
     // Update in filteredOrdersData

@@ -33,6 +33,12 @@ function renderPagination(totalPages) {
     const paginationContainer = document.getElementById('paginationContainer');
     if (!paginationContainer) return;
 
+    // HISTORY MODE: phân trang server bằng cursor → chỉ Trước/Sau (không nhảy số trang tuỳ ý).
+    if (typeof ordersHistoryState !== 'undefined' && ordersHistoryState.active) {
+        renderHistoryPagination();
+        return;
+    }
+
     if (!filteredOrdersData.length) {
         paginationContainer.innerHTML = '';
         return;
@@ -108,6 +114,47 @@ function renderPagination(totalPages) {
     html += '</div></div>';
 
     paginationContainer.innerHTML = html;
+}
+
+/**
+ * Phân trang cho HISTORY MODE — chỉ nút Trước / Sau (cursor pagination server).
+ * "Sau" tắt khi !hasMore; "Trước" tắt khi đang ở trang 1.
+ */
+function renderHistoryPagination() {
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (!paginationContainer) return;
+
+    const st = ordersHistoryState;
+    const pageIndex = st.pageIndex || 1;
+    const count = filteredOrdersData.length;
+
+    if (count === 0 && pageIndex <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+
+    const canPrev = pageIndex > 1 && !st.loading;
+    const canNext = st.hasMore && !st.loading;
+
+    const infoHtml = `<span class="tabular-nums text-sm text-gray-500" title="Trang hiện tại · số đơn trên trang">Trang <span class="font-semibold text-gray-800">${pageIndex}</span><span class="mx-1 text-gray-300">·</span>${count} đơn</span>`;
+    const pageSizeHtml = buildOrdersPageSizeSelectHtml();
+
+    const prevBtn = `<button onclick="historyPrevPage()" ${canPrev ? '' : 'disabled'}
+        class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ${canPrev ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'} transition-colors inline-flex items-center gap-1">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+        <span>Trước</span>
+    </button>`;
+
+    const nextBtn = `<button onclick="historyNextPage()" ${canNext ? '' : 'disabled'}
+        class="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium ${canNext ? 'text-gray-700 hover:bg-gray-50' : 'text-gray-400 cursor-not-allowed'} transition-colors inline-flex items-center gap-1">
+        <span>Sau</span>
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+    </button>`;
+
+    paginationContainer.innerHTML = `<div class="flex flex-col gap-2 border-t border-gray-100 bg-gray-50/50 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div class="flex flex-wrap items-center gap-2">${infoHtml}<span class="hidden text-gray-300 sm:inline" aria-hidden="true">|</span>${pageSizeHtml}</div>
+        <div class="flex items-center gap-1.5">${prevBtn}${nextBtn}</div>
+    </div>`;
 }
 
 // ============================================

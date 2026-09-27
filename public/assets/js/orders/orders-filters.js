@@ -294,6 +294,13 @@ function filterOrdersData(preservePage = false) {
     const searchRaw = document.getElementById('searchInput')?.value || '';
     const searchTerm = searchRaw.toLowerCase();
 
+    // LUỒNG 2 (HISTORY MODE): đơn đã gửi / tất cả → phân trang server (cursor).
+    // Nếu maybeHandleHistoryMode() nhận xử lý, nó tự fetch + render + phân trang Trước/Sau,
+    // KHÔNG chạy phần lọc local bên dưới (allOrdersData chỉ chứa đơn CHƯA GỬI).
+    if (typeof maybeHandleHistoryMode === 'function' && maybeHandleHistoryMode()) {
+        return;
+    }
+
     // Kiểm tra ngầm: có đơn cũ hơn khớp từ khóa nhưng nằm ngoài 1000 đơn đã tải không?
     // (debounce riêng bên trong, không ảnh hưởng tốc độ lọc local ở trên)
     triggerServerSideSearchCheck(searchRaw);

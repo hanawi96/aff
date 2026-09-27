@@ -197,17 +197,21 @@ async function updateOrderStatus(orderId, newStatus, orderCode, silent = false, 
         const data = await response.json();
 
         if (data.success) {
-            // Cập nhật nguồn dữ liệu gốc — filteredOrdersData sẽ được tính lại bởi filterOrdersData
-            const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
-            if (orderIndex !== -1) {
-                allOrdersData[orderIndex].status = newStatus;
-                if (Object.prototype.hasOwnProperty.call(data, 'shipped_at_unix')) {
-                    allOrdersData[orderIndex].shipped_at_unix = data.shipped_at_unix;
-                }
-                // Cập nhật trạng thái ưu tiên từ backend (đã gửi hàng → tự động bỏ ưu tiên)
-                if (Object.prototype.hasOwnProperty.call(data, 'is_priority')) {
-                    allOrdersData[orderIndex].is_priority = data.is_priority;
-                }
+            // Cập nhật qua updateOrderData để đồng bộ bucket allOrdersData (đơn chưa gửi):
+            // nếu đổi sang trạng thái đã gửi, đơn sẽ tự bị loại khỏi allOrdersData.
+            const patch = { status: newStatus };
+            if (Object.prototype.hasOwnProperty.call(data, 'shipped_at_unix')) {
+                patch.shipped_at_unix = data.shipped_at_unix;
+            }
+            // Cập nhật trạng thái ưu tiên từ backend (đã gửi hàng → tự động bỏ ưu tiên)
+            if (Object.prototype.hasOwnProperty.call(data, 'is_priority')) {
+                patch.is_priority = data.is_priority;
+            }
+            if (typeof updateOrderData === 'function') {
+                updateOrderData(orderId, patch);
+            } else {
+                const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
+                if (orderIndex !== -1) Object.assign(allOrdersData[orderIndex], patch);
             }
 
             // Áp lại bộ lọc hiện tại: đơn không còn khớp (vd. đã gửi khi đang lọc chưa gửi) sẽ biến mất ngay

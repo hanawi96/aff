@@ -245,7 +245,9 @@ async function loadOrdersData(options = {}) {
             hideLoading();
         }
 
-        const response = await fetch(`${CONFIG.API_URL}?action=getRecentOrders&limit=1000&timestamp=${Date.now()}`);
+        // LUỒNG 1: chỉ tải TOÀN BỘ đơn CHƯA GỬI HÀNG (tập nhỏ, bị chặn) thay vì 1000 đơn mọi trạng thái.
+        // Đơn đã gửi / tất cả → xem qua HISTORY MODE (cursor pagination, orders-history.js).
+        const response = await fetch(`${CONFIG.API_URL}?action=getUnshippedOrders&timestamp=${Date.now()}`);
 
         if (!response.ok) {
             throw new Error('Network response was not ok');

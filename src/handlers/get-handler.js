@@ -27,7 +27,9 @@ import {
     getOrdersByPhone, 
     getRecentOrders,
     getOrderById,
-    searchOrders
+    searchOrders,
+    getUnshippedOrders,
+    getOrdersHistoryPage
 } from '../services/orders/order-queries.js';
 
 import {
@@ -223,6 +225,34 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             const searchOffset = url.searchParams.get('offset');
             console.log(`📥 [GET] searchOrders — q="${searchQ}", limit=${searchLimit}, offset=${searchOffset}`);
             return await searchOrders(searchQ, searchLimit, searchOffset, env, corsHeaders);
+        }
+
+        case 'getUnshippedOrders':
+            // LUỒNG 1: toàn bộ đơn chưa gửi hàng (không phân trang)
+            return await getUnshippedOrders(env, corsHeaders);
+
+        case 'getOrdersHistoryPage': {
+            // LUỒNG 2: cursor pagination cho đơn đã gửi / tất cả
+            const cSort = url.searchParams.get('cursorSort');
+            const cId = url.searchParams.get('cursorId');
+            const dStart = url.searchParams.get('dateStartMs');
+            const dEnd = url.searchParams.get('dateEndMs');
+            const historyParams = {
+                statusFilter: url.searchParams.get('statusFilter') || 'all',
+                paymentFilter: url.searchParams.get('paymentFilter') || 'all',
+                customerSourceFilter: url.searchParams.get('customerSourceFilter') || 'all',
+                ctvFilter: url.searchParams.get('ctvFilter') || 'all',
+                invoiceStatusFilter: url.searchParams.get('invoiceStatusFilter') || 'all',
+                dateField: url.searchParams.get('dateField') || 'created',
+                dateStartMs: dStart !== null && dStart !== '' ? Number(dStart) : null,
+                dateEndMs: dEnd !== null && dEnd !== '' ? Number(dEnd) : null,
+                sortDir: url.searchParams.get('sortDir') || 'desc',
+                cursorSort: cSort !== null && cSort !== '' ? Number(cSort) : null,
+                cursorId: cId !== null && cId !== '' ? Number(cId) : null,
+                limit: url.searchParams.get('limit') || 30
+            };
+            console.log(`📥 [GET] getOrdersHistoryPage —`, JSON.stringify(historyParams));
+            return await getOrdersHistoryPage(historyParams, env, corsHeaders);
         }
 
         case 'getPendingUnsavedOrders':

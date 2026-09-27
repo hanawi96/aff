@@ -8,126 +8,20 @@
 // ============================================
 
 /**
- * Update statistics cards based on filtered data
+ * Cập nhật thẻ thống kê — CHỈ còn 1 chỉ số: số đơn CHƯA GỬI HÀNG.
+ * allOrdersData (LUỒNG 1) luôn chứa toàn bộ đơn chưa gửi hàng → dùng trực tiếp độ dài,
+ * không phụ thuộc bộ lọc/trang hiện tại. Đã bỏ 3 thẻ doanh thu / lợi nhuận / TB đơn
+ * để làm nhẹ hệ thống (không quét/tính tổng tài chính ở client nữa).
  */
 function updateStats() {
-    // Use filteredOrdersData to show stats based on current filter
-    // This allows stats to update when date filter changes
-    const dataToUse = filteredOrdersData.length > 0 || document.getElementById('dateFilter')?.value !== 'all'
-        ? filteredOrdersData
-        : allOrdersData;
-
-    const totalOrders = dataToUse.length;
-
-    // Calculate total revenue from total_amount (already includes products + shipping_fee)
-    const totalRevenue = dataToUse.reduce((sum, order) => {
-        return sum + (order.total_amount || 0);
-    }, 0);
-
-    // Lợi nhuận ròng: cộng calculateOrderProfit — cùng logic cột "Lãi ròng" và breakdown modal.
-    // Khớp getDetailedAnalytics: mỗi đơn = total_amount - (product_cost + shipping_cost + packaging_cost + commission + tax).
-    const totalProfit = dataToUse.reduce((sum, order) => sum + calculateOrderProfit(order), 0);
-    const profitValueClass =
-        totalProfit > 0
-            ? 'text-3xl font-bold text-emerald-600'
-            : totalProfit < 0
-              ? 'text-3xl font-bold text-red-600'
-              : 'text-3xl font-bold text-gray-600';
-
-    // Calculate average order value
-    const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
-
-    // Update stats - Remove skeleton and add text
-    updateStatElement('totalOrders', totalOrders, 'text-3xl font-bold text-blue-600');
-    updateStatElement('totalRevenue', formatCurrency(totalRevenue), 'text-3xl font-bold text-green-600');
-    updateStatElement('ordersDashboardProfit', formatCurrency(totalProfit), profitValueClass);
-    updateStatElement('todayOrders', formatCurrency(avgOrderValue), 'text-3xl font-bold text-purple-600');
-
-    // Update stat labels based on filter
-    updateStatLabels();
-}
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-/**
- * Helper function to update stat element
- * @param {string} elementId - Element ID
- * @param {string|number} value - Value to display
- * @param {string} className - CSS classes
- */
-function updateStatElement(elementId, value, className) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.classList.remove('skeleton', 'h-10', 'w-16', 'w-24', 'rounded');
-        element.className = className;
-        element.textContent = value;
+    // Hiển thị số đơn CHƯA GỬI HÀNG ngay trên tiêu đề bảng:
+    // "Danh Sách Đơn Hàng (24 đơn hàng chưa gửi)". allOrdersData luôn = bucket đơn chưa gửi.
+    const unshippedCount = Array.isArray(allOrdersData) ? allOrdersData.length : 0;
+    const label = document.getElementById('unshippedCountLabel');
+    if (label) {
+        label.textContent = ` (${unshippedCount} đơn hàng chưa gửi)`;
     }
 }
 
-/**
- * Update stat labels based on current filter
- */
-function updateStatLabels() {
-    const dateFilter = document.getElementById('dateFilter')?.value || 'all';
-    const customDateStart = document.getElementById('customDateStart')?.value;
-    const customDateEnd = document.getElementById('customDateEnd')?.value;
-
-    let periodLabel = '';
-
-    if (dateFilter === 'all') {
-        periodLabel = 'Tổng';
-    } else if (dateFilter === 'today') {
-        periodLabel = 'Hôm nay';
-    } else if (dateFilter === 'yesterday') {
-        periodLabel = 'Hôm qua';
-    } else if (dateFilter === 'week') {
-        periodLabel = '7 ngày';
-    } else if (dateFilter === 'month') {
-        periodLabel = '30 ngày';
-    } else if (dateFilter === 'lastMonth') {
-        periodLabel = 'Tháng trước';
-    } else if (dateFilter === 'custom' && customDateStart && customDateEnd) {
-        if (customDateStart === customDateEnd) {
-            // Single date
-            const date = new Date(customDateStart + 'T00:00:00');
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            periodLabel = `${day}/${month}`;
-        } else {
-            // Date range
-            const start = new Date(customDateStart + 'T00:00:00');
-            const end = new Date(customDateEnd + 'T00:00:00');
-            const startDay = String(start.getDate()).padStart(2, '0');
-            const startMonth = String(start.getMonth() + 1).padStart(2, '0');
-            const endDay = String(end.getDate()).padStart(2, '0');
-            const endMonth = String(end.getMonth() + 1).padStart(2, '0');
-
-            if (start.getMonth() === end.getMonth()) {
-                periodLabel = `${startDay}-${endDay}/${endMonth}`;
-            } else {
-                periodLabel = `${startDay}/${startMonth}-${endDay}/${endMonth}`;
-            }
-        }
-    }
-
-    // Update labels
-    const totalOrdersLabel = document.getElementById('totalOrdersLabel');
-    const totalRevenueLabel = document.getElementById('totalRevenueLabel');
-    const ordersDashboardProfitLabel = document.getElementById('ordersDashboardProfitLabel');
-    const todayOrdersLabel = document.getElementById('todayOrdersLabel');
-
-    if (totalOrdersLabel) {
-        totalOrdersLabel.textContent = periodLabel ? `${periodLabel} - Đơn hàng` : 'Tổng đơn hàng';
-    }
-    if (totalRevenueLabel) {
-        totalRevenueLabel.textContent = periodLabel ? `${periodLabel} - Doanh thu` : 'Tổng doanh thu';
-    }
-    if (ordersDashboardProfitLabel) {
-        ordersDashboardProfitLabel.textContent = periodLabel ? `${periodLabel} - Lợi nhuận` : 'Lợi nhuận (Lãi ròng)';
-    }
-    if (todayOrdersLabel) {
-        todayOrdersLabel.textContent = periodLabel ? `${periodLabel} - TB/đơn` : 'Giá trị TB/đơn';
-    }
-}
+// (Đã bỏ updateStatElement + updateStatLabels — trước phục vụ 4 thẻ thống kê.
+//  Nay số đơn chưa gửi hiển thị thẳng trên tiêu đề bảng qua #unshippedCountLabel.)
