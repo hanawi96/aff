@@ -3,6 +3,27 @@
 // NOTE: All functions remain at global scope for backward compatibility
 // DEPENDENCIES: Uses global variables from orders.js (selectedOrderIds, allOrdersData)
 
+/**
+ * Lấy object đơn hàng đã chọn (theo selectedOrderIds) — GỘP từ cả allOrdersData (đơn chưa gửi,
+ * local mode) VÀ filteredOrdersData (đơn đã gửi/tất cả đang hiển thị, history mode), khử trùng
+ * theo id. Cần thiết vì ở HISTORY MODE đơn đã gửi KHÔNG nằm trong allOrdersData mà chỉ có trong
+ * filteredOrdersData (dữ liệu trang server hiện tại) → nếu chỉ lọc allOrdersData sẽ ra rỗng.
+ * @returns {Array<object>}
+ */
+function getSelectedOrderObjects() {
+    const map = new Map();
+    const collect = (arr) => {
+        if (!Array.isArray(arr)) return;
+        for (const o of arr) {
+            const id = Number(o.id);
+            if (selectedOrderIds.has(id) && !map.has(id)) map.set(id, o);
+        }
+    };
+    collect(typeof filteredOrdersData !== 'undefined' ? filteredOrdersData : null);
+    collect(typeof allOrdersData !== 'undefined' ? allOrdersData : null);
+    return Array.from(map.values());
+}
+
 // ============================================
 // CHECKBOX HANDLING
 // ============================================
@@ -558,7 +579,7 @@ async function bulkExportInvoice() {
             await loadXLSXLibrary();
         }
 
-        const selectedOrders = allOrdersData.filter((o) => selectedOrderIds.has(o.id));
+        const selectedOrders = getSelectedOrderObjects();
         if (selectedOrders.length === 0) {
             showToast('Không tìm thấy dữ liệu các đơn đã chọn', 'warning');
             return;
@@ -679,7 +700,7 @@ async function bulkExport() {
             await loadXLSXLibrary();
         }
 
-        const selectedOrders = allOrdersData.filter((o) => selectedOrderIds.has(o.id));
+        const selectedOrders = getSelectedOrderObjects();
 
         const missingEntries = [];
         for (const order of selectedOrders) {
@@ -1075,7 +1096,7 @@ async function confirmBulkToggleInvoiceStatus() {
     const TOAST_ID = 'bulk-toggle-invoice';
     
     try {
-        const selectedOrders = allOrdersData.filter(o => selectedOrderIds.has(Number(o.id)));
+        const selectedOrders = getSelectedOrderObjects();
         
         if (selectedOrders.length === 0) {
             showToast('Không tìm thấy dữ liệu các đơn đã chọn', 'warning');
