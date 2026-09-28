@@ -662,6 +662,7 @@ let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
 /** Khi đang tìm: null = mọi trạng thái; 'pending'|'shipped' = chỉ tab đang chọn */
 let searchListScope=null;
 // ─── LUỒNG 2: đơn ĐÃ GỬI (tab "Đ.gửi") — cursor pagination, tải dần "Xem tiếp" ───
+let _lastRenderSig=null;          // chữ ký lần vẽ gần nhất — trùng thì bỏ qua vẽ lại (chống nháy khi nhiều nguồn gọi render)
 let shippedOrders=[];             // danh sách đơn đã gửi đã tải (append dồn qua các trang)
 let _shippedCursor=null;          // {sort,id} cho trang kế tiếp (từ response nextCursor)
 let _shippedHasMore=false;        // còn trang sau không
@@ -1143,7 +1144,14 @@ document.addEventListener('DOMContentLoaded',()=>{
 async function bootOrdersAndDeepLink(){
   // Tải catalog SP nền để nhận diện DM không cần cân (badge/lọc/thẻ đơn).
   void loadProductList();
-  await loadOrdersInternal();
+  // Đặt cờ để listener pageshow/visibilitychange KHÔNG chạy loadOrdersInternal SONG SONG lúc boot
+  // (trước đây gây tải getUnshippedOrders 2 lần chồng nhau → render thừa 1 lần).
+  _ordersRefreshInFlight=true;
+  try{
+    await loadOrdersInternal();
+  }finally{
+    _ordersRefreshInFlight=false;
+  }
   if(orderIdFromHash()!=null){
     tryOpenOrderFromHash();
     return;
@@ -1348,8 +1356,11 @@ async function loadOrdersInternal(opts){
       _ordersLastFetchedAt=Date.now();
       // Chỉ render lại khi dữ liệu thực sự đổi so với cache/lần trước → tránh nháy vô ích khi reload nền.
       const changed=_ordersSignature(fresh)!==_ordersSignature(allOrders);
+      const nothingShown=!document.querySelector('#orderList .order-card');
       allOrders=fresh;
-      if(changed||!silent)applyFilter({preservePage:silent&&!resetPage});
+      // Chỉ vẽ lại khi dữ liệu THỰC SỰ đổi, hoặc màn chưa có thẻ nào (lần đầu, chưa vẽ từ cache).
+      // → Nếu cache đã vẽ đúng và server trả y hệt thì KHÔNG vẽ lại (bỏ render thừa gây nháy).
+      if(changed||nothingShown)applyFilter({preservePage:silent&&!resetPage});
       document.getElementById('skeletons')?.remove();
       _writeOrdersCache(allOrders);
       // Nếu đang có từ khóa tìm → tìm lại trên máy chủ (đơn khớp có thể là đơn đã gửi / đơn cũ ngoài tập chưa gửi).
@@ -1636,12 +1647,22 @@ function updateCounts(){
   set('countPending',c('pending'));set('countSendLater',c('send_later'));
 }
 
-function renderCards(){
+function renderCards(force){
   const list=document.getElementById('orderList');
   const empty=document.getElementById('emptyState');
   const more=document.getElementById('loadMore');
   const slice=filtered.slice(0,page*PAGE_SIZE);
-  
+
+  // CHỐNG NHÁY: nếu kết quả vẽ ra y hệt lần trước (cùng tab, cùng tập đơn + field hiển thị hay đổi),
+  // bỏ qua toàn bộ thao tác DOM (xóa + vẽ lại). Nhiều nguồn (cache, load, refresh nền, catalog) có thể
+  // gọi renderCards liên tiếp với CÙNG dữ liệu → nếu vẫn xóa/vẽ lại sẽ gây chớp danh sách.
+  const _sig=currentTab+'|'+_serverSearchActive+'|'+slice.length+'|'+slice.map(o=>o.id+':'+(o.status||'')+':'+(o.is_priority||0)+':'+(o.shipped_at_unix||0)+':'+(o.updated_at_unix||o.created_at_unix||0)).join(',');
+  if(!force&&_sig===_lastRenderSig&&list.querySelector('.order-card')){
+    // Vẫn cập nhật nút "Xem tiếp"/empty cho đúng nhưng KHÔNG đụng danh sách thẻ.
+    return;
+  }
+  _lastRenderSig=_sig;
+
   // Remove old cards
   list.querySelectorAll('.order-card').forEach(el=>el.remove());
   
@@ -3374,8 +3395,10 @@ async function loadProductList(){
       prefetchCategorySheetImages();
     }
     if(typeof invalidateOrderCatalogNameCache==='function')invalidateOrderCatalogNameCache();
+    // Catalog SP ảnh hưởng badge "thiếu size" trên thẻ đơn → buộc vẽ lại 1 lần (bỏ qua guard chống nháy,
+    // vì thay đổi nằm ở badge chứ không ở tập đơn/chữ ký). Chỉ khi có đơn để tránh vẽ vô ích.
     if(typeof applyFilter==='function'&&typeof renderCards==='function'&&allOrders?.length){
-      applyFilter();renderCards();
+      applyFilter();renderCards(true);
     }
   }catch{}
 }
