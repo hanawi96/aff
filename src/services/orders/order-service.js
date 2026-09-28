@@ -1229,6 +1229,71 @@ export async function toggleOrderPriority(data, env, corsHeaders) {
 }
 
 // ============================================
+// CANCEL INVOICE EXPORT — hủy xuất HĐĐT (reset về "chưa xuất")
+// ============================================
+// Khác với toggleInvoiceExportStatus (chỉ bỏ được đánh dấu THỦ CÔNG, chặn đơn đã xuất
+// qua hệ thống): hàm này reset CẢ HAI cờ — invoice_exported_at = 0 và
+// manual_invoice_exported = 0 — đưa đơn về trạng thái "chưa xuất" hoàn toàn.
+// Dùng cho nút "Hủy xuất" ở trang Hóa đơn điện tử. KHÔNG xóa file HĐĐT đã tạo trong
+// export_history (lịch sử file vẫn giữ), chỉ gỡ trạng thái đã-xuất khỏi đơn.
+export async function cancelInvoiceExport(data, env, corsHeaders) {
+    try {
+        const orderId = parseInt(data.orderId);
+        if (!orderId) {
+            return jsonResponse({ success: false, error: 'Thiếu orderId' }, 400, corsHeaders);
+        }
+
+        const order = await env.DB.prepare(`SELECT id FROM orders WHERE id = ?`).bind(orderId).first();
+        if (!order) {
+            return jsonResponse({ success: false, error: 'Không tìm thấy đơn hàng' }, 404, corsHeaders);
+        }
+
+        await env.DB.prepare(`
+            UPDATE orders
+            SET invoice_exported_at = 0,
+                manual_invoice_exported = 0
+            WHERE id = ?
+        `).bind(orderId).run();
+
+        // Tính lại count/last_* để client cập nhật badge ngay (giống toggleInvoiceExportStatus).
+        // Sau khi reset: manual=0 & exported_at=0 → count chỉ còn số file 'downloaded' chứa đơn.
+        const row = await env.DB.prepare(`
+            SELECT
+                (SELECT COUNT(*) FROM export_history eh
+                   WHERE eh.type='invoice' AND eh.status='downloaded'
+                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?)) AS invoice_exported_count,
+                (SELECT eh.id FROM export_history eh
+                   WHERE eh.type='invoice' AND eh.status='downloaded'
+                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?)
+                   ORDER BY eh.downloaded_at DESC LIMIT 1) AS last_invoice_export_id,
+                (SELECT eh.file_name FROM export_history eh
+                   WHERE eh.type='invoice' AND eh.status='downloaded'
+                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?)
+                   ORDER BY eh.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name,
+                (SELECT eh.downloaded_at FROM export_history eh
+                   WHERE eh.type='invoice' AND eh.status='downloaded'
+                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = ?)
+                   ORDER BY eh.downloaded_at DESC LIMIT 1) AS last_invoice_downloaded_at
+        `).bind(orderId, orderId, orderId, orderId).first();
+
+        return jsonResponse({
+            success: true,
+            orderId,
+            invoice_exported_at: 0,
+            manual_invoice_exported: 0,
+            invoice_exported_count: row?.invoice_exported_count || 0,
+            last_invoice_export_id: row?.last_invoice_export_id || null,
+            last_invoice_export_file_name: row?.last_invoice_export_file_name || null,
+            last_invoice_downloaded_at: row?.last_invoice_downloaded_at || null,
+            message: 'Đã hủy xuất HĐĐT — đơn về trạng thái chưa xuất'
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('Error cancelling invoice export:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+// ============================================
 // TOGGLE INVOICE EXPORT STATUS (manual)
 // ============================================
 

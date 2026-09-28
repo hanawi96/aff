@@ -48,7 +48,8 @@ import {
     deleteOrder,
     updateOrderStatus,
     toggleOrderPriority,
-    toggleInvoiceExportStatus
+    toggleInvoiceExportStatus,
+    cancelInvoiceExport
 } from '../services/orders/order-service.js';
 import { updateOrderProducts } from '../services/orders/order-items.js';
 
@@ -331,6 +332,8 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await toggleOrderPriority(data, env, corsHeaders);
         case 'toggleInvoiceExportStatus':
             return await toggleInvoiceExportStatus(data, env, corsHeaders);
+        case 'cancelInvoiceExport':
+            return await cancelInvoiceExport(data, env, corsHeaders);
         case 'deleteOrder':
             return await deleteOrder(data, env, corsHeaders);
         case 'getProfitReport':
