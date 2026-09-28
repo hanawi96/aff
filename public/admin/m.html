@@ -66,6 +66,10 @@ body{overscroll-behavior-y:contain}
 .no-scrollbar::-webkit-scrollbar{display:none}
 .no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
 @keyframes mRefreshSpin{to{transform:rotate(360deg)}}
+/* Thanh tiến trình tìm kiếm đơn (indeterminate) — chạy qua lại khi đang hỏi máy chủ */
+.m-search-progress{position:relative;height:2px;width:100%;overflow:hidden;border-radius:9999px;background:#e5e7eb}
+.m-search-progress::before{content:"";position:absolute;top:0;left:0;height:100%;width:40%;border-radius:9999px;background:linear-gradient(90deg,#818cf8,#6366f1,#818cf8);animation:mSearchBar 1.05s cubic-bezier(0.4,0,0.2,1) infinite}
+@keyframes mSearchBar{0%{left:-40%}100%{left:100%}}
 .m-refresh-spin{animation:mRefreshSpin .65s linear infinite}
 button#btnManualRefresh:disabled{opacity:.55;pointer-events:none}
 .ct-tab.active{background:#fff;color:#4f46e5;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
@@ -258,6 +262,21 @@ html.m-create-deeplink>body>header{display:none!important}
         </svg>
       </button>
     </div>
+    <!-- Trạng thái tìm trên máy chủ (đơn cũ ngoài danh sách đã tải) -->
+    <div id="serverSearchStatus" class="hidden mt-2">
+      <!-- Thanh tiến trình indeterminate: hiện khi đang tìm -->
+      <div id="serverSearchProgress" class="hidden m-search-progress mb-1.5" role="progressbar" aria-label="Đang tìm đơn hàng"></div>
+      <div class="flex items-center gap-1.5 px-1 text-[11px]">
+        <svg id="serverSearchSpinner" class="hidden w-3 h-3 animate-spin text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <svg id="serverSearchDoneIcon" class="hidden w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+        </svg>
+        <span id="serverSearchStatusText" class="text-gray-400"></span>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -274,7 +293,6 @@ html.m-create-deeplink>body>header{display:none!important}
     </button>
     <button class="tab flex-1 py-[7px] flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-[9px] text-gray-500" data-status="shipped" onclick="switchTab(this)">
       <span class="leading-none whitespace-nowrap">Đ. gửi</span>
-      <span id="countShipped" class="tab-badge text-[11px] font-semibold bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full leading-none min-w-[18px] text-center"></span>
     </button>
     <button class="tab flex-1 py-[7px] flex items-center justify-center gap-1 text-[13px] font-medium rounded-[9px] text-gray-500" data-status="stats" onclick="switchTab(this)">
       <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -319,6 +337,15 @@ html.m-create-deeplink>body>header{display:none!important}
     <div class="bg-white px-4 py-3.5 border-b border-gray-100 space-y-3"><div class="skeleton h-4 w-28 rounded"></div><div class="skeleton h-3 w-44 rounded mt-2"></div><div class="skeleton h-3 w-24 rounded mt-1"></div></div>
   </div>
   <div id="emptyState" class="hidden text-center py-12 text-gray-400 text-sm bg-white">Không có đơn hàng nào</div>
+  <!-- Loading khi đang tìm đơn trên máy chủ (chưa có kết quả cục bộ) -->
+  <div id="searchLoading" class="hidden flex flex-col items-center justify-center py-14 bg-white">
+    <svg class="w-8 h-8 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+    <p class="mt-3 text-sm font-medium text-gray-500">Đang tìm kiếm đơn hàng…</p>
+    <p class="mt-1 text-xs text-gray-400">Đang tra cứu cả những đơn cũ</p>
+  </div>
 </main>
 
 <!-- Load more -->
@@ -634,6 +661,13 @@ html.m-create-deeplink>body>header{display:none!important}
 let allOrders=[], filtered=[], currentTab='pending', searchTerm='', page=1;
 /** Khi đang tìm: null = mọi trạng thái; 'pending'|'shipped' = chỉ tab đang chọn */
 let searchListScope=null;
+// ─── LUỒNG 2: đơn ĐÃ GỬI (tab "Đ.gửi") — cursor pagination, tải dần "Xem tiếp" ───
+let shippedOrders=[];             // danh sách đơn đã gửi đã tải (append dồn qua các trang)
+let _shippedCursor=null;          // {sort,id} cho trang kế tiếp (từ response nextCursor)
+let _shippedHasMore=false;        // còn trang sau không
+let _shippedLoaded=false;         // đã tải trang đầu chưa (lazy khi mở tab Đ.gửi lần đầu)
+let _shippedLoading=false;        // đang gọi API trang đã gửi
+const SHIPPED_PAGE_SIZE=50;       // 50 đơn/trang như yêu cầu
 // ─── Filter state ───
 let mPriorityFilter=false, mMissingSizeFilter=false, mTheTenBeFilter=false, mHasNotesFilter=false;
 let mCustomerSourceFilter=null; // null | 'facebook' | 'zalo' | 'tiktok' | 'web'
@@ -944,6 +978,14 @@ function showTheTenBeNotes(orderId){
   if(modal&&content){content.innerHTML=body;modal.classList.remove('hidden');}
 }
 let _prevSearchTrimmed='';
+// ─── Server-side search (tìm đơn cũ ngoài danh sách 1000 đơn đã tải) ───
+let _serverSearchTimer=null;      // debounce timer
+let _serverSearchSeq=0;           // token chống race: chỉ nhận kết quả của lần tìm mới nhất
+let _serverSearchLastTerm='';     // term đã gửi lên server gần nhất (tránh gọi lại trùng)
+let _serverSearchActive=false;    // đang chờ/đang chạy tìm trên máy chủ → hiện loading thay vì "không có đơn"
+const SERVER_SEARCH_DEBOUNCE_MS=500;
+const SERVER_SEARCH_MIN_CHARS=2;
+const SERVER_SEARCH_LIMIT=200;
 const MAIN_TAB_IDS=new Set(['pending','send_later','shipped','stats']);
 const ORDER_HASH_RE=/^order\/(\d+)$/;
 const CREATE_HASH_RE=/^(create|new)$/;
@@ -1078,6 +1120,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('m-tab-boot')?.remove();
     // Vẽ ngay từ cache (nếu có) → không phải đợi skeleton; nếu chưa có cache thì vẽ rỗng + skeleton như cũ
     if(!hydrateOrdersFromCache())applyFilter();
+    // Mở thẳng tab "Đ.gửi" (qua hash) → tải trang 1 đơn đã gửi (LUỒNG 2), vì boot không gọi switchTab.
+    if(currentTab==='shipped'&&!_shippedLoaded&&!_shippedLoading)void loadShippedPage(true);
   }
   bootOrdersAndDeepLink().catch(()=>{});
   window.addEventListener('hashchange',onAppHashChange);
@@ -1120,12 +1164,20 @@ function onAppHashChange(){
       showDetail(o.id);
       return;
     }
-    document.documentElement.classList.remove('m-order-deeplink');
-    document.getElementById('detailPanel').classList.add('hidden');
-    document.body.style.overflow='';
-    if(MAIN_TAB_IDS.has(currentTab))syncOrderListTabHighlight();
-    setMainTabHash(currentTab);
-    toast('Không tìm thấy đơn hàng');
+    // Không có trong tập chưa gửi → thử lấy đơn đã gửi / fetch theo id.
+    ensureOrderInMemory(oid).then(found=>{
+      if(found&&orderIdFromHash()==oid){
+        closeCreatePanelOnly();
+        showDetail(found.id);
+      }else{
+        document.documentElement.classList.remove('m-order-deeplink');
+        document.getElementById('detailPanel').classList.add('hidden');
+        document.body.style.overflow='';
+        if(MAIN_TAB_IDS.has(currentTab))syncOrderListTabHighlight();
+        setMainTabHash(currentTab);
+        toast('Không tìm thấy đơn hàng');
+      }
+    });
     return;
   }
   const eid=editIdFromHash();
@@ -1140,11 +1192,21 @@ function onAppHashChange(){
       showEditOrder(o.id);
       return;
     }
-    clearCreateDeeplinkBoot();
-    document.getElementById('createPanel')?.classList.add('hidden');
-    document.body.style.overflow='';
-    toast('Không tìm thấy đơn hàng');
-    setMainTabHash(currentTab);
+    // Đơn sửa không có trong tập chưa gửi → thử lấy đơn đã gửi / fetch theo id.
+    ensureOrderInMemory(eid).then(found=>{
+      if(found&&editIdFromHash()==eid){
+        document.getElementById('detailPanel').classList.add('hidden');
+        detailOpenOrderId=null;
+        document.body.style.overflow='';
+        showEditOrder(found.id);
+      }else{
+        clearCreateDeeplinkBoot();
+        document.getElementById('createPanel')?.classList.add('hidden');
+        document.body.style.overflow='';
+        toast('Không tìm thấy đơn hàng');
+        setMainTabHash(currentTab);
+      }
+    });
     return;
   }
   if(isCreateRouteHash()){
@@ -1177,15 +1239,23 @@ function tryOpenOrderFromHash(){
   if(o){
     closeCreatePanelOnly();
     showDetail(o.id);
-  }else{
-    document.documentElement.classList.remove('m-order-deeplink');
-    document.getElementById('detailPanel').classList.add('hidden');
-    document.body.style.overflow='';
-    currentTab='pending';
-    syncOrderListTabHighlight();
-    setMainTabHash(currentTab);
-    toast('Không tìm thấy đơn hàng');
+    return;
   }
+  // Không có trong tập chưa gửi → thử lấy từ đơn đã gửi / fetch theo id (đơn đã gửi / đơn cũ).
+  ensureOrderInMemory(oid).then(found=>{
+    if(found&&orderIdFromHash()==oid){
+      closeCreatePanelOnly();
+      showDetail(found.id);
+    }else{
+      document.documentElement.classList.remove('m-order-deeplink');
+      document.getElementById('detailPanel').classList.add('hidden');
+      document.body.style.overflow='';
+      currentTab='pending';
+      syncOrderListTabHighlight();
+      setMainTabHash(currentTab);
+      toast('Không tìm thấy đơn hàng');
+    }
+  });
 }
 function tryOpenCreateFromHash(){
   if(!isCreateRouteHash())return;
@@ -1195,14 +1265,19 @@ function tryOpenEditFromHash(){
   const id=editIdFromHash();
   if(id==null)return;
   const o=allOrders.find(x=>x.id==id);
-  if(o)showEditOrder(o.id);
-  else{
-    clearCreateDeeplinkBoot();
-    document.getElementById('createPanel')?.classList.add('hidden');
-    document.body.style.overflow='';
-    toast('Không tìm thấy đơn hàng');
-    setMainTabHash(currentTab);
-  }
+  if(o){showEditOrder(o.id);return;}
+  // Đơn sửa không có trong tập chưa gửi → thử lấy đơn đã gửi / fetch theo id.
+  ensureOrderInMemory(id).then(found=>{
+    if(found&&editIdFromHash()==id){
+      showEditOrder(found.id);
+    }else{
+      clearCreateDeeplinkBoot();
+      document.getElementById('createPanel')?.classList.add('hidden');
+      document.body.style.overflow='';
+      toast('Không tìm thấy đơn hàng');
+      setMainTabHash(currentTab);
+    }
+  });
 }
 
 /* ===== Cache đơn hàng (stale-while-revalidate) =====
@@ -1224,6 +1299,17 @@ function _writeOrdersCache(orders){
   try{save(M_ORDERS_CACHE_MAX);}
   catch(_){try{save(Math.floor(M_ORDERS_CACHE_MAX/2));}catch(__){try{localStorage.removeItem(M_ORDERS_CACHE_KEY);}catch(___){}}}
 }
+/** Chữ ký nhẹ của danh sách đơn — để biết dữ liệu mới có KHÁC dữ liệu đang hiển thị không
+ *  (tránh render lại vô ích khi reload nền trả về y hệt → không nháy). Gồm id + status +
+ *  các mốc thời gian hay đổi (sửa đơn/gửi hàng) + tổng số đơn. */
+function _ordersSignature(list){
+  if(!Array.isArray(list)||!list.length)return '0';
+  let s=list.length+':';
+  for(const o of list){
+    s+=(o.id||'')+','+(o.status||'')+','+(o.shipped_at_unix||0)+','+(o.is_priority||0)+';';
+  }
+  return s;
+}
 /** Vẽ ngay từ cache nếu chưa có dữ liệu trong bộ nhớ. Trả về true nếu đã vẽ. */
 function hydrateOrdersFromCache(){
   if(allOrders&&allOrders.length)return false;
@@ -1237,7 +1323,7 @@ function hydrateOrdersFromCache(){
   return false;
 }
 
-const M_ORDERS_FIRST_PAGE=200; // Giai đoạn 1: số đơn mới nhất tải nhanh để vẽ ngay
+// (Đã bỏ cơ chế 2 giai đoạn getRecentOrders — nay dùng LUỒNG 1 getUnshippedOrders tải 1 lần.)
 /**
  * Tải đơn 2 giai đoạn (dùng endpoint lite — query nhẹ hơn ở server):
  *  - GĐ1: lấy 200 đơn mới nhất → vẽ ngay (chỉ khi chưa có gì để vẽ và KHÔNG mở deep-link,
@@ -1251,23 +1337,26 @@ async function loadOrdersInternal(opts){
   const resetPage=!!(opts&&opts.resetPage);
   const isDeepLink=(typeof orderIdFromHash==='function'&&orderIdFromHash()!=null)||(typeof editIdFromHash==='function'&&editIdFromHash()!=null);
   try{
-    // Giai đoạn 1 — vẽ nhanh (bỏ qua nếu đã có dữ liệu sẵn từ cache, hoặc đang mở deep-link / silent)
-    if(!silent&&!(allOrders&&allOrders.length)&&!isDeepLink){
-      try{
-        const r1=await fetch(`${API()}?action=getRecentOrders&lite=1&limit=${M_ORDERS_FIRST_PAGE}&timestamp=${Date.now()}`);
-        const d1=await r1.json();
-        if(d1&&d1.success){allOrders=d1.orders||[];applyFilter();document.getElementById('skeletons')?.remove();}
-      }catch(_){/* lỗi GĐ1 bỏ qua, GĐ2 sẽ xử lý */}
-    }
-    // Giai đoạn 2 — tải đầy đủ (lite). Đây mới là nguồn dữ liệu chính thức.
-    const r=await fetch(`${API()}?action=getRecentOrders&lite=1&limit=1000&timestamp=${Date.now()}`);
+    // LUỒNG 1 — Tải TOÀN BỘ đơn CHƯA GỬI (pending/awaiting_reship/send_later/processing) trong 1 request.
+    // Tập này nhỏ & bị chặn (đơn gửi xong rời khỏi tập) → tải hết một lần, render ĐÚNG 1 LẦN
+    // (hết cảnh nháy 2-3 lần do trước đây vẽ cache → 200 đơn → 1000 đơn).
+    // Đơn ĐÃ GỬI xem ở tab "Đ.gửi" qua LUỒNG 2 (cursor pagination, loadShippedPage).
+    const r=await fetch(`${API()}?action=getUnshippedOrders&timestamp=${Date.now()}`);
     const d=await r.json();
     if(d.success){
-      allOrders=d.orders||[];
+      const fresh=d.orders||[];
       _ordersLastFetchedAt=Date.now();
-      applyFilter({preservePage:silent&&!resetPage});
+      // Chỉ render lại khi dữ liệu thực sự đổi so với cache/lần trước → tránh nháy vô ích khi reload nền.
+      const changed=_ordersSignature(fresh)!==_ordersSignature(allOrders);
+      allOrders=fresh;
+      if(changed||!silent)applyFilter({preservePage:silent&&!resetPage});
       document.getElementById('skeletons')?.remove();
       _writeOrdersCache(allOrders);
+      // Nếu đang có từ khóa tìm → tìm lại trên máy chủ (đơn khớp có thể là đơn đã gửi / đơn cũ ngoài tập chưa gửi).
+      if(searchTerm&&searchTerm.trim().length>=SERVER_SEARCH_MIN_CHARS){
+        _serverSearchLastTerm='';   // buộc gọi lại dù term không đổi
+        triggerServerSearch(searchTerm);
+      }
       return true;
     }
     throw new Error(d.error);
@@ -1277,6 +1366,62 @@ async function loadOrdersInternal(opts){
     if(sk)sk.innerHTML='<p class="text-center text-red-500 text-sm py-8">Lỗi tải dữ liệu</p>';
     else if(!silent)console.warn('loadOrders error (background reload):', e.message);
     return false;
+  }
+}
+/**
+ * LUỒNG 2 — Tải 1 trang đơn ĐÃ GỬI (cursor pagination, 50 đơn/trang).
+ * @param {boolean} reset true = tải lại từ trang đầu (xóa danh sách cũ + cursor).
+ * Kết quả append vào shippedOrders; cập nhật _shippedCursor/_shippedHasMore.
+ * Chỉ render nếu đang ở tab "Đ.gửi" và không đang tìm kiếm.
+ */
+async function loadShippedPage(reset){
+  if(_shippedLoading)return false;
+  _shippedLoading=true;
+  const onShippedView=currentTab==='shipped'&&searchTerm.trim().length===0;
+  if(reset){shippedOrders=[];_shippedCursor=null;_shippedHasMore=false;_shippedLoaded=false;}
+  // Hiện loading: trang đầu (chưa có gì) → dùng ô loading tìm kiếm cho gọn; "Xem tiếp" → chữ trên nút.
+  if(onShippedView){
+    if(shippedOrders.length===0){
+      const sk=document.getElementById('skeletons');
+      if(sk)sk.classList.remove('hidden');
+    }else{
+      const txt=document.getElementById('loadMoreText');
+      if(txt)txt.textContent='Đang tải…';
+    }
+  }
+  try{
+    const p=new URLSearchParams();
+    p.set('action','getOrdersHistoryPage');
+    p.set('statusFilter','shipped');
+    p.set('dateField','shipped');
+    p.set('sortDir','desc');
+    p.set('limit',String(SHIPPED_PAGE_SIZE));
+    if(_shippedCursor&&Number.isFinite(_shippedCursor.sort)&&Number.isFinite(_shippedCursor.id)){
+      p.set('cursorSort',String(_shippedCursor.sort));
+      p.set('cursorId',String(_shippedCursor.id));
+    }
+    p.set('timestamp',String(Date.now()));
+    const r=await fetch(`${API()}?${p.toString()}`);
+    const d=await r.json();
+    if(!d||!d.success)throw new Error(d&&d.error||'Lỗi tải đơn đã gửi');
+    const batch=Array.isArray(d.orders)?d.orders:[];
+    // Dedupe theo id khi append (phòng trùng ở ranh giới cursor).
+    const seen=new Set(shippedOrders.map(o=>o.id));
+    for(const o of batch){if(o&&o.id!=null&&!seen.has(o.id)){shippedOrders.push(o);seen.add(o.id);}}
+    _shippedCursor=d.nextCursor||null;
+    _shippedHasMore=!!d.hasMore;
+    _shippedLoaded=true;
+    document.getElementById('skeletons')?.remove();
+    // Render nếu vẫn đang xem tab Đ.gửi (người dùng có thể đã chuyển tab trong lúc chờ mạng).
+    if(currentTab==='shipped'&&searchTerm.trim().length===0)applyFilter({preservePage:!reset});
+    return true;
+  }catch(e){
+    document.getElementById('skeletons')?.remove();
+    console.warn('[Shipped] Lỗi tải đơn đã gửi:',e.message);
+    if(onShippedView)toast('Không tải được đơn đã gửi: '+e.message);
+    return false;
+  }finally{
+    _shippedLoading=false;
   }
 }
 /** Khi mở lại app / quay lại tab — kéo đơn mới nếu đã cách lần tải trước đủ lâu */
@@ -1299,6 +1444,12 @@ async function manualRefreshOrders(){
     const ok=await loadOrdersInternal({silent:true,resetPage:true});
     if(ok&&currentTab==='stats'&&typeof loadData==='function'){
       try{await loadData();}catch(_){}
+    }
+    // Đang ở tab Đ.gửi → tải lại trang 1 đơn đã gửi (LUỒNG 2) cho mới; ngược lại đánh dấu tải lại sau.
+    if(currentTab==='shipped'&&searchTerm.trim().length===0){
+      try{await loadShippedPage(true);}catch(_){}
+    }else{
+      _shippedLoaded=false;
     }
     toast(ok?'Đã cập nhật đơn hàng':'Không tải được — thử lại');
   }finally{
@@ -1417,10 +1568,16 @@ function applyFilter(opts){
   const hasQ=searchTerm.trim().length>0;
   if(hasQ&&currentTab==='stats')leaveStatsForOrderSearch();
 
-  filtered=allOrders.filter(o=>{
+  // Nguồn dữ liệu: tab "Đ.gửi" (không tìm kiếm) đọc từ LUỒNG 2 (shippedOrders — cursor pagination);
+  // các tab còn lại + mọi tình huống tìm kiếm đọc từ allOrders (đơn chưa gửi + kết quả search gộp vào).
+  const useShippedSource=currentTab==='shipped'&&!hasQ;
+  const sourceOrders=useShippedSource?shippedOrders:allOrders;
+
+  filtered=sourceOrders.filter(o=>{
     if(currentTab==='stats'&&!hasQ)return true;
     if(!hasQ){
-      if(currentTab!=='all'&&currentTab!=='stats'&&!mOrderMatchesTab(o,currentTab))return false;
+      // shippedOrders đã do server lọc đúng status='shipped' → không cần lọc tab lại.
+      if(!useShippedSource&&currentTab!=='all'&&currentTab!=='stats'&&!mOrderMatchesTab(o,currentTab))return false;
     }else if(searchListScope!=null&&!mOrderMatchesTab(o,searchListScope))return false;
     if(q){
       if(!mOrderMatchesSearch(o,searchTerm))return false;
@@ -1474,7 +1631,9 @@ function updateCounts(){
     }).length;
   };
   const set=(id,n)=>{const el=document.getElementById(id);if(el)el.textContent=n};
-  set('countPending',c('pending'));set('countSendLater',c('send_later'));set('countShipped',c('shipped'));
+  // Chỉ đếm 2 tab đơn CHƯA GỬI (từ allOrders). Tab "Đ.gửi" KHÔNG hiển thị badge số
+  // (đơn đã gửi tải theo trang qua LUỒNG 2, không tải hết nên không đếm tổng ở client).
+  set('countPending',c('pending'));set('countSendLater',c('send_later'));
 }
 
 function renderCards(){
@@ -1486,8 +1645,16 @@ function renderCards(){
   // Remove old cards
   list.querySelectorAll('.order-card').forEach(el=>el.remove());
   
+  const searchLoading=document.getElementById('searchLoading');
   if(slice.length===0){
     more.classList.add('hidden');
+    // Đang tìm trên máy chủ (chưa có kết quả cục bộ) → hiện loading, KHÔNG hiện "không có đơn".
+    if(_serverSearchActive){
+      empty.classList.add('hidden');
+      searchLoading?.classList.remove('hidden');
+      return;
+    }
+    searchLoading?.classList.add('hidden');
     // Chưa tải xong danh sách — còn skeleton, không hiện "Không có đơn hàng nào"
     const stillLoading=document.getElementById('skeletons');
     if(stillLoading)empty.classList.add('hidden');
@@ -1495,6 +1662,7 @@ function renderCards(){
     return;
   }
   empty.classList.add('hidden');
+  searchLoading?.classList.add('hidden');
   
   const frag=document.createDocumentFragment();
   const hasQSearch=searchTerm.trim().length>0;
@@ -1591,9 +1759,22 @@ function renderCards(){
   });
   list.appendChild(frag);
   const remaining=filtered.length-slice.length;
+  const onShippedView=currentTab==='shipped'&&searchTerm.trim().length===0;
   // Tab Thống kê: không hiển thị "Xem tiếp" (applyFilter/renderCards vẫn chạy sau loadOrders)
   if(currentTab==='stats'){
     more.classList.add('hidden');
+  }else if(onShippedView){
+    // Tab Đ.gửi: còn "Xem tiếp" khi (a) danh sách đã tải còn phần chưa vẽ, HOẶC (b) server còn trang sau.
+    const txt=document.getElementById('loadMoreText');
+    if(remaining>0){
+      more.classList.remove('hidden');
+      if(txt)txt.textContent=`Xem tiếp ${remaining} đơn`;
+    }else if(_shippedHasMore){
+      more.classList.remove('hidden');
+      if(txt)txt.textContent=_shippedLoading?'Đang tải…':'Xem tiếp';
+    }else{
+      more.classList.add('hidden');
+    }
   }else{
     more.classList.toggle('hidden',remaining<=0);
     if(remaining>0){
@@ -1603,7 +1784,22 @@ function renderCards(){
   }
 }
 
-function loadMoreOrders(){page++;renderCards()}
+function loadMoreOrders(){
+  const onShippedView=currentTab==='shipped'&&searchTerm.trim().length===0;
+  if(onShippedView){
+    const shown=page*PAGE_SIZE;
+    // Còn đơn đã tải chưa vẽ → chỉ tăng trang (client). Đã vẽ hết & server còn → tải trang kế rồi vẽ thêm.
+    if(shown<filtered.length){page++;renderCards();return;}
+    if(_shippedHasMore&&!_shippedLoading){
+      const txt=document.getElementById('loadMoreText');
+      if(txt)txt.textContent='Đang tải…';
+      loadShippedPage(false).then(()=>{page++;renderCards();});
+      return;
+    }
+    return;
+  }
+  page++;renderCards();
+}
 
 // ─── Tabs & Search ───
 function switchTab(btn,opts){
@@ -1620,6 +1816,7 @@ function switchTab(btn,opts){
     document.getElementById('searchBar')?.classList.add('hidden');
     document.getElementById('searchInput').value='';
     searchTerm='';
+    resetServerSearch();
     syncMobileSearchClearButton();
     window.scrollTo(0,0);
     updateTabActive(currentPeriod);
@@ -1632,6 +1829,10 @@ function switchTab(btn,opts){
     else searchListScope=null;
     applyFilter();
     window.scrollTo(0,0);
+    // Tab Đ.gửi (không tìm kiếm): lần đầu vào → tải trang 1 LUỒNG 2 (cursor). Lần sau giữ nguyên đã tải.
+    if(currentTab==='shipped'&&q.length===0&&!_shippedLoaded&&!_shippedLoading){
+      void loadShippedPage(true);
+    }
   }
   if(!opts||!opts.skipUrl)setMainTabHash(currentTab);
 }
@@ -1699,6 +1900,7 @@ function clearMobileSearch(){
   searchTerm='';
   _prevSearchTrimmed='';
   searchListScope=null;
+  resetServerSearch();
   syncMobileSearchClearButton();
   applyFilter();
   inp.focus();
@@ -1712,7 +1914,117 @@ function onSearch(){
     _prevSearchTrimmed=t;
     searchTerm=t;
     applyFilter();
+    // Sau khi lọc cục bộ (trong đơn đã tải), hỏi thêm máy chủ để tìm đơn cũ ngoài danh sách.
+    triggerServerSearch(t);
   },200);
+}
+
+let _serverSearchHideTimer=null;
+/**
+ * Hiện/ẩn trạng thái tìm trên máy chủ dưới ô tìm kiếm.
+ * @param {{busy?:boolean, done?:boolean, text?:string}} o
+ *   - busy=true  : đang tìm → hiện thanh tiến trình + spinner + chữ.
+ *   - done=true  : xong & có kết quả → hiện dấu ✓ + chữ, tự ẩn sau 2.5s.
+ *   - cả hai false & text rỗng: ẩn hẳn.
+ */
+function setServerSearchStatus({busy=false,done=false,text=''}={}){
+  const wrap=document.getElementById('serverSearchStatus');
+  const bar=document.getElementById('serverSearchProgress');
+  const spin=document.getElementById('serverSearchSpinner');
+  const doneIcon=document.getElementById('serverSearchDoneIcon');
+  const txt=document.getElementById('serverSearchStatusText');
+  if(!wrap||!bar||!spin||!doneIcon||!txt)return;
+  if(_serverSearchHideTimer){clearTimeout(_serverSearchHideTimer);_serverSearchHideTimer=null;}
+  // Không có gì để hiện → ẩn hẳn.
+  if(!busy&&!done&&!text){wrap.classList.add('hidden');return;}
+  wrap.classList.remove('hidden');
+  bar.classList.toggle('hidden',!busy);       // thanh tiến trình chỉ khi đang tìm
+  spin.classList.toggle('hidden',!busy);       // spinner chỉ khi đang tìm
+  doneIcon.classList.toggle('hidden',!done);   // ✓ chỉ khi đã xong có kết quả
+  txt.textContent=text;
+  txt.className=done?'text-emerald-600 font-medium':'text-gray-400';
+  // Trạng thái "xong" tự ẩn sau một lúc cho gọn.
+  if(done){
+    _serverSearchHideTimer=setTimeout(()=>{
+      document.getElementById('serverSearchStatus')?.classList.add('hidden');
+      _serverSearchHideTimer=null;
+    },2500);
+  }
+}
+
+/**
+ * Tìm đơn trên máy chủ (đơn cũ nằm ngoài ~1000 đơn đã tải về allOrders).
+ * - Debounce 500ms, tối thiểu 2 ký tự.
+ * - Chống race bằng token _serverSearchSeq: chỉ nhận kết quả lần tìm mới nhất.
+ * - Gộp đơn mới (chưa có trong allOrders) rồi applyFilter lại để hiện ngay.
+ */
+function triggerServerSearch(rawTerm){
+  const term=(rawTerm||'').trim();
+  if(_serverSearchTimer){clearTimeout(_serverSearchTimer);_serverSearchTimer=null;}
+  // Từ khóa quá ngắn hoặc rỗng → không gọi server, ẩn loading + trạng thái.
+  if(term.length<SERVER_SEARCH_MIN_CHARS){
+    _serverSearchLastTerm='';
+    _serverSearchActive=false;
+    setServerSearchStatus({busy:false,text:''});
+    renderCards();
+    return;
+  }
+  // Cùng term vừa tìm xong → khỏi gọi lại (đơn khớp đã có sẵn trong bộ nhớ).
+  if(term===_serverSearchLastTerm){_serverSearchActive=false;renderCards();return;}
+  // Bật cờ NGAY (đồng bộ) để renderCards hiện loading thay vì "không có đơn" trong lúc chờ debounce + mạng.
+  _serverSearchActive=true;
+  setServerSearchStatus({busy:true,text:'Đang tìm kiếm đơn hàng…'});
+  renderCards();
+  _serverSearchTimer=setTimeout(async()=>{
+    _serverSearchTimer=null;
+    const seq=++_serverSearchSeq;
+    _serverSearchLastTerm=term;
+    try{
+      const url=`${API()}?action=searchOrders&q=${encodeURIComponent(term)}&limit=${SERVER_SEARCH_LIMIT}&timestamp=${Date.now()}`;
+      const r=await fetch(url);
+      const d=await r.json();
+      // Bỏ qua nếu đã có lần tìm mới hơn, hoặc người dùng đã đổi/xóa từ khóa.
+      if(seq!==_serverSearchSeq)return;
+      if(searchTerm.trim()!==term){_serverSearchActive=false;setServerSearchStatus({busy:false,text:''});renderCards();return;}
+      if(!d||!d.success||!Array.isArray(d.orders)){
+        _serverSearchActive=false;
+        setServerSearchStatus({busy:false,text:''});
+        renderCards();
+        return;
+      }
+      // Gộp đơn chưa có trong bộ nhớ (dedupe theo id).
+      const existing=new Set(allOrders.map(o=>o.id));
+      let added=0;
+      for(const o of d.orders){
+        if(o&&o.id!=null&&!existing.has(o.id)){allOrders.push(o);existing.add(o.id);added++;}
+      }
+      // Tắt cờ loading TRƯỚC khi render lại để hiện kết quả (hoặc "không có đơn" nếu thật sự rỗng).
+      _serverSearchActive=false;
+      if(added>0){
+        _writeOrdersCache(allOrders);
+        applyFilter({preservePage:true});   // applyFilter → renderCards
+        setServerSearchStatus({done:true,text:`Đã thêm ${added} đơn cũ khớp từ máy chủ`});
+      }else{
+        setServerSearchStatus({busy:false,text:''});
+        renderCards();                       // ẩn loading; nếu vẫn rỗng thì hiện "không có đơn"
+      }
+    }catch(e){
+      if(seq!==_serverSearchSeq)return;
+      _serverSearchActive=false;
+      setServerSearchStatus({busy:false,text:''});
+      renderCards();
+      console.warn('[ServerSearch] Lỗi tìm trên máy chủ:',e.message);
+    }
+  },SERVER_SEARCH_DEBOUNCE_MS);
+}
+
+/** Hủy mọi tìm kiếm server đang chờ/đang chạy và ẩn loading + trạng thái. */
+function resetServerSearch(){
+  if(_serverSearchTimer){clearTimeout(_serverSearchTimer);_serverSearchTimer=null;}
+  _serverSearchSeq++;              // vô hiệu hóa mọi response đang bay
+  _serverSearchLastTerm='';
+  _serverSearchActive=false;
+  setServerSearchStatus({busy:false,text:''});
 }
 function toggleSearch(){
   const bar=document.getElementById('searchBar');
@@ -1725,6 +2037,7 @@ function toggleSearch(){
     searchTerm='';
     _prevSearchTrimmed='';
     searchListScope=null;
+    resetServerSearch();
     syncMobileSearchClearButton();
     applyFilter();
   }
@@ -2129,6 +2442,24 @@ async function ensureOrderFull(o){
   return o;
 }
 
+/**
+ * Đảm bảo đơn (theo id) có mặt trong allOrders để showDetail/showEditOrder tìm thấy.
+ * Cần cho DEEP-LINK tới đơn ĐÃ GỬI (không nằm trong tập chưa gửi) hoặc đơn cũ chưa tải.
+ * Trả về đơn nếu có (từ bộ nhớ / shippedOrders / fetch getOrderById), null nếu không tồn tại.
+ */
+async function ensureOrderInMemory(id){
+  let o=allOrders.find(x=>String(x.id)===String(id));
+  if(o)return o;
+  o=shippedOrders.find(x=>String(x.id)===String(id));
+  if(o){allOrders.push(o);return o;}   // đưa tạm vào allOrders để showDetail tìm thấy
+  try{
+    const r=await fetch(`${API()}?action=getOrderById&id=${encodeURIComponent(id)}&timestamp=${Date.now()}`);
+    const d=await r.json();
+    if(d&&d.success&&d.order){allOrders.push(d.order);return d.order;}
+  }catch(_){/* mạng lỗi → coi như không tìm thấy */}
+  return null;
+}
+
 async function showEditOrder(id,opts){
   opts=opts||{};
   const dupPreview=!!opts.duplicatePreview;
@@ -2310,10 +2641,21 @@ async function changeStatus(id,status,code){
     const r=await fetch(API(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'updateOrderStatus',orderId:id,status})});
     const d=await r.json();
     if(d.success){
+      const UNSHIPPED=['pending','awaiting_reship','send_later','processing'];
+      const nowUnshipped=UNSHIPPED.includes(String(status));
       const o=allOrders.find(x=>String(x.id)===String(id));
       if(o){
         o.status=status;
         if(Object.prototype.hasOwnProperty.call(d,'shipped_at_unix'))o.shipped_at_unix=d.shipped_at_unix;
+        // Đơn chuyển sang trạng thái ĐÃ GỬI (rời tập chưa gửi) → bỏ khỏi allOrders cho đúng nguồn LUỒNG 1.
+        if(!nowUnshipped){
+          allOrders=allOrders.filter(x=>String(x.id)!==String(id));
+        }
+      }
+      // Danh sách đơn đã gửi (LUỒNG 2) có thể đã đổi (thêm/bớt đơn) → đánh dấu tải lại khi mở lại tab Đ.gửi.
+      _shippedLoaded=false;
+      if(currentTab==='shipped'&&searchTerm.trim().length===0){
+        void loadShippedPage(true);
       }
       applyFilter();showDetail(id);_writeOrdersCache(allOrders);toast('Đã cập nhật trạng thái');
     }else throw new Error(d.error);

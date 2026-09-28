@@ -19,8 +19,8 @@ class AddressSelector {
 
         try {
             const basePath = window.location.pathname.includes('/admin/')
-                ? '../assets/data/tree_2.json'
-                : '/assets/data/tree_2.json';
+                ? '../assets/data/tree_2.json?v=2025b'
+                : '/assets/data/tree_2.json?v=2025b';
 
             const response = await fetch(basePath);
             const raw = await response.json();

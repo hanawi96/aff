@@ -19,11 +19,11 @@ class AddressService {
             const pathname = window.location.pathname;
 
             if (pathname.includes('/shop/')) {
-                basePath = '../assets/data/tree_2.json';
+                basePath = '../assets/data/tree_2.json?v=2025b';
             } else if (pathname.includes('/admin/')) {
-                basePath = '../assets/data/tree_2.json';
+                basePath = '../assets/data/tree_2.json?v=2025b';
             } else {
-                basePath = '/assets/data/tree_2.json';
+                basePath = '/assets/data/tree_2.json?v=2025b';
             }
 
             const response = await fetch(basePath);
