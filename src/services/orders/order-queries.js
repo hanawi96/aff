@@ -259,6 +259,67 @@ export async function getUnshippedOrders(env, corsHeaders) {
 }
 
 /**
+ * Lấy TOÀN BỘ đơn ĐẾN HẠN XUẤT HĐĐT — dùng cho nút "Chọn đơn cần xuất" (chọn xuyên trang).
+ * Điều kiện:
+ *   - status = 'shipped'
+ *   - CHƯA xuất HĐĐT (invoice_exported_at = 0 AND manual_invoice_exported = 0)
+ *   - Đã đủ ≥ remindDays ngày kể từ ngày GỬI (shipped_at_unix <= now - remindDays*ngày)
+ *   - Đặt từ createdFromMs trở đi (nếu truyền) — đồng bộ mốc chặn của trang HĐĐT
+ * Trả về FULL shape (dùng luôn để build Excel export), có trần an toàn để tránh tải quá lớn.
+ *
+ * @param {object} params { remindDays, createdFromMs, maxLimit }
+ */
+export async function getDueInvoiceOrders(params, env, corsHeaders) {
+    const startTime = Date.now();
+    try {
+        const _rd = parseInt(params?.remindDays, 10);
+        const remindDays = Number.isFinite(_rd) && _rd >= 0 ? _rd : 10;
+        const createdFromMs = params?.createdFromMs != null && Number.isFinite(Number(params.createdFromMs))
+            ? Number(params.createdFromMs) : null;
+        const maxLimit = Math.min(Math.max(parseInt(params?.maxLimit, 10) || 1000, 1), 2000);
+
+        // Mốc: đơn có shipped_at_unix <= (now - remindDays ngày) → đã đủ hạn.
+        const dueThreshold = Date.now() - remindDays * 86400000;
+
+        const where = [
+            `LOWER(TRIM(orders.status)) = 'shipped'`,
+            `COALESCE(orders.invoice_exported_at, 0) = 0`,
+            `COALESCE(orders.manual_invoice_exported, 0) = 0`,
+            `orders.shipped_at_unix IS NOT NULL`,
+            `orders.shipped_at_unix > 0`,
+            `orders.shipped_at_unix <= ?`
+        ];
+        const binds = [dueThreshold];
+        if (createdFromMs != null) {
+            where.push(`orders.created_at_unix >= ?`);
+            binds.push(createdFromMs);
+        }
+
+        const sql = `${ORDER_FULL_SELECT}
+            WHERE ${where.join(' AND ')}
+            ORDER BY orders.shipped_at_unix ASC, orders.id ASC
+            LIMIT ?`;
+        binds.push(maxLimit);
+
+        const { results: orders } = await env.DB.prepare(sql).bind(...binds).all();
+
+        const queryTime = Date.now() - startTime;
+        console.log(`✅ [getDueInvoiceOrders] ${orders.length} đơn đến hạn xuất HĐĐT (remindDays=${remindDays}, ${queryTime}ms)`);
+
+        return jsonResponse({
+            success: true,
+            orders,
+            total: orders.length,
+            capped: orders.length >= maxLimit, // đã chạm trần → có thể còn nữa
+            queryTime
+        }, 200, corsHeaders);
+    } catch (error) {
+        console.error('❌ [getDueInvoiceOrders] Lỗi:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
+/**
  * LUỒNG 2 — Cursor pagination cho đơn ĐÃ GỬI / TẤT CẢ (dữ liệu phình to theo thời gian).
  *
  * Dùng khi người dùng lọc trạng thái "Đã gửi hàng" (shipped) hoặc "Tất cả trạng thái" (all).
@@ -293,6 +354,7 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
             dateField = 'created',
             dateStartMs = null,
             dateEndMs = null,
+            createdFromMs = null,   // mốc chặn cứng theo NGÀY ĐẶT (created_at_unix >= ?) — dùng cho trang HĐĐT
             sortDir = 'desc',
             cursorSort = null,
             cursorId = null,
@@ -344,6 +406,13 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
             where.push(`(COALESCE(orders.invoice_exported_at,0) > 0 OR COALESCE(orders.manual_invoice_exported,0) = 1)`);
         } else if (invoiceStatusFilter === 'not_exported') {
             where.push(`(COALESCE(orders.invoice_exported_at,0) = 0 AND COALESCE(orders.manual_invoice_exported,0) = 0)`);
+        }
+
+        // --- Mốc chặn cứng theo NGÀY ĐẶT (created_at_unix) — luôn áp dụng nếu truyền ---
+        // Dùng cho trang HĐĐT: chỉ hiển thị đơn đặt từ mốc này trở đi, bỏ đơn cũ hơn.
+        if (createdFromMs != null && Number.isFinite(Number(createdFromMs))) {
+            where.push(`orders.created_at_unix >= ?`);
+            binds.push(Number(createdFromMs));
         }
 
         // --- Khoảng ngày (theo sortCol) ---

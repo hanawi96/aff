@@ -29,7 +29,8 @@ import {
     getOrderById,
     searchOrders,
     getUnshippedOrders,
-    getOrdersHistoryPage
+    getOrdersHistoryPage,
+    getDueInvoiceOrders
 } from '../services/orders/order-queries.js';
 
 import {
@@ -231,12 +232,23 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             // LUỒNG 1: toàn bộ đơn chưa gửi hàng (không phân trang)
             return await getUnshippedOrders(env, corsHeaders);
 
+        case 'getDueInvoiceOrders': {
+            // Toàn bộ đơn đến hạn xuất HĐĐT (chọn xuyên trang ở trang Hóa đơn điện tử)
+            const cFromDue = url.searchParams.get('createdFromMs');
+            return await getDueInvoiceOrders({
+                remindDays: url.searchParams.get('remindDays') || 10,
+                createdFromMs: cFromDue !== null && cFromDue !== '' ? Number(cFromDue) : null,
+                maxLimit: url.searchParams.get('maxLimit') || 1000
+            }, env, corsHeaders);
+        }
+
         case 'getOrdersHistoryPage': {
             // LUỒNG 2: cursor pagination cho đơn đã gửi / tất cả
             const cSort = url.searchParams.get('cursorSort');
             const cId = url.searchParams.get('cursorId');
             const dStart = url.searchParams.get('dateStartMs');
             const dEnd = url.searchParams.get('dateEndMs');
+            const cFrom = url.searchParams.get('createdFromMs');
             const historyParams = {
                 statusFilter: url.searchParams.get('statusFilter') || 'all',
                 paymentFilter: url.searchParams.get('paymentFilter') || 'all',
@@ -246,6 +258,7 @@ export async function handleGet(action, url, request, env, corsHeaders) {
                 dateField: url.searchParams.get('dateField') || 'created',
                 dateStartMs: dStart !== null && dStart !== '' ? Number(dStart) : null,
                 dateEndMs: dEnd !== null && dEnd !== '' ? Number(dEnd) : null,
+                createdFromMs: cFrom !== null && cFrom !== '' ? Number(cFrom) : null,
                 sortDir: url.searchParams.get('sortDir') || 'desc',
                 cursorSort: cSort !== null && cSort !== '' ? Number(cSort) : null,
                 cursorId: cId !== null && cId !== '' ? Number(cId) : null,

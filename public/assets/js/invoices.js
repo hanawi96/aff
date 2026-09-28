@@ -11,9 +11,19 @@
 // ---- State ----
 let invOrders = [];                 // đơn của trang hiện tại
 const invSelectedIds = new Set();   // id đơn đang chọn (trong trang hiện tại)
-let invInvoiceFilter = 'all';       // all | not_exported | exported
+let invInvoiceFilter = 'not_exported';  // all | not_exported | exported — mặc định: đơn CHƯA xuất
 let invSearchTerm = '';
-const INV_PAGE_SIZE = 30;
+let invPageSize = 30;               // số đơn / trang (chọn được: 30/50/100/200)
+let invDateStartMs = null;          // mốc đầu khoảng ngày gửi (ms UTC, tính theo giờ VN)
+let invDateEndMs = null;            // mốc cuối khoảng ngày gửi
+const invSelectedExportIds = new Set(); // file HĐĐT đang chọn trong modal lịch sử
+// Kho đơn đã tick "cần xuất" xuyên trang (từ getDueInvoiceOrders) — map id → order object.
+// Dùng để export đúng cả đơn KHÔNG nằm trong trang hiện tại (invOrders).
+const invPickedOrders = new Map();
+const INV_PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
+// Mốc chặn cứng: trang HĐĐT CHỈ hiển thị đơn ĐẶT TỪ 05/09/2026 (00:00 giờ VN) trở đi.
+// Đơn đặt trước mốc này bị bỏ qua hoàn toàn.
+const INV_CREATED_FROM_MS = new Date('2026-09-05T00:00:00+07:00').getTime();
 const invState = {
     loading: false,
     hasMore: false,
@@ -46,6 +56,45 @@ function invFormatDate(ms) {
 /** Đơn đã xuất HĐĐT? (đồng bộ điều kiện backend: invoice_exported_at>0 HOẶC manual=1) */
 function invIsExported(o) {
     return Number(o.invoice_exported_at || 0) > 0 || Number(o.manual_invoice_exported || 0) === 1;
+}
+
+// Mốc nhắc xuất HĐĐT: 10 ngày kể từ ngày GỬI HÀNG (đủ thời gian giao + xử lý hoàn/đổi).
+const INV_REMIND_DAYS = 10;
+const _INV_DAY_MS = 86400000;
+
+/**
+ * Tính trạng thái nhắc xuất HĐĐT cho 1 đơn dựa trên shipped_at_unix.
+ * @returns {{ state:'due'|'soon'|'none', daysLeft:number } }
+ *   - due  : đã đủ ≥10 ngày kể từ ngày gửi → NÊN xuất
+ *   - soon : chưa đủ 10 ngày → còn daysLeft ngày nữa
+ *   - none : không có mốc gửi (không tính được)
+ */
+function invRemindStatus(o) {
+    const shippedMs = Number(o.shipped_at_unix || 0);
+    if (!Number.isFinite(shippedMs) || shippedMs <= 0) return { state: 'none', daysLeft: 0 };
+    const dueMs = shippedMs + INV_REMIND_DAYS * _INV_DAY_MS;
+    const now = Date.now();
+    if (now >= dueMs) return { state: 'due', daysLeft: 0 };
+    const daysLeft = Math.ceil((dueMs - now) / _INV_DAY_MS);
+    return { state: 'soon', daysLeft };
+}
+
+/** HTML ô cột "Nhắc xuất". Đơn đã xuất → không cần nhắc. */
+function _invRemindCell(o, exported) {
+    if (exported) {
+        return `<span class="text-xs text-slate-300">—</span>`;
+    }
+    const r = invRemindStatus(o);
+    if (r.state === 'due') {
+        return `<span class="inv-due-badge inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-white" title="Đã đủ ${INV_REMIND_DAYS} ngày kể từ ngày gửi — cần xuất HĐĐT">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Cần xuất HĐĐT
+                </span>`;
+    }
+    if (r.state === 'soon') {
+        return `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-slate-50 text-slate-400 border border-slate-200" title="Còn ${r.daysLeft} ngày nữa mới đủ ${INV_REMIND_DAYS} ngày kể từ ngày gửi">Còn ${r.daysLeft} ngày</span>`;
+    }
+    return `<span class="text-xs text-slate-300">—</span>`;
 }
 
 /** Tải XLSX lazy (tự chứa, không phụ thuộc bundle trang đơn hàng). */
@@ -108,6 +157,92 @@ function setInvoiceFilter(value) {
     invLoadFirstPage();
 }
 
+/** Đổi số đơn / trang → tải lại từ trang 1 (cursor reset). */
+function onInvPageSizeChange(value) {
+    const v = parseInt(value, 10);
+    if (!INV_PAGE_SIZE_OPTIONS.includes(v) || v === invPageSize) return;
+    invPageSize = v;
+    invLoadFirstPage();
+}
+
+// ---- Lọc theo khoảng ngày (giờ VN) ----
+/** Mốc đầu ngày VN (00:00:00 +07) từ chuỗi 'YYYY-MM-DD' → ms. */
+function _invVNStartOfDate(dateStr) {
+    if (!dateStr) return null;
+    const t = new Date(`${dateStr}T00:00:00+07:00`).getTime();
+    return Number.isFinite(t) ? t : null;
+}
+/** Mốc cuối ngày VN (23:59:59.999 +07) từ chuỗi 'YYYY-MM-DD' → ms. */
+function _invVNEndOfDate(dateStr) {
+    if (!dateStr) return null;
+    const t = new Date(`${dateStr}T23:59:59.999+07:00`).getTime();
+    return Number.isFinite(t) ? t : null;
+}
+
+/** Định dạng dd/mm/yyyy từ chuỗi 'YYYY-MM-DD' để hiển thị chip. */
+function _invFmtDMY(dateStr) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
+}
+
+/** Mở modal chọn khoảng ngày. */
+function openInvDateModal() {
+    document.getElementById('invDateModal')?.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+}
+
+/** Đóng modal chọn khoảng ngày. */
+function closeInvDateModal() {
+    document.getElementById('invDateModal')?.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+}
+
+/** Áp dụng khoảng ngày từ modal → cập nhật mốc + chip + tải lại. */
+function applyInvDateModal() {
+    const startEl = document.getElementById('invDateStart');
+    const endEl = document.getElementById('invDateEnd');
+    let start = startEl?.value || '';
+    let end = endEl?.value || '';
+
+    // Nếu chọn ngược (từ > đến) → tự hoán đổi cho đúng, tránh query rỗng.
+    if (start && end && start > end) {
+        [start, end] = [end, start];
+        if (startEl) startEl.value = start;
+        if (endEl) endEl.value = end;
+    }
+
+    invDateStartMs = _invVNStartOfDate(start);
+    invDateEndMs = _invVNEndOfDate(end);
+    _syncInvDateIndicator(start, end);
+    closeInvDateModal();
+    invLoadFirstPage();
+}
+
+/** Hiện/ẩn chấm trên icon + chip khoảng ngày đang lọc. */
+function _syncInvDateIndicator(start, end) {
+    const hasFilter = !!(start || end);
+    document.getElementById('invDateDot')?.classList.toggle('hidden', !hasFilter);
+    const bar = document.getElementById('invDateActiveBar');
+    const label = document.getElementById('invDateActiveLabel');
+    if (bar) bar.classList.toggle('hidden', !hasFilter);
+    if (label && hasFilter) {
+        const s = _invFmtDMY(start), e = _invFmtDMY(end);
+        label.textContent = s && e ? `Ngày gửi: ${s} – ${e}` : (s ? `Ngày gửi từ: ${s}` : `Ngày gửi đến: ${e}`);
+    }
+}
+
+function clearInvDateFilter() {
+    const startEl = document.getElementById('invDateStart');
+    const endEl = document.getElementById('invDateEnd');
+    if (startEl) startEl.value = '';
+    if (endEl) endEl.value = '';
+    invDateStartMs = null;
+    invDateEndMs = null;
+    _syncInvDateIndicator('', '');
+    invLoadFirstPage();
+}
+
 // ============================================
 // LOAD DATA (cursor pagination, statusFilter=shipped)
 // ============================================
@@ -117,8 +252,14 @@ function _invBuildParams(cursor) {
     p.set('statusFilter', 'shipped');
     p.set('invoiceStatusFilter', invInvoiceFilter);
     p.set('dateField', 'shipped');
-    p.set('sortDir', 'desc');
-    p.set('limit', String(INV_PAGE_SIZE));
+    // sort ASC theo ngày gửi: đơn gửi CŨ NHẤT (gần/đã đến hạn xuất, còn ít ngày nhất) lên ĐẦU.
+    p.set('sortDir', 'asc');
+    // Chặn cứng: chỉ đơn đặt từ 05/09/2026 trở đi.
+    p.set('createdFromMs', String(INV_CREATED_FROM_MS));
+    p.set('limit', String(invPageSize));
+    // Lọc khoảng ngày GỬI HÀNG (server so trên shipped_at_unix theo dateField=shipped)
+    if (invDateStartMs != null) p.set('dateStartMs', String(invDateStartMs));
+    if (invDateEndMs != null) p.set('dateEndMs', String(invDateEndMs));
     if (cursor && Number.isFinite(cursor.sort) && Number.isFinite(cursor.id)) {
         p.set('cursorSort', String(cursor.sort));
         p.set('cursorId', String(cursor.id));
@@ -156,7 +297,13 @@ async function _invFetchPage(cursor, pageIndex) {
         invState.hasMore = !!data.hasMore;
         invState.nextCursor = data.nextCursor || null;
         invState.pageIndex = pageIndex;
-        clearInvSelection();
+        // Giữ lựa chọn cho đơn còn hiển thị trên trang mới (đổi số dòng) HOẶC đơn đã chọn
+        // xuyên trang qua "Chọn đơn cần xuất" (nằm trong invPickedOrders). Chỉ bỏ chọn đơn
+        // không thuộc cả hai (vd. tick tay rồi chuyển sang trang khác/đổi filter).
+        const visibleIds = new Set(invOrders.map((o) => Number(o.id)));
+        Array.from(invSelectedIds).forEach((id) => {
+            if (!visibleIds.has(id) && !invPickedOrders.has(id)) invSelectedIds.delete(id);
+        });
         invState.loading = false;
         invRender();
     } catch (err) {
@@ -206,9 +353,11 @@ function invRender() {
         return;
     }
 
-    const base = (invState.pageIndex - 1) * INV_PAGE_SIZE;
+    const base = (invState.pageIndex - 1) * invPageSize;
     tbody.innerHTML = invOrders.map((o, i) => {
         const exported = invIsExported(o);
+        // Đơn đến hạn xuất (chưa xuất + đủ 10 ngày) → làm nổi mã đơn màu green đậm.
+        const isDue = !exported && invRemindStatus(o).state === 'due';
         // Thời gian xuất = mốc tải file HĐĐT về (invoice_exported_at; fallback last_invoice_downloaded_at)
         const exportedAtMs = Number(o.invoice_exported_at || 0) || Number(o.last_invoice_downloaded_at || 0);
         const exportedTimeHtml = (exported && exportedAtMs > 0)
@@ -249,7 +398,7 @@ function invRender() {
                 <input type="checkbox" class="inv-row-cb w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" data-id="${o.id}" ${invSelectedIds.has(Number(o.id)) ? 'checked' : ''} onchange="invToggleRow(${o.id}, this.checked)">
             </td>
             <td class="px-4 py-3">
-                <div class="text-sm font-mono font-semibold text-slate-900">${invEscapeHtml(o.order_id || 'N/A')}</div>
+                <div class="text-sm font-mono ${isDue ? 'font-bold text-emerald-600' : 'font-semibold text-slate-900'}">${invEscapeHtml(o.order_id || 'N/A')}</div>
                 <div class="text-xs text-slate-400">#${base + i + 1}</div>
             </td>
             <td class="px-4 py-3">
@@ -262,6 +411,7 @@ function invRender() {
             </td>
             <td class="px-4 py-3 text-sm text-slate-600">${invFormatDate(o.shipped_at_unix)}</td>
             <td class="px-4 py-3 text-center">${badge}</td>
+            <td class="px-4 py-3 text-center">${_invRemindCell(o, exported)}</td>
             <td class="px-4 py-3">
                 <div class="flex items-center justify-center gap-2">${detailBtn}${exportOneBtn}${toggleBtn}</div>
             </td>
@@ -310,10 +460,66 @@ function _syncInvSelectAll() {
 
 function clearInvSelection() {
     invSelectedIds.clear();
+    invPickedOrders.clear();
     document.querySelectorAll('.inv-row-cb').forEach((cb) => { cb.checked = false; });
     const all = document.getElementById('invSelectAll');
     if (all) all.checked = false;
     _updateInvBulkBar();
+}
+
+/**
+ * Chọn nhanh TẤT CẢ đơn đến hạn xuất HĐĐT — XUYÊN TRANG (gọi getDueInvoiceOrders).
+ * Đơn không nằm trong trang hiện tại được lưu vào invPickedOrders để export vẫn đúng.
+ */
+let _invSelectDueBusy = false; // chặn bấm liên tục nút "Chọn đơn cần xuất"
+async function selectAllDueInvoices() {
+    if (_invSelectDueBusy) return; // đang xử lý → bỏ qua click mới
+    _invSelectDueBusy = true;
+    const btn = document.getElementById('invSelectDueBtn');
+    if (btn) btn.disabled = true;
+    try {
+        const params = new URLSearchParams();
+        params.set('action', 'getDueInvoiceOrders');
+        params.set('remindDays', String(INV_REMIND_DAYS));
+        params.set('createdFromMs', String(INV_CREATED_FROM_MS));
+        params.set('maxLimit', '1000');
+        params.set('timestamp', String(Date.now()));
+
+        const res = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Không lấy được danh sách đơn cần xuất');
+
+        const due = data.orders || [];
+        if (due.length === 0) {
+            showToast('Không có đơn hàng', 'warning', 2500);
+            return;
+        }
+
+        // Tick chọn tất cả + lưu object vào kho (để export xuyên trang).
+        due.forEach((o) => {
+            const id = Number(o.id);
+            invSelectedIds.add(id);
+            invPickedOrders.set(id, o);
+        });
+
+        // Đồng bộ checkbox trên trang hiện tại (các đơn trang khác không có DOM row, không sao).
+        document.querySelectorAll('.inv-row-cb').forEach((cb) => {
+            if (invSelectedIds.has(Number(cb.dataset.id))) cb.checked = true;
+        });
+        _syncInvSelectAll();
+        _updateInvBulkBar();
+
+        const extra = due.length - invOrders.filter((o) => invRemindStatus(o).state === 'due' && !invIsExported(o)).length;
+        let msg = `Đã chọn ${due.length} đơn cần xuất HĐĐT`;
+        if (data.capped) msg += ' — đã đạt giới hạn 1000, có thể còn nữa';
+        showToast(msg, 'success', 3000);
+    } catch (err) {
+        console.error('[Invoices] selectAllDue error:', err);
+        showToast('Lỗi: ' + err.message, 'error');
+    } finally {
+        _invSelectDueBusy = false;
+        if (btn) btn.disabled = false;
+    }
 }
 
 function _updateInvBulkBar() {
@@ -323,9 +529,15 @@ function _updateInvBulkBar() {
     if (bar) bar.classList.toggle('hidden', invSelectedIds.size === 0);
 }
 
-/** Lấy object đơn đã chọn từ trang hiện tại. */
+/**
+ * Lấy object đơn đã chọn — GỘP từ trang hiện tại (invOrders) VÀ kho chọn xuyên trang
+ * (invPickedOrders), khử trùng theo id. Đảm bảo export đúng cả đơn không nằm trên trang hiện tại.
+ */
 function _invSelectedOrders() {
-    return invOrders.filter((o) => invSelectedIds.has(Number(o.id)));
+    const map = new Map();
+    invOrders.forEach((o) => { if (invSelectedIds.has(Number(o.id))) map.set(Number(o.id), o); });
+    invPickedOrders.forEach((o, id) => { if (invSelectedIds.has(id) && !map.has(id)) map.set(id, o); });
+    return Array.from(map.values());
 }
 
 // ============================================
@@ -611,10 +823,23 @@ async function openInvoiceHistory(highlightExportId = null) {
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
+                <!-- Thanh hành động: chọn tất cả + xóa đã chọn -->
+                <div id="invHistoryToolbar" class="hidden px-6 py-2.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-3">
+                    <label class="inline-flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+                        <input type="checkbox" id="invHistorySelectAll" onchange="invHistoryToggleSelectAll(this.checked)" class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer">
+                        <span>Chọn tất cả</span>
+                    </label>
+                    <button id="invHistoryDeleteBtn" onclick="invHistoryBulkDelete()" disabled
+                        class="px-3.5 py-2 rounded-lg text-sm font-semibold bg-red-500 text-white hover:bg-red-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Xóa <span id="invHistoryDeleteCount"></span>
+                    </button>
+                </div>
                 <div id="invHistoryList" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
             </div>`;
         document.body.appendChild(modal);
     }
+    invSelectedExportIds.clear();
     modal.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
     await _renderInvHistoryList(highlightExportId);
@@ -634,17 +859,26 @@ async function _renderInvHistoryList(highlightExportId) {
         const res = await fetch(`${CONFIG.API_URL}?action=getInvoiceExportHistory&timestamp=${Date.now()}`);
         const data = await res.json();
         const exports = (data && data.success && data.exports) ? data.exports : [];
+        const toolbar = document.getElementById('invHistoryToolbar');
         if (exports.length === 0) {
+            if (toolbar) toolbar.classList.add('hidden');
             list.innerHTML = `<div class="p-8 text-center">
                 <p class="text-sm font-medium text-slate-600">Chưa có file HĐĐT nào</p>
                 <p class="text-xs text-slate-400 mt-1">Xuất HĐĐT để tạo file đầu tiên</p>
             </div>`;
             return;
         }
+        if (toolbar) toolbar.classList.remove('hidden');
+        // Bỏ khỏi selection những file không còn tồn tại (đã bị xóa).
+        const validIds = new Set(exports.map((e) => Number(e.id)));
+        Array.from(invSelectedExportIds).forEach((id) => { if (!validIds.has(id)) invSelectedExportIds.delete(id); });
+
         list.innerHTML = exports.map((e) => {
             const downloaded = e.status === 'downloaded';
             const hi = highlightExportId && Number(e.id) === Number(highlightExportId);
+            const checked = invSelectedExportIds.has(Number(e.id)) ? 'checked' : '';
             return `<div class="flex items-center gap-3 p-3 rounded-xl border ${hi ? 'border-emerald-300 bg-emerald-50/60 ring-1 ring-emerald-200' : 'border-slate-200 bg-white'} transition-all">
+                <input type="checkbox" class="inv-history-cb w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0" data-id="${e.id}" ${checked} onchange="invHistoryToggleFile(${e.id}, this.checked)">
                 <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </div>
@@ -659,6 +893,7 @@ async function _renderInvHistoryList(highlightExportId) {
                 </button>
             </div>`;
         }).join('');
+        _syncInvHistorySelectionUI();
     } catch (err) {
         console.error('[Invoices] History error:', err);
         list.innerHTML = `<div class="p-6 text-center text-sm text-red-500">Lỗi tải lịch sử: ${invEscapeHtml(err.message)}</div>`;
@@ -694,6 +929,71 @@ async function invDownloadExport(exportId) {
     // Làm mới danh sách file + bảng đơn (đồng bộ trạng thái mới)
     await _renderInvHistoryList(exportId);
     _invFetchPage(invState.cursorStack[invState.cursorStack.length - 1] || null, invState.pageIndex || 1);
+}
+
+// ---- Chọn / xóa hàng loạt file HĐĐT trong modal lịch sử ----
+function invHistoryToggleFile(id, checked) {
+    const n = Number(id);
+    if (checked) invSelectedExportIds.add(n); else invSelectedExportIds.delete(n);
+    _syncInvHistorySelectionUI();
+}
+
+function invHistoryToggleSelectAll(checked) {
+    document.querySelectorAll('.inv-history-cb').forEach((cb) => {
+        const id = Number(cb.dataset.id);
+        cb.checked = checked;
+        if (checked) invSelectedExportIds.add(id); else invSelectedExportIds.delete(id);
+    });
+    _syncInvHistorySelectionUI();
+}
+
+function _syncInvHistorySelectionUI() {
+    const cbs = document.querySelectorAll('.inv-history-cb');
+    const all = document.getElementById('invHistorySelectAll');
+    if (all) all.checked = cbs.length > 0 && Array.from(cbs).every((cb) => cb.checked);
+
+    const btn = document.getElementById('invHistoryDeleteBtn');
+    const countEl = document.getElementById('invHistoryDeleteCount');
+    const n = invSelectedExportIds.size;
+    if (btn) btn.disabled = n === 0;
+    if (countEl) countEl.textContent = n > 0 ? `(${n})` : '';
+}
+
+async function invHistoryBulkDelete() {
+    const ids = Array.from(invSelectedExportIds);
+    if (ids.length === 0) return;
+
+    const ok = await invConfirm({
+        title: 'Xóa file HĐĐT',
+        message: `Xóa <b>${ids.length}</b> file hóa đơn điện tử đã chọn?<br><span class="text-xs text-slate-400">File Excel sẽ bị xóa khỏi hệ thống. Trạng thái "đã xuất" của các đơn KHÔNG bị thay đổi.</span>`,
+        confirmText: 'Xóa',
+        cancelText: 'Hủy',
+        tone: 'red'
+    });
+    if (!ok) return;
+
+    invSetBusyToast(true, `Đang xóa ${ids.length} file...`);
+    let done = 0, fail = 0;
+    for (const id of ids) {
+        try {
+            const res = await fetch(`${CONFIG.API_URL}?action=deleteExport`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'deleteExport', exportId: Number(id) })
+            });
+            const data = await res.json();
+            if (data.success) { done++; invSelectedExportIds.delete(Number(id)); } else { fail++; }
+        } catch (err) {
+            fail++;
+            console.error(`[Invoices] Delete export ${id} error:`, err);
+        }
+    }
+    invSetBusyToast(false);
+
+    if (fail === 0) showToast(`✅ Đã xóa ${done} file HĐĐT`, 'success', 3500);
+    else showToast(`Xóa xong ${done} file, thất bại ${fail} file`, 'warning', 5000);
+
+    await _renderInvHistoryList();
 }
 
 // ============================================
