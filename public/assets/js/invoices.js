@@ -30,6 +30,7 @@ const invState = {
     pageIndex: 0,
     cursorStack: [],   // cursor đầu mỗi trang đã đi qua
     nextCursor: null,
+    totalCount: 0,     // tổng đơn khớp bộ lọc (cập nhật từ trang đầu)
 };
 let _invSearchDebounce = null;
 
@@ -297,6 +298,8 @@ async function _invFetchPage(cursor, pageIndex) {
         invState.hasMore = !!data.hasMore;
         invState.nextCursor = data.nextCursor || null;
         invState.pageIndex = pageIndex;
+        // totalCount chỉ có ở trang đầu (không cursor) → cập nhật, các trang sau giữ nguyên.
+        if (data.totalCount != null) invState.totalCount = Number(data.totalCount);
         // Giữ lựa chọn cho đơn còn hiển thị trên trang mới (đổi số dòng) HOẶC đơn đã chọn
         // xuyên trang qua "Chọn đơn cần xuất" (nằm trong invPickedOrders). Chỉ bỏ chọn đơn
         // không thuộc cả hai (vd. tick tay rồi chuyển sang trang khác/đổi filter).
@@ -344,7 +347,12 @@ function invRender() {
     if (!tbody) return;
 
     const countLabel = document.getElementById('invCountLabel');
-    if (countLabel) countLabel.textContent = invOrders.length ? ` (trang ${invState.pageIndex})` : '';
+    if (countLabel) {
+        const suffix = invInvoiceFilter === 'exported' ? 'đã xuất HĐĐT'
+            : invInvoiceFilter === 'not_exported' ? 'chưa xuất HĐĐT'
+            : 'đã gửi';
+        countLabel.textContent = ` (${invState.totalCount} đơn ${suffix})`;
+    }
 
     if (invOrders.length === 0) {
         invShowEmpty();
@@ -368,7 +376,7 @@ function invRender() {
                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                     Đã xuất${Number(o.invoice_exported_count || 0) > 1 ? ' ×' + o.invoice_exported_count : ''}
                </span>${exportedTimeHtml}`
-            : `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-500 border border-slate-200">Chưa xuất</span>`;
+            : `<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-600 border border-orange-200">Chưa xuất</span>`;
 
         // Đơn ĐÃ XUẤT (thủ công hoặc qua hệ thống) → nút "Hủy xuất" (reset về chưa xuất).
         // Đơn CHƯA XUẤT → nút "Đánh dấu" (đánh dấu thủ công đã xuất).

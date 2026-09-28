@@ -425,6 +425,11 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
             binds.push(Number(dateEndMs));
         }
 
+        // TÁCH điều kiện LỌC (dùng cho COUNT tổng) khỏi điều kiện CURSOR (chỉ cho query 1 trang).
+        // COUNT phải đếm TOÀN BỘ đơn khớp bộ lọc, không phụ thuộc cursor của trang hiện tại.
+        const filterWhere = where.slice();
+        const filterBinds = binds.slice();
+
         // --- Cursor keyset: (sortCol, id) so với (cursorSort, cursorId) ---
         if (cursorSort != null && cursorId != null
             && Number.isFinite(Number(cursorSort)) && Number.isFinite(Number(cursorId))) {
@@ -444,6 +449,17 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
         binds.push(fetchLimit);
 
         const { results } = await env.DB.prepare(sql).bind(...binds).all();
+
+        // Tổng số đơn khớp bộ lọc — CHỈ tính ở trang đầu (không có cursor) để tránh COUNT mỗi lần chuyển trang.
+        // Tổng không đổi trong cùng bộ lọc, nên frontend chỉ cần con số từ trang 1.
+        let totalCount = null;
+        if (cursorSort == null || cursorId == null) {
+            const countWhere = filterWhere.length ? `WHERE ${filterWhere.join(' AND ')}` : '';
+            const countRow = await env.DB.prepare(
+                `SELECT COUNT(*) AS c FROM orders LEFT JOIN ctv ON orders.referral_code = ctv.referral_code ${countWhere}`
+            ).bind(...filterBinds).first();
+            totalCount = countRow ? Number(countRow.c) : 0;
+        }
 
         const hasMore = results.length > parsedLimit;
         const orders = hasMore ? results.slice(0, parsedLimit) : results;
@@ -467,6 +483,7 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
             returned: orders.length,
             hasMore,
             nextCursor,
+            totalCount,   // tổng đơn khớp bộ lọc (chỉ có ở trang đầu; null ở các trang sau)
             queryTime
         }, 200, corsHeaders);
     } catch (error) {

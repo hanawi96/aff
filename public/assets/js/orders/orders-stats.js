@@ -14,12 +14,23 @@
  * để làm nhẹ hệ thống (không quét/tính tổng tài chính ở client nữa).
  */
 function updateStats() {
-    // Hiển thị số đơn CHƯA GỬI HÀNG ngay trên tiêu đề bảng:
-    // "Danh Sách Đơn Hàng (24 đơn hàng chưa gửi)". allOrdersData luôn = bucket đơn chưa gửi.
-    const unshippedCount = Array.isArray(allOrdersData) ? allOrdersData.length : 0;
+    // allOrdersData luôn = bucket đơn CHƯA GỬI HÀNG.
+    const list = Array.isArray(allOrdersData) ? allOrdersData : [];
+    const unshippedCount = list.length;
+
+    // Số đơn chưa gửi trên tiêu đề bảng.
     const label = document.getElementById('unshippedCountLabel');
     if (label) {
         label.textContent = ` (${unshippedCount} đơn hàng chưa gửi)`;
+    }
+
+    // Tổng doanh thu đơn chưa gửi (badge header) — cộng total_amount.
+    const revenueEl = document.getElementById('unshippedRevenue');
+    if (revenueEl) {
+        const totalRevenue = list.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
+        revenueEl.textContent = (typeof formatCurrency === 'function')
+            ? formatCurrency(totalRevenue)
+            : totalRevenue.toLocaleString('vi-VN') + 'đ';
     }
 }
 
