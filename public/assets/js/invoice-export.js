@@ -152,11 +152,11 @@ function createInvoiceExcelWorkbook(orders) {
             row['PhuongThucTT'] = paymentMethod;
             rows.push(row);
         } else {
-            // Chỉ điền MaHD ở dòng đầu tiên của mỗi đơn hàng
+            // Điền MaHD cho TẤT CẢ dòng sản phẩm của cùng 1 đơn (đều bằng currentMaHD).
+            // Ví dụ: đơn có 3 SP với MaHD=1 → cả 3 dòng đều hiển thị 1.
             products.forEach((p, index) => {
                 const row = createBlankInvoiceRow();
-                // Chỉ điền MaHD cho dòng đầu tiên (index === 0)
-                row['MaHD'] = index === 0 ? currentMaHD : '';
+                row['MaHD'] = currentMaHD;
                 row['NgayHoaDon'] = orderDate;
                 row['TenDonVi'] = '';
                 row['TenNguoiMua'] = String(order.customer_name || '').trim();
