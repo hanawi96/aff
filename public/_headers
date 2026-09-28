@@ -1,8 +1,10 @@
 # Cloudflare Pages headers
-# Dữ liệu địa chỉ hành chính 2025 — gần như tĩnh, cache dài hạn để các lần
-# tải sau không kéo lại file lớn (tree_2.json ~615KB).
+# Dữ liệu địa chỉ hành chính 2025.
+# tree_2.json dùng no-cache: trình duyệt LUÔN validate ETag với server trước khi dùng
+# cache → khi file đổi nội dung (cập nhật phường/xã) người dùng nhận bản mới NGAY,
+# còn nếu không đổi thì server trả 304 rất nhẹ (không tải lại 600KB).
 /assets/data/tree_2.json
-  Cache-Control: public, max-age=2592000
+  Cache-Control: no-cache
 
 /assets/data/tree.json
   Cache-Control: public, max-age=2592000

@@ -19,7 +19,7 @@
   const SEARCH_MIN_LEN = 2;
   const SEARCH_DEBOUNCE_MS = 140;
   const WARD_DROPDOWN_LIMIT = 40;
-  const ADMIN_TOKEN_RE = /\b(phuong|xa|thi\s*tran|thi\s*xa|quan|huyen|tinh|thanh\s*pho|tp\.?)\b/g;
+  const ADMIN_TOKEN_RE = /\b(dac\s*khu|phuong|xa|thi\s*tran|thi\s*xa|quan|huyen|tinh|thanh\s*pho|tp\.?)\b/g;
 
   /** @type {Record<string, string>|null} */
   let mappingRaw = null;
@@ -55,7 +55,7 @@
 
   function stripAdminPrefix(str) {
     return normalizeVn(str)
-      .replace(/^(phuong|xa|thi tran|thi xa|quan|huyen|tinh|thanh pho|tp\.?)\s+/, '')
+      .replace(/^(dac khu|phuong|xa|thi tran|thi xa|quan|huyen|tinh|thanh pho|tp\.?)\s+/, '')
       .trim();
   }
 
