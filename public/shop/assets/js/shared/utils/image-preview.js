@@ -57,7 +57,7 @@ const _processImageLabels = [
  * Auto-finds product from cached data and syncs URL.
  * @param {number} productId - Product ID
  */
-window.openProductDetail = async function(productId) {
+window.openProductDetail = async function(productId, fromPopstate = false) {
     const product = _findProduct(productId);
     if (!product) {
         console.error('Product not found:', productId);
@@ -66,9 +66,13 @@ window.openProductDetail = async function(productId) {
 
     const discount = _calculateDiscount(product.original_price, product.price);
 
-    // Sync URL BEFORE opening modal (so URL is ready for sharing)
-    const newUrl = _buildProductUrl(productId);
-    window.history.pushState({ productId, fromPopstate: false }, '', newUrl);
+    // Đồng bộ URL: CHỈ pushState khi mở từ click (thẻ SP / SP bán chạy).
+    // Khi mở từ nút Back/Forward (popstate), trình duyệt ĐÃ đổi URL rồi → KHÔNG pushState nữa,
+    // nếu không sẽ đẩy thêm entry trùng → kẹt history, không quay lại modal trước được.
+    if (!fromPopstate) {
+        const newUrl = _buildProductUrl(productId);
+        window.history.pushState({ productId, fromPopstate: false }, '', newUrl);
+    }
 
     // Open modal with full product data
     await _openProductDetailModal(product, {
@@ -253,7 +257,7 @@ function _loadBestSellers(currentId, container) {
         const sold = Number(p.purchases) || 0;
         const soldTag = sold > 0 ? `<span class="rp-sold">Đã bán ${sold}</span>` : '';
         return `
-            <button type="button" class="rp-item" data-rp-id="${p.id}" aria-label="Xem ${_escAttr(name)}">
+            <div class="rp-item" role="button" tabindex="0" data-rp-id="${p.id}" aria-label="Xem ${_escAttr(name)}">
                 <div class="rp-thumb">
                     <img src="${_escAttr(img)}" alt="${_escAttr(name)}" loading="lazy" decoding="async"
                          onerror="if(this.dataset.fb){return}this.dataset.fb='1';this.src='${CONFIG.DEFAULT_IMAGE}'">
@@ -267,8 +271,10 @@ function _loadBestSellers(currentId, container) {
                     </div>
                     ${soldTag}
                 </div>
-                <svg class="rp-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" /></svg>
-            </button>`;
+                <button type="button" class="rp-add" data-rp-add="${p.id}" title="Thêm vào giỏ" aria-label="Thêm ${_escAttr(name)} vào giỏ">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </button>
+            </div>`;
     }).join('');
 
     container.innerHTML = `
@@ -280,12 +286,23 @@ function _loadBestSellers(currentId, container) {
     `;
     container.style.display = 'block';
 
-    // Click item → mở modal SP tương ứng (dùng lại openProductDetail, tự sync URL).
+    // Delegation: nút "+" → thêm nhanh vào giỏ; phần còn lại của item → mở modal SP.
     eventManager.removeController('relatedProductsClick');
     eventManager.addWithController('relatedProductsClick', container, 'click', (e) => {
-        const btn = e.target.closest('.rp-item');
-        if (!btn) return;
-        const id = btn.getAttribute('data-rp-id');
+        // Ưu tiên nút thêm giỏ (bấm "+" KHÔNG mở modal).
+        const addBtn = e.target.closest('.rp-add');
+        if (addBtn) {
+            e.stopPropagation();
+            const addId = parseInt(addBtn.getAttribute('data-rp-add'), 10);
+            if (addId && window.productActions?.addToCart) {
+                window.productActions.addToCart(addId);
+            }
+            return;
+        }
+        // Bấm vào item → mở modal SP tương ứng.
+        const item = e.target.closest('.rp-item');
+        if (!item) return;
+        const id = item.getAttribute('data-rp-id');
         if (id && typeof window.openProductDetail === 'function') {
             window.openProductDetail(parseInt(id, 10));
         }
@@ -926,10 +943,10 @@ window.addEventListener('popstate', (e) => {
     const productId = url.searchParams.get('product');
 
     if (productId) {
-        // User went forward to a product URL
-        window.openProductDetail(parseInt(productId, 10));
+        // Back/Forward tới 1 URL sản phẩm → mở lại modal SP đó, KHÔNG pushState (fromPopstate=true).
+        window.openProductDetail(parseInt(productId, 10), true);
     } else {
-        // User went back to clean URL
+        // Back về URL sạch → đóng modal.
         window.closeImagePreview(true);
     }
 });

@@ -213,10 +213,11 @@ export class HomePage {
                     this.filterByCategoryFromURL(categoryParam);
                 }, 500);
             } else if (productParam) {
-                // Product detail modal from URL (shareable links)
+                // Product detail modal from URL (shareable links).
+                // URL đã sẵn ?product=X → mở với fromPopstate=true để KHÔNG pushState trùng entry.
                 setTimeout(() => {
                     if (typeof window.openProductDetail === 'function') {
-                        window.openProductDetail(parseInt(productParam, 10));
+                        window.openProductDetail(parseInt(productParam, 10), true);
                     }
                 }, 800);
             }
