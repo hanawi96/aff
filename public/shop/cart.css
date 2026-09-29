@@ -7831,6 +7831,53 @@ body {
     border: none;
 }
 
+.product-commitments {
+    margin: 0 0 0.95rem 0;
+    padding: 0.75rem 0.9rem 0.85rem;
+    background: #f6fbf7;
+    border: 1px solid #d7eadc;
+    border-radius: 14px;
+}
+
+.product-commitments-label {
+    margin: 0 0 0.5rem 0;
+    color: #3d8b56;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.product-commitments ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.product-commitments li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: 0;
+    color: #14532d;
+    font-size: 0.98rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: left;
+}
+
+.product-commitments svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    fill: #16a34a;
+}
+
 .product-story-intro {
     margin: 0 0 0.6rem 0;
     padding: 0;
@@ -7946,14 +7993,22 @@ body {
 .material-quantity { color: #9ca3af; }
 
 .materials-note {
-    margin: 0.65rem 0 0 0;
-    padding: 0;
-    color: #9ca3af;
-    font-size: 0.85rem;
-    font-style: italic;
+    margin: 0.8rem 0 0 0;
+    padding: 0.7rem 0.85rem;
+    background: #fff7f4;
+    border: 1px solid #ffd4c8;
+    border-radius: 12px;
+    color: #3f3f46;
+    font-size: 0.92rem;
+    font-style: normal;
+    font-weight: 500;
     line-height: 1.55;
-    background: none;
-    border: none;
+}
+
+.materials-note-label {
+    margin-right: 0.3rem;
+    color: #e76f51;
+    font-weight: 800;
 }
 
 

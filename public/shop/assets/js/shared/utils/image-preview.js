@@ -279,7 +279,7 @@ function _loadBestSellers(currentId, container) {
 
     container.innerHTML = `
         <h3 class="rp-title">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.25c.414 0 .75.336.75.75v.518a9.735 9.735 0 0 1 3.062.87.75.75 0 0 1-.624 1.364 8.235 8.235 0 0 0-2.438-.72V9.5l3.03 1.515a2.25 2.25 0 0 1 1.22 2.006v.229c0 3.314-2.686 6-6 6s-6-2.686-6-6v-.229a2.25 2.25 0 0 1 1.22-2.006L9.75 9.5V5.452a8.235 8.235 0 0 0-2.438.72.75.75 0 1 1-.624-1.364 9.735 9.735 0 0 1 3.062-.87V3c0-.414.336-.75.75-.75Z" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
             <span>Sản phẩm bán chạy</span>
         </h3>
         <div class="rp-list">${rowsHtml}</div>
@@ -321,7 +321,7 @@ function _escAttr(s) {
 }
 
 /**
- * Build the image carousel with product image + process images
+ * Build the image carousel: product photo first, then the six quy trình làm vòng photos.
  */
 function _buildImageCarousel(product) {
     const track = document.getElementById('imageCarouselTrack');
@@ -330,59 +330,22 @@ function _buildImageCarousel(product) {
     const currentIdx = document.getElementById('carouselCurrentIdx');
     if (!track) return;
 
-    // Build images array - product image first, then process images
-    const productImage = product.image_url || CONFIG.DEFAULT_IMAGE;
+    const processBase = 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/quy-trinh-lam-vong';
+    const processImages = _processImageLabels.map((label, i) => ({
+        url: `${processBase}/${i + 1}.webp`,
+        alt: label,
+        label,
+        type: 'process'
+    }));
     const images = [
         {
-            url: productImage,
-            alt: product.name,
+            url: product.image_url || CONFIG.DEFAULT_IMAGE,
+            alt: product.name || 'Sản phẩm',
             label: 'Sản phẩm',
-            type: 'product',
-            index: 0
+            type: 'product'
         },
-        {
-            url: '/assets/images/quy-trinh-lam-vong/1.webp',
-            alt: 'Chọn nguyên liệu',
-            label: 'Chọn nguyên liệu',
-            type: 'process',
-            index: 1
-        },
-        {
-            url: '/assets/images/quy-trinh-lam-vong/2.webp',
-            alt: 'Bóc dâu tằm',
-            label: 'Bóc dâu tằm',
-            type: 'process',
-            index: 2
-        },
-        {
-            url: '/assets/images/quy-trinh-lam-vong/3.webp',
-            alt: 'Phơi khô',
-            label: 'Phơi khô',
-            type: 'process',
-            index: 3
-        },
-        {
-            url: '/assets/images/quy-trinh-lam-vong/4.webp',
-            alt: 'Mài nhỏ cành',
-            label: 'Mài nhỏ cành',
-            type: 'process',
-            index: 4
-        },
-        {
-            url: '/assets/images/quy-trinh-lam-vong/5.webp',
-            alt: 'Mài mịn viền',
-            label: 'Mài mịn viền',
-            type: 'process',
-            index: 5
-        },
-        {
-            url: '/assets/images/quy-trinh-lam-vong/vong-dau-tam-gia.webp',
-            alt: 'Xỏ vòng - Thành phẩm',
-            label: 'Xỏ vòng - Thành phẩm',
-            type: 'process',
-            index: 6
-        }
-    ];
+        ...processImages
+    ].map((img, index) => ({ ...img, index }));
 
     _carouselState.images = images;
     _carouselState.currentIndex = 0;
@@ -1234,7 +1197,7 @@ function _renderMaterials(materials, container) {
     // Lưu ý về số lượng nguyên liệu
     const note = document.createElement('p');
     note.className = 'materials-note';
-    note.textContent = 'Số lượng nguyên liệu đôi khi sẽ có thay đổi, khác biệt với trong ảnh tùy theo cân nặng bé';
+    note.innerHTML = '<span class="materials-note-label">Lưu ý:</span> Số lượng nguyên liệu đôi khi sẽ có thay đổi, khác biệt với trong ảnh tùy theo cân nặng bé';
     fragment.appendChild(note);
 
     container.innerHTML = '';
