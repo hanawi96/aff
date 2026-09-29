@@ -1145,16 +1145,12 @@ function _displayStringTypeInfo(hasRedString, hasRopeString) {
 
     if (hasRedString) {
         container.className = 'product-string-info red-string';
-        container.style.display = 'flex';
-        container.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" /></svg>
-            <span>Vòng có thể <strong>nới rộng khi bé lớn</strong>, mua size sơ sinh thì đến lớn bé vẫn đeo được thoải mái, không lo bị trật.</span>`;
+        container.style.display = 'list-item';
+        container.textContent = 'Vòng có thể nới rộng khi bé lớn, mua size sơ sinh thì đến khi lớn bé vẫn đeo được thoải mái, không lo bị trật.';
     } else if (hasRopeString) {
         container.className = 'product-string-info rope-string';
-        container.style.display = 'flex';
-        container.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-2.625 6c-.54 0-.828.419-.936.634a1.96 1.96 0 0 0-.189.866c0 .298.059.605.189.866.108.215.395.634.936.634.54 0 .828-.419.936-.634.13-.26.189-.568.189-.866 0-.298-.059-.605-.189-.866-.108-.215-.395-.634-.936-.634Zm4.314.634c.108-.215.395-.634.936-.634.54 0 .828.419.936.634.13.26.189.568.189.866 0 .298-.059.605-.189.866-.108.215-.395.634-.936.634-.54 0-.828-.419-.936-.634a1.96 1.96 0 0 1-.189-.866c0-.298.059-.605.189-.866Zm2.023 6.828a.75.75 0 1 0-1.06-1.06 3.75 3.75 0 0 1-5.304 0 .75.75 0 0 0-1.06 1.06 5.25 5.25 0 0 0 7.424 0Z" clip-rule="evenodd" /></svg>
-            <span>Dây vòng được làm bằng <strong>dây cước gân co giãn loại 1</strong>, rất bền chắc, khó đứt, không thấm nước, gọn gàng không lo vướng.</span>`;
+        container.style.display = 'list-item';
+        container.textContent = 'Dây vòng làm bằng dây cước gân co giãn loại 1, rất bền chắc, khó đứt, không thấm nước và gọn gàng, không lo vướng.';
     } else {
         container.style.display = 'none';
     }

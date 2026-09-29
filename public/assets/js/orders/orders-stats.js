@@ -24,13 +24,14 @@ function updateStats() {
         label.textContent = ` (${unshippedCount} đơn hàng chưa gửi)`;
     }
 
-    // Tổng doanh thu đơn chưa gửi (badge header) — cộng total_amount.
+    // Tổng doanh thu đơn chưa gửi (badge header) — cộng total_amount, kèm số đơn ("…đ/N đơn").
     const revenueEl = document.getElementById('unshippedRevenue');
     if (revenueEl) {
         const totalRevenue = list.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0);
-        revenueEl.textContent = (typeof formatCurrency === 'function')
+        const revenueText = (typeof formatCurrency === 'function')
             ? formatCurrency(totalRevenue)
             : totalRevenue.toLocaleString('vi-VN') + 'đ';
+        revenueEl.textContent = `${revenueText}/${unshippedCount} đơn`;
     }
 }
 

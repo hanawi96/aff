@@ -7808,131 +7808,139 @@ body {
     animation: none;
 }
 
-.image-preview-info .product-gender-info,
-.image-preview-info .product-commitment,
-.image-preview-info .product-beads-info,
-.image-preview-info .product-size-info,
-.image-preview-info .product-string-info,
-.image-preview-info .product-custom-contact {
-    margin: 0;
-    padding: 0.85rem 0.95rem;
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    color: #111827;
+/* ============================================
+   PRODUCT STORY — trình bày dạng văn bản mượt, gần gũi cho mẹ bỉm
+   (thay cho các box card cũ: gender/commitment/beads/size/string/contact)
+   ============================================ */
+.image-preview-info .product-story {
+    margin-top: 0.9rem;
+    padding: 0;
+    background: none;
+    border: none;
+}
+
+.product-story-intro {
+    margin: 0 0 0.6rem 0;
+    padding: 0;
+    color: #4b5563;
     font-size: 1rem;
-    line-height: 1.55;
+    line-height: 1.6;
+    text-align: left;
 }
 
-.image-preview-info .product-gender-info,
-.image-preview-info .product-commitment,
-.image-preview-info .product-beads-info,
-.image-preview-info .product-size-info,
-.image-preview-info .product-string-info,
-.image-preview-info .product-custom-contact {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
+.product-story-list {
+    margin: 0;
+    padding: 0 0 0 1.25rem;
+    list-style: disc;
+    color: #4b5563;
 }
 
-.image-preview-info .product-gender-info svg,
-.image-preview-info .product-commitment svg,
-.image-preview-info .product-beads-info svg,
-.image-preview-info .product-size-info svg,
-.image-preview-info .product-string-info svg,
-.image-preview-info .product-custom-contact svg {
-    fill: #e76f51 !important;
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    margin-top: 0.125rem;
+.product-story-list li {
+    margin: 0 0 0.6rem 0;
+    padding-left: 0.25rem;
+    font-size: 1rem;
+    line-height: 1.65;
+    text-align: left;
 }
 
-.image-preview-info .product-gender-info strong,
-.image-preview-info .product-commitment strong,
-.image-preview-info .product-beads-info strong,
-.image-preview-info .product-size-info strong,
-.image-preview-info .product-string-info strong {
-    color: #e76f51;
-    font-weight: 800;
+.product-story-list li::marker {
+    color: #9ca3af;
 }
 
-.product-string-info {
-    border-left: 4px solid #e76f51;
-    padding-left: 0.75rem;
+.product-story-list li:last-child {
+    margin-bottom: 0;
 }
 
-.product-string-info.red-string,
-.product-string-info.rope-string {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    color: #111827;
+/* Dòng thông tin dây (dynamic) chỉ là 1 <li> bình thường — không nền, không màu nhấn */
+.product-story-list li.product-string-info {
+    display: list-item;
+    background: none;
+    border: none;
+    border-left: none;
+    padding-left: 0.25rem;
+    color: #4b5563;
 }
+.product-story-list li.product-string-info svg { display: none; }
 
-.product-string-info.red-string svg,
-.product-string-info.rope-string svg {
-    fill: #e76f51 !important;
+/* Liên hệ Zalo — dòng chữ nhẹ, tách bằng đường kẻ mảnh phía trên */
+.product-story-contact {
+    margin: 1.1rem 0 0 0;
+    padding-top: 0.9rem;
+    border-top: 1px solid #f0f0f0;
+    color: #6b7280;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    text-align: left;
 }
-
-.product-string-info.red-string strong,
-.product-string-info.rope-string strong {
-    color: #e76f51;
-    font-weight: 800;
+.product-story-contact .zalo-link {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
 }
+.product-story-contact .zalo-link:hover { text-decoration: underline; }
 
-.product-custom-contact {
-    margin-top: 0;
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-}
-
+/* Thành phần nguyên liệu — nhẹ nhàng, không đóng khung card */
 .image-preview-materials {
-    margin-top: 0;
-    padding: 0.85rem 0.95rem;
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
+    margin: 1.1rem 0 0 0;
+    padding-top: 0.9rem;
+    border-top: 1px solid #f0f0f0;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    border-radius: 0;
 }
 
 .materials-header {
-    margin-bottom: 0.65rem;
-    font-weight: 800;
-    font-size: 1rem;
-    color: #111827;
+    margin-bottom: 0.55rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #6b7280;
+    text-transform: none;
 }
 
 .materials-header svg {
-    width: 16px;
-    height: 16px;
-    fill: #e76f51;
+    width: 15px;
+    height: 15px;
+    fill: #9ca3af;
 }
 
 .materials-list {
-    gap: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
 }
 
 .material-tag {
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border: 1px solid #eef0f2;
     border-radius: 999px;
-    color: #111827;
+    color: #4b5563;
+    padding: 0.28rem 0.7rem;
 }
 
 .material-tag:hover {
-    border-color: #e76f51;
-    background: #fff7f5;
+    border-color: #e5e7eb;
+    background: #f3f4f6;
 }
 
-.material-tag svg {
-    fill: #e76f51;
-}
+.material-tag svg { fill: #9ca3af; }
 
 .material-name {
-    color: #111827;
-    font-weight: 650;
+    color: #4b5563;
+    font-weight: 600;
 }
 
-.material-quantity {
-    color: #6b7280;
+.material-quantity { color: #9ca3af; }
+
+.materials-note {
+    margin: 0.65rem 0 0 0;
+    padding: 0;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    font-style: italic;
+    line-height: 1.55;
+    background: none;
+    border: none;
 }
 

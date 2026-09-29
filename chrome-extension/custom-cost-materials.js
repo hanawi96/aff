@@ -6,8 +6,32 @@
   'use strict';
 
   const CACHE_TTL_MS = 10 * 60 * 1000;
-  const EXCLUDED_CATEGORY = 'khac';
   const MODAL_ID = 'shopvd-mat-cost-modal';
+  /**
+   * Các NHÓM chi phí KHÔNG phải nguyên liệu cấu thành sản phẩm → ẩn khỏi modal tính giá vốn:
+   * "Đóng gói", "Chi phí vận hành", "Khác". So khớp theo TỪ KHÓA không dấu trên cả slug
+   * (category_name) lẫn tên hiển thị (category_display_name) — bền vững kể cả khi admin
+   * tự đặt slug/tên khác (vì các nhóm này được tạo qua UI, không cố định trong code).
+   */
+  const EXCLUDED_CATEGORY_KEYWORDS = ['dong goi', 'van hanh', 'khac'];
+
+  /** Bỏ dấu tiếng Việt + gộp khoảng trắng/đổi gạch dưới → so khớp không phân biệt dấu/định dạng. */
+  function normalizeCat(s) {
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // bỏ dấu
+      .replace(/đ/g, 'd')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /** true nếu nguyên liệu thuộc nhóm chi phí cần ẩn (không phải NL cấu thành SP). */
+  function isExcludedCategory(m) {
+    const name = normalizeCat(m && m.category_name);
+    const display = normalizeCat(m && m.category_display_name);
+    return EXCLUDED_CATEGORY_KEYWORDS.some((kw) => name.includes(kw) || display.includes(kw));
+  }
 
   /**
    * Preset mẫu vòng — chỉ nạp khi bấm nút (không auto).
@@ -63,10 +87,7 @@
       throw new Error((data && data.error) || 'Không tải được nguyên liệu');
     }
 
-    cache.list = (data.materials || []).filter((m) => {
-      const cat = String(m.category_name || '').toLowerCase();
-      return cat !== EXCLUDED_CATEGORY;
-    });
+    cache.list = (data.materials || []).filter((m) => !isExcludedCategory(m));
     cache.at = Date.now();
     return cache.list;
   }
@@ -262,10 +283,12 @@
     labelEl.textContent = p.name || `SP #${p.id}`;
   }
 
-  /** Điền tên SP gốc vào ô tên SP tùy chỉnh (nếu có truyền nameInput) */
+  /** Điền tên SP gốc vào ô tên SP tùy chỉnh — CHỈ khi ô tên đang TRỐNG (không ghi đè tên đã gõ). */
   function fillNameFromSelectedProduct(product) {
     const input = active?.nameInput;
     if (!input || !product) return;
+    // Người dùng đã nhập tên → giữ nguyên, không thay thế bằng tên SP gốc.
+    if (String(input.value || '').trim()) return;
     const name = String(product.name || '').trim();
     if (!name) return;
     input.value = name;
@@ -391,6 +414,10 @@
     `;
 
     modal.addEventListener('click', onModalClick);
+    // Chọn kết quả tìm SP bằng MOUSEDOWN (không đợi click): mousedown chạy TRƯỚC sự kiện
+    // blur/change của ô search — nếu đợi click thì change fire trước sẽ render lại danh sách,
+    // hủy phần tử đang bấm → phải bấm 2 lần. preventDefault để ô search không mất focus.
+    modal.addEventListener('mousedown', onProductResultMouseDown);
     modal.addEventListener('input', onModalInput);
     modal.addEventListener('change', onModalInput);
     modal.addEventListener('keydown', (e) => {
@@ -410,6 +437,37 @@
       || document.body;
     mount.appendChild(modal);
     return modal;
+  }
+
+  /** Chọn 1 SP gốc từ kết quả tìm kiếm → nạp công thức NL. Dùng chung cho mousedown/click. */
+  function pickProduct(actionEl) {
+    if (!active || !actionEl) return;
+    const pid = Number(actionEl.getAttribute('data-product-id'));
+    const product = (active.products || []).find((p) => Number(p.id) === pid)
+      || (active.productResults || []).find((p) => Number(p.id) === pid);
+    if (!product) return;
+    const searchInput = active.modal.querySelector('[data-mat-product-search]');
+    if (searchInput) searchInput.value = '';
+    active.productQuery = '';
+    hideProductResults();
+    applyProductFormula(pid, {
+      label: product.name || `SP #${pid}`,
+      merge: false,
+      announce: true,
+      selectedProduct: { id: product.id, name: product.name }
+    });
+  }
+
+  /**
+   * Bắt chọn kết quả tìm SP ngay ở MOUSEDOWN (trước blur/change của ô search).
+   * preventDefault để input không mất focus (khỏi fire change → render lại danh sách giữa chừng).
+   */
+  function onProductResultMouseDown(e) {
+    if (!active) return;
+    const itemEl = e.target.closest('[data-mat-action="pick-product"]');
+    if (!itemEl || !active.modal.contains(itemEl)) return;
+    e.preventDefault();
+    pickProduct(itemEl);
   }
 
   function onModalClick(e) {
@@ -437,19 +495,7 @@
       return;
     }
     if (action === 'pick-product') {
-      const pid = Number(actionEl.getAttribute('data-product-id'));
-      const product = (active.products || []).find((p) => Number(p.id) === pid)
-        || (active.productResults || []).find((p) => Number(p.id) === pid);
-      if (!product) return;
-      const searchInput = active.modal.querySelector('[data-mat-product-search]');
-      if (searchInput) searchInput.value = '';
-      hideProductResults();
-      applyProductFormula(pid, {
-        label: product.name || `SP #${pid}`,
-        merge: false,
-        announce: true,
-        selectedProduct: { id: product.id, name: product.name }
-      });
+      // Đã xử lý ở onProductResultMouseDown (mousedown) — click chỉ là dư âm, bỏ qua để không nạp 2 lần.
       return;
     }
     if (action === 'clear-product') {
@@ -605,15 +651,18 @@
     active.costInput.classList.add('shopvd-cost-flash');
     setTimeout(() => active?.costInput?.classList.remove('shopvd-cost-flash'), 700);
 
-    lastSelection = Array.from(active.selected.entries()).map(([item_name, row]) => ({
+    // Ảnh chụp lựa chọn để gửi cho callback (KHÔNG lưu vào lastSelection nữa).
+    const appliedSelection = Array.from(active.selected.entries()).map(([item_name, row]) => ({
       item_name,
       quantity: row.quantity
     }));
 
     const count = active.selected.size;
-    const payload = { total, count, selection: lastSelection.slice() };
+    const payload = { total, count, selection: appliedSelection };
     const onApplied = active.onApplied;
     const showStatus = active.showStatus;
+    // Áp dụng xong → RESET phiên chọn NL: lần mở modal sau bắt đầu sạch (không giữ highlight cũ).
+    lastSelection = [];
     close();
     onApplied?.(payload);
     showStatus?.(`✅ Đã điền giá vốn ${formatVnd(total)} (${count} NL)`, 'success', 2000);
