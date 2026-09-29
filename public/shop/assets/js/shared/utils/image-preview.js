@@ -4,7 +4,7 @@
 // Includes: Product Detail Modal with URL sync & share
 // ============================================
 
-import { CONFIG } from '../constants/config.js';
+import { CONFIG, productThumbUrl } from '../constants/config.js?v=2';
 import { MODAL_CONSTANTS } from '../constants/modal-constants.js';
 import { materialsCache } from './materials-cache.js';
 import { eventManager } from './event-manager.js';
@@ -247,7 +247,8 @@ function _loadBestSellers(currentId, container) {
     }
 
     const rowsHtml = items.map((p) => {
-        const img = p.image_url || p.image || CONFIG.DEFAULT_IMAGE;
+        const fullImg = p.image_url || p.image || CONFIG.DEFAULT_IMAGE;
+        const img = productThumbUrl(fullImg);
         const name = p.name || 'Sản phẩm';
         const price = _formatPrice(p.price);
         const hasSale = p.original_price && p.original_price > p.price;
@@ -260,7 +261,7 @@ function _loadBestSellers(currentId, container) {
             <div class="rp-item" role="button" tabindex="0" data-rp-id="${p.id}" aria-label="Xem ${_escAttr(name)}">
                 <div class="rp-thumb">
                     <img src="${_escAttr(img)}" alt="${_escAttr(name)}" loading="lazy" decoding="async"
-                         onerror="if(this.dataset.fb){return}this.dataset.fb='1';this.src='${CONFIG.DEFAULT_IMAGE}'">
+                         onerror="if(!this.dataset.fullTried){this.dataset.fullTried='1';this.src='${_escAttr(fullImg)}';return;}this.src='${CONFIG.DEFAULT_IMAGE}'">
                     ${discountTag}
                 </div>
                 <div class="rp-info">
@@ -1234,7 +1235,7 @@ function setupQuyTrinhImageClick() {
         eventManager.add('quyTrinhClick', img, 'click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const imageUrl = img.src;
+            const imageUrl = img.dataset.full || img.src;
             const imageName = img.alt || 'Hình ảnh công đoạn';
             _openFullscreenImage(imageUrl, imageName);
         });
@@ -1261,7 +1262,7 @@ function setupBenefitsImageClick() {
         eventManager.add('benefitsClick', img, 'click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            const imageUrl = img.src;
+            const imageUrl = img.dataset.full || img.src;
             const imageName = img.alt || 'Hình ảnh';
             _openFullscreenImage(imageUrl, imageName);
         });

@@ -35,6 +35,18 @@ export const CONFIG = {
     DEBOUNCE_DELAY: 300
 };
 
+const R2_PUBLIC_HOST = 'pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev';
+
+/**
+ * Ảnh đại diện trên thẻ sản phẩm: Cloudflare cắt rộng 480px.
+ * Ảnh không nằm trên R2 thì giữ nguyên. Modal chi tiết vẫn dùng ảnh gốc.
+ */
+export function productThumbUrl(imageUrl) {
+    const url = String(imageUrl || '').trim();
+    if (!url.includes(R2_PUBLIC_HOST)) return url;
+    return `https://shopvd.store/cdn-cgi/image/width=480,quality=75,format=auto/${url}`;
+}
+
 export const DISCOUNT_CODES = [
     { code: 'FREESHIP', type: 'shipping', value: 0, description: 'Miễn phí ship' },
     { code: 'NEWMOM10', type: 'percent', value: 10, description: 'Giảm 10%' },

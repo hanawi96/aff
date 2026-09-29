@@ -4,7 +4,7 @@
 
 import { formatPrice, generateStars, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
-import { CONFIG } from '../../shared/constants/config.js';
+import { CONFIG, productThumbUrl } from '../../shared/constants/config.js?v=2';
 
 /**
  * Create product card HTML
@@ -16,6 +16,7 @@ export function createProductCard(product) {
     const rating = product.rating || 4.5;
     const purchases = product.purchases || 0;
     const imageUrl = product.image_url || CONFIG.DEFAULT_IMAGE;
+    const thumbUrl = productThumbUrl(imageUrl);
     const savedAmount = product.original_price && product.original_price > product.price
         ? product.original_price - product.price
         : 0;
@@ -77,12 +78,13 @@ export function createProductCard(product) {
         <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${product.id}">
             <div class="product-image-wrapper">
                 <div class="product-image-container">
-                    <img src="${imageUrl}" 
+                    <img src="${escapeHtml(thumbUrl)}" 
                          alt="${escapeHtml(product.name)}" 
                          class="product-image"
                          loading="lazy"
+                         decoding="async"
                          onclick="window.openProductDetail(${product.id})"
-                         onerror="this.src='${CONFIG.DEFAULT_IMAGE}'">
+                         onerror="if(!this.dataset.fullTried){this.dataset.fullTried='1';this.src='${escapeHtml(imageUrl)}';return;}this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
                 </div>
                 ${isOutOfStock ? `<span class="product-badge out-of-stock">Hết hàng</span>` : ''}
                 ${shouldShowMarketingBadges && discount > 0 ? `<span class="product-badge sale">-${discount}%</span>` : ''}

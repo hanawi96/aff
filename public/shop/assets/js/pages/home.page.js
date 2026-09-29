@@ -4,9 +4,9 @@
 
 import { apiService } from '../shared/services/api.service.js?v=4';
 import { cartService } from '../shared/services/cart.service.js';
-import { ProductGrid, ProductActions } from '../features/products/index.js?v=4';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=5';
 import { renderCategories, CategoryActions } from '../features/categories/index.js?v=2';
-import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js';
+import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=2';
 import { QuickCheckout } from '../features/checkout/index.js';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';

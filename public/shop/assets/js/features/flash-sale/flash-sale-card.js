@@ -3,7 +3,7 @@
 // ============================================
 
 import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
-import { CONFIG } from '../../shared/constants/config.js';
+import { CONFIG, productThumbUrl } from '../../shared/constants/config.js?v=2';
 
 /**
  * Create flash sale card HTML - Bundle Offer Style with Progress Bar
@@ -13,6 +13,7 @@ import { CONFIG } from '../../shared/constants/config.js';
 export function createFlashSaleCard(product) {
     const discount = Math.round(((product.original_price - product.flash_price) / product.original_price) * 100);
     const imageUrl = product.image_url || CONFIG.DEFAULT_IMAGE;
+    const thumbUrl = productThumbUrl(imageUrl);
     
     // Calculate sold percentage with FAKE boost for marketing
     const totalQuantity = product.flash_sale_quantity || 100;
@@ -42,13 +43,13 @@ export function createFlashSaleCard(product) {
     
     // Image container with eye icon (left side)
     html += '<div class="bundle-product-image-container">';
-    html += '<img src="' + imageUrl + '" ';
+    html += '<img src="' + thumbUrl + '" ';
     html += 'alt="' + escapeHtml(product.product_name) + '" ';
     html += 'class="bundle-product-image" ';
     html += 'loading="lazy" ';
     html += 'data-product-id="' + product.id + '" ';
     html += 'onclick="window.flashSaleActions.previewImage(\'' + imageUrl + '\', \'' + escapeHtml(product.product_name) + '\', ' + product.id + ')" ';
-    html += 'onerror="this.src=\'' + CONFIG.DEFAULT_IMAGE + '\'">';
+    html += 'onerror="if(!this.dataset.fullTried){this.dataset.fullTried=\'1\';this.src=\'' + imageUrl + '\';return;}this.src=\'' + CONFIG.DEFAULT_IMAGE + '\'">';
     
     // Eye icon for image preview
     html += '<button class="bundle-image-preview-btn" onclick="window.flashSaleActions.previewImage(\'' + imageUrl + '\', \'' + escapeHtml(product.product_name) + '\', ' + product.id + '); event.stopPropagation();" title="Xem ảnh lớn">';
