@@ -2,10 +2,10 @@
 // HOME PAGE CONTROLLER
 // ============================================
 
-import { apiService } from '../shared/services/api.service.js';
+import { apiService } from '../shared/services/api.service.js?v=4';
 import { cartService } from '../shared/services/cart.service.js';
-import { ProductGrid, ProductActions } from '../features/products/index.js';
-import { renderCategories, CategoryActions } from '../features/categories/index.js';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=4';
+import { renderCategories, CategoryActions } from '../features/categories/index.js?v=2';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js';
 import { QuickCheckout } from '../features/checkout/index.js';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
@@ -157,24 +157,35 @@ export class HomePage {
             const categoryParam = urlParams.get('category');
             const productParam = urlParams.get('product');
             
-            // Tải danh mục song song với SP (không chặn first paint) — chip «sở thích của mẹ» hiện ảnh sớm hơn
+            // Chip danh mục có sẵn trong HTML. Bấm được ngay khi JS chạy, không chờ API sản phẩm.
+            this.ensureCategoryActions();
+            const cachedCategories = apiService.getValidCachedCategoriesSync();
+            if (cachedCategories) {
+                this.categories = cachedCategories;
+                this.renderCategories();
+                this.hideCategoriesSkeleton();
+            }
+
             const categoriesPromise = apiService.getAllCategories().catch((error) => {
                 console.warn('Categories load failed:', error);
                 return [];
             });
+            categoriesPromise.then((categories) => {
+                if (!categories || categories.length === 0) return;
+                this.categories = categories;
+                this.renderCategories();
+                this.hideCategoriesSkeleton();
+                this.logCategoryImages('sau API danh mục');
+            });
+            const reportCategoryImages = () => this.logCategoryImages('sau khi trang tải xong');
+            if (document.readyState === 'complete') reportCategoryImages();
+            else window.addEventListener('load', reportCategoryImages, { once: true });
 
             // Phase 1: Load critical above-the-fold content FIRST
             await this.loadCriticalContent();
             
             // Hide skeleton and show critical content
             this.showCriticalContent();
-
-            try {
-                this.categories = await categoriesPromise;
-                this.renderCategories();
-            } finally {
-                this.hideCategoriesSkeleton();
-            }
             
             // Phase 2: Load remaining content in background (flash sale, …)
             this.loadRemainingContent();
@@ -248,7 +259,7 @@ export class HomePage {
                 `📦 Cache session: ${syncFresh.length} SP (sync, không chờ mạng).`,
                 'ok'
             );
-            console.log('✅ Critical content from cache (sync):', { products: syncFresh.length });
+            console.log('[SHOP-STOCK] paint từ cache phiên, không gọi API', { products: syncFresh.length });
             return;
         }
 
@@ -337,7 +348,15 @@ export class HomePage {
                     `✅ Hoàn tất: ${this.allProducts.length} SP đã đồng bộ · cache session đã lưu (5 phút).`,
                     'ok'
                 );
-                console.log('✅ Full catalog merged in background:', this.allProducts.length);
+                const outOfStock = this.allProducts.filter((product) => {
+                    const qty = Number(product?.stock_quantity ?? product?.stockQuantity);
+                    return Number.isFinite(qty) && qty <= 0;
+                }).length;
+                console.log('[SHOP-STOCK] đã nối hết trang', {
+                    loaded: this.allProducts.length,
+                    total: this._shopProductsTotal,
+                    outOfStock
+                });
             } catch (err) {
                 console.warn('⚠️ Background product pages failed, falling back to getAllProducts:', err);
                 this.setShopPerfHudBody(
@@ -667,14 +686,49 @@ export class HomePage {
     /**
      * Render categories
      */
+    ensureCategoryActions() {
+        if (this.categoryActions) return;
+        this.categoryActions = new CategoryActions((categoryId) => {
+            this.filterByCategory(categoryId);
+        });
+        window.categoryActions = this.categoryActions;
+    }
+
     renderCategories() {
-        if (this.categories.length > 0 && !this.categoryActions) {
-            this.categoryActions = new CategoryActions((categoryId) => {
-                this.filterByCategory(categoryId);
-            });
-            window.categoryActions = this.categoryActions;
-        }
+        this.ensureCategoryActions();
         renderCategories(this.categories, 'categoriesGrid');
+    }
+
+    /**
+     * Đo ảnh chip danh mục: bản nhỏ local hay ảnh gốc R2, và dung lượng đã tải.
+     */
+    logCategoryImages(when) {
+        const images = [...document.querySelectorAll('#categoriesGrid .category-chip-thumb')];
+        const resources = performance.getEntriesByType('resource');
+        const rows = images.map((img) => {
+            const src = img.currentSrc || img.src;
+            const entry = resources.find((item) => item.name === src);
+            const transferBytes = entry ? entry.transferSize || 0 : 0;
+            const decodedBytes = entry ? entry.decodedBodySize || 0 : 0;
+            return {
+                file: src.split('/').slice(-2).join('/'),
+                localThumb: src.includes('/category-thumbs/'),
+                r2Original: src.includes('r2.dev'),
+                transferKB: Math.round(transferBytes / 102.4) / 10,
+                decodedKB: Math.round(decodedBytes / 102.4) / 10
+            };
+        });
+        const transferKB = Math.round(rows.reduce((sum, row) => sum + row.transferKB, 0) * 10) / 10;
+        const decodedKB = Math.round(rows.reduce((sum, row) => sum + row.decodedKB, 0) * 10) / 10;
+        console.log('[CATEGORY-IMG]', {
+            when,
+            chips: rows.length,
+            localThumbs: rows.filter((row) => row.localThumb).length,
+            r2Originals: rows.filter((row) => row.r2Original).length,
+            transferKB,
+            decodedKB,
+            rows
+        });
     }
     
     /**
@@ -1080,7 +1134,8 @@ export class HomePage {
         if (!this.productGrid) return 'mặc định';
         
         const filterMap = {
-            'best-selling': 'bán chạy'
+            'best-selling': 'bán chạy',
+            'biggest-discount': 'giảm giá nhiều'
         };
         
         return filterMap[this.productGrid.currentFilter] || 'mặc định';
@@ -1470,7 +1525,6 @@ export class HomePage {
         if (categoriesSkeleton && categoriesGrid) {
             categoriesSkeleton.style.display = 'none';
             categoriesGrid.classList.remove('hidden');
-            categoriesGrid.classList.add('fade-in');
         }
     }
     

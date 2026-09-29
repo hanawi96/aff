@@ -56,8 +56,20 @@ export function createProductCard(product) {
     );
     
     const isExcludedProduct = EXCLUDE_SILVER_MINI_BADGE_PRODUCTS.includes(product.id);
+
+    // Vòng trơn (8) / vòng co giãn (11) không phải mix bạc.
+    // Các mẫu mix bạc trong hai nhóm này đều ghi chữ "bạc" trong tên.
+    const categoryIds = [
+        ...(product.categories || []).map(cat => Number(cat.id || cat.category_id)),
+        ...(product.category_ids || []).map(id => Number(id)),
+        Number(product.category_id)
+    ].filter(id => Number.isFinite(id));
+    const nameHasSilver = /bạc/i.test(String(product.name || ''));
+    const onlyPlainLoop = categoryIds.length > 0
+        && categoryIds.every(id => id === 8 || id === 11);
+    const plainLoopWithoutSilver = onlyPlainLoop && !nameHasSilver;
     
-    const showSilverMiniBadge = !hasExcludedCategory && !isExcludedProduct;
+    const showSilverMiniBadge = !hasExcludedCategory && !isExcludedProduct && !plainLoopWithoutSilver;
     
     const shouldShowMarketingBadges = !isOutOfStock;
 

@@ -4,6 +4,46 @@
 
 import { renderProducts } from './product-card.js';
 
+/** Phần trăm giảm đang hiện trên thẻ sản phẩm. Không giảm thì là 0. */
+function _discountPercent(product) {
+    const original = Number(product?.original_price) || 0;
+    const price = Number(product?.price) || 0;
+    if (original <= 0 || price < 0 || original <= price) return 0;
+    return Math.round(((original - price) / original) * 100);
+}
+
+/** Số tiền giảm, dùng khi hai sản phẩm cùng phần trăm. */
+function _discountAmount(product) {
+    const original = Number(product?.original_price) || 0;
+    const price = Number(product?.price) || 0;
+    return original > price ? original - price : 0;
+}
+
+/** Giảm nhiều đứng trước: % giảm, rồi số tiền giảm. */
+function _compareDiscountDesc(a, b) {
+    const byPercent = _discountPercent(b) - _discountPercent(a);
+    if (byPercent !== 0) return byPercent;
+    return _discountAmount(b) - _discountAmount(a);
+}
+
+/**
+ * Hết hàng khi stock đọc được và <= 0.
+ * Thiếu hoặc không đọc được số lượng thì vẫn giữ, tránh ẩn nhầm.
+ */
+function _isOutOfStock(product) {
+    const raw = product?.stock_quantity ?? product?.stockQuantity;
+    if (raw === undefined || raw === null || raw === '') return false;
+    const qty = typeof raw === 'string'
+        ? parseInt(String(raw).replace(/[^\d-]/g, ''), 10)
+        : Number(raw);
+    return Number.isFinite(qty) && qty <= 0;
+}
+
+function _withoutOutOfStock(products) {
+    if (!Array.isArray(products)) return [];
+    return products.filter(product => !_isOutOfStock(product));
+}
+
 /**
  * Product Grid Manager
  */
@@ -32,8 +72,9 @@ export class ProductGrid {
         const preserveExpanded = options.preserveExpandedView === true;
         const prevDisplayed = this.displayedCount;
 
-        this.allProducts = products;
-        this.products = products; // Sync để tương thích
+        const inStock = _withoutOutOfStock(products);
+        this.allProducts = inStock;
+        this.products = inStock; // Sync để tương thích
 
         // Áp dụng lại filter hiện tại (mặc định reset displayedCount → gây lỗi "Xem thêm" nếu không preserve)
         this.applyCurrentFilter();
@@ -47,7 +88,8 @@ export class ProductGrid {
             this.updateLoadMoreButton();
         }
 
-        console.log('✅ All products set:', products.length, preserveExpanded ? '(giữ số ô đang xem)' : '');
+        const sourceCount = Array.isArray(products) ? products.length : 0;
+        console.log('✅ All products set:', inStock.length, preserveExpanded ? '(giữ số ô đang xem)' : '', sourceCount !== inStock.length ? `(ẩn ${sourceCount - inStock.length} hết hàng)` : '');
     }
     
     /**
@@ -191,6 +233,9 @@ export class ProductGrid {
                 // Bán chạy: Sắp xếp theo số lượng đã bán (purchases)
                 this.filteredProducts.sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
                 break;
+            case 'biggest-discount':
+                this.filteredProducts.sort(_compareDiscountDesc);
+                break;
         }
         
         console.log(`📊 Applied "${this.currentFilter}" sort to ${this.filteredProducts.length} search results`);
@@ -223,6 +268,9 @@ export class ProductGrid {
             case 'best-selling':
                 this.filteredProducts = [...sourceProducts]
                     .sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
+                break;
+            case 'biggest-discount':
+                this.filteredProducts = [...sourceProducts].sort(_compareDiscountDesc);
                 break;
             case 'popular':
                 this.filteredProducts = sourceProducts.filter(p => (p.purchases || 0) > 10);

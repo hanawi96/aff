@@ -66,14 +66,16 @@ async function setSystemMetaNumber(env, key, value) {
 }
 
 // Get all products (OPTIMIZED - No N+1 queries)
-export async function getAllProducts(env, corsHeaders) {
+export async function getAllProducts(env, corsHeaders, options = {}) {
     try {
+        const inStockOnly = options.inStock === true;
+        const stockClause = inStockOnly ? ' AND CAST(p.stock_quantity AS INTEGER) > 0' : '';
         // Get all products
         const { results: products } = await env.DB.prepare(`
             SELECT p.*, c.name as category_name, c.icon as category_icon, c.color as category_color
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
-            WHERE p.is_active = 1
+            WHERE p.is_active = 1${stockClause}
             ORDER BY p.purchases DESC, p.name COLLATE NOCASE ASC
         `).all();
 
@@ -131,14 +133,17 @@ export async function getAllProducts(env, corsHeaders) {
  * Shop home: paginated products (same shape as getAllProducts, smaller payload per request).
  * ORDER BY name ASC — must match client merge order.
  */
-export async function getProductsPage(env, corsHeaders, page = 1, limit = 16) {
+export async function getProductsPage(env, corsHeaders, page = 1, limit = 16, options = {}) {
     try {
         const pageNum = Math.max(1, parseInt(page, 10) || 1);
         const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 16), 100);
         const offset = (pageNum - 1) * limitNum;
+        const inStockOnly = options.inStock === true;
+        const stockClause = inStockOnly ? ' AND CAST(stock_quantity AS INTEGER) > 0' : '';
+        const stockClauseAliased = inStockOnly ? ' AND CAST(p.stock_quantity AS INTEGER) > 0' : '';
 
         const countRow = await env.DB.prepare(`
-            SELECT COUNT(*) as cnt FROM products WHERE is_active = 1
+            SELECT COUNT(*) as cnt FROM products WHERE is_active = 1${stockClause}
         `).first();
         const total = countRow?.cnt ?? 0;
 
@@ -146,7 +151,7 @@ export async function getProductsPage(env, corsHeaders, page = 1, limit = 16) {
             SELECT p.*, c.name as category_name, c.icon as category_icon, c.color as category_color
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
-            WHERE p.is_active = 1
+            WHERE p.is_active = 1${stockClauseAliased}
             ORDER BY name ASC
             LIMIT ? OFFSET ?
         `).bind(limitNum, offset).all();

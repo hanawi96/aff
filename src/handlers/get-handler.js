@@ -327,12 +327,16 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             return await validateReferralCode(refCode, env, corsHeaders);
 
         case 'getAllProducts':
-            return await getAllProducts(env, corsHeaders);
+            return await getAllProducts(env, corsHeaders, {
+                inStock: url.searchParams.get('inStock') === '1'
+            });
 
         case 'getProductsPage': {
             const page = parseInt(url.searchParams.get('page') || '1', 10);
             const limit = Math.min(parseInt(url.searchParams.get('limit') || '16', 10), 100);
-            return await getProductsPage(env, corsHeaders, page, limit);
+            return await getProductsPage(env, corsHeaders, page, limit, {
+                inStock: url.searchParams.get('inStock') === '1'
+            });
         }
 
         case 'getR2Image': {

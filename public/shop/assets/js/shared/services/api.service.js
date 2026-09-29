@@ -4,10 +4,24 @@
 
 import { CONFIG } from '../constants/config.js';
 
+/** Đếm sản phẩm hết hàng / không có số tồn trong một mảng API. */
+function _stockCheck(products) {
+    const list = Array.isArray(products) ? products : [];
+    let outOfStock = 0;
+    let missingStock = 0;
+    for (const product of list) {
+        const raw = product?.stock_quantity ?? product?.stockQuantity;
+        const qty = typeof raw === 'string' ? parseInt(raw, 10) : Number(raw);
+        if (!Number.isFinite(qty)) missingStock += 1;
+        else if (qty <= 0) outOfStock += 1;
+    }
+    return { count: list.length, outOfStock, missingStock };
+}
+
 class ApiService {
     constructor() {
         this.baseURL = CONFIG.API_BASE_URL;
-        this.storageKey = 'shop_api_cache_v1';
+        this.storageKey = 'shop_api_cache_v2';
         // Cache for API responses
         this.cache = {
             products: null,
@@ -35,6 +49,13 @@ class ApiService {
      * Catalog SP còn TTL — trả về mảng ngay (sync), không gọi mạng.
      * Dùng cho paint tức thì (không chờ microtask của await).
      */
+    getValidCachedCategoriesSync() {
+        if (!this.isCacheValid('categories')) return null;
+        const list = this.cache.categories;
+        if (!Array.isArray(list) || list.length === 0) return null;
+        return list;
+    }
+
     getValidCachedProductsSync() {
         if (!this.isCacheValid('products')) return null;
         const list = this.cache.products;
@@ -128,14 +149,15 @@ class ApiService {
     async getAllProducts(forceRefresh = false) {
         // Check cache first (skip if forceRefresh)
         if (!forceRefresh && this.isCacheValid('products')) {
-            console.log('📦 Using cached products');
+            console.log('[SHOP-STOCK] getAllProducts dùng cache, không gọi mạng', _stockCheck(this.cache.products));
             return this.cache.products;
         }
         
-        console.log('🌐 Fetching products from API');
-        const data = await this.get('/get', { action: 'getAllProducts' });
+        console.log('[SHOP-STOCK] request getAllProducts', { inStock: '1', forceRefresh });
+        const data = await this.get('/get', { action: 'getAllProducts', inStock: '1' });
         const allProducts = data.products || data || [];
         const activeProducts = allProducts.filter(p => p.is_active === 1);
+        console.log('[SHOP-STOCK] response getAllProducts', _stockCheck(activeProducts));
         
         // Cache the result
         this.setCache('products', activeProducts);
@@ -183,9 +205,16 @@ class ApiService {
             const data = await this.get('/get', {
                 action: 'getProductsPage',
                 page: String(pageNum),
-                limit: String(limitNum)
+                limit: String(limitNum),
+                inStock: '1'
             });
             const products = (data.products || []).filter((p) => p.is_active === 1);
+            console.log('[SHOP-STOCK] getProductsPage', {
+                request: { action: 'getProductsPage', page: pageNum, limit: limitNum, inStock: '1' },
+                total: data.total ?? 0,
+                hasMore: Boolean(data.hasMore),
+                ..._stockCheck(products)
+            });
             return {
                 products,
                 total: data.total ?? 0,
