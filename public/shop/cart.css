@@ -3680,12 +3680,21 @@ body {
 
 .image-carousel-container {
     position: relative;
-    width: 100%;
+    /* Lề đều 2 bên bằng margin (KHÔNG set width): offsetWidth JS đo = chiều rộng thật
+       của container (đã co lại theo margin), slide flex 0 0 100% cũng co theo → translateX
+       vẫn khớp, ảnh KHÔNG lệch. Trước đây lệch vì set thêm width: calc() phá tính toán. */
+    margin: 10px 12px 0;
     overflow: hidden;
     background: #fafafa;
-    border-radius: 12px 12px 0 0;
+    border-radius: 14px;
     touch-action: pan-y pinch-zoom;
     user-select: none;
+    /* Ép clip con có transform (track dùng translateX) — overflow:hidden thường
+       KHÔNG cắt con có transform, nên dùng mask để bo góc luôn ăn. */
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    -webkit-mask-image: radial-gradient(white, black);
+    mask-image: radial-gradient(white, black);
+    isolation: isolate;
 }
 
 .image-carousel-track {
@@ -3700,14 +3709,17 @@ body {
     position: relative;
 }
 
+/* Ghi đè .image-preview-content img (contain/padding/nền) — ảnh carousel phủ kín & bo theo khung */
+.image-preview-content .image-carousel-slide img,
 .image-carousel-slide img {
     width: 100%;
     height: auto;
     max-height: 450px;
-    object-fit: contain;
+    padding: 0;
+    background: none;
+    object-fit: cover;
     display: block;
-    background: #fafafa;
-    border-radius: 6px;
+    border-radius: 14px;
 }
 
 /* Carousel Arrows */
@@ -3786,7 +3798,7 @@ body {
     justify-content: center;
     align-items: center;
     gap: 8px;
-    padding: 0 0 12px 0;
+    padding: 12px 0 12px 0;
     background: linear-gradient(to top, rgba(0,0,0,0.02), transparent);
 }
 
@@ -7944,3 +7956,239 @@ body {
     border: none;
 }
 
+
+/* ============================================
+   RELATED PRODUCTS — "Sản phẩm bán chạy" trong modal chi tiết
+   Bố cục: ảnh trái + thông tin phải. Tối ưu chạm trên mobile.
+   ============================================ */
+.related-products {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.rp-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.75rem 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #1f2937;
+    letter-spacing: -0.01em;
+}
+.rp-title svg {
+    width: 18px;
+    height: 18px;
+    fill: #e76f51;
+    flex-shrink: 0;
+}
+
+.rp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.rp-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.55rem;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .18s ease, box-shadow .18s ease, transform .12s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.rp-item:hover {
+    border-color: #f3c5b8;
+    box-shadow: 0 4px 14px rgba(231, 111, 81, 0.10);
+}
+.rp-item:active {
+    transform: scale(0.985);
+}
+
+.rp-thumb {
+    position: relative;
+    flex-shrink: 0;
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f6f6f6;
+}
+/* Ghi đè .image-preview-content img (contain/padding/max-height) — ảnh gợi ý phải phủ kín khung vuông bo góc */
+.image-preview-content .rp-thumb img,
+.rp-thumb img {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    padding: 0;
+    background: none;
+    object-fit: cover;
+    border-radius: 0;
+    display: block;
+}
+.rp-discount {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 1px 6px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1.4;
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.rp-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+.rp-name {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+    line-height: 1.35;
+    /* 2 dòng, cắt gọn */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.rp-price-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.rp-price {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #e76f51;
+}
+.rp-price-original {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    text-decoration: line-through;
+}
+.rp-sold {
+    font-size: 0.72rem;
+    color: #9ca3af;
+}
+
+.rp-chevron {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    color: #cbd5e1;
+}
+
+/* Mobile: gọn hơn một chút */
+@media (max-width: 480px) {
+    .rp-thumb { width: 88px; height: 88px; border-radius: 10px; }
+    .rp-name { font-size: 0.86rem; }
+    .rp-price { font-size: 0.9rem; }
+    .rp-item { padding: 0.5rem; gap: 0.65rem; }
+}
+
+/* ============================================
+   PRODUCT DETAIL META — dòng rating + đã bán (đã bỏ danh mục)
+   Gọn gàng, hiện đại, tối ưu mobile.
+   ============================================ */
+.product-detail-section {
+    padding: 0;
+    flex-shrink: 0;   /* nằm cạnh giá trong pricing-container — không co lại */
+}
+.pd-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+.pd-rating {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    padding: 0.2rem 0.55rem;
+    background: #fff7ed;
+    border-radius: 999px;
+    line-height: 1;
+}
+.pd-meta-star {
+    width: 15px;
+    height: 15px;
+    fill: #f59e0b;
+    flex-shrink: 0;
+}
+.pd-rating-score {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #b45309;
+}
+.pd-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 999px;
+    background: #d1d5db;
+    flex-shrink: 0;
+}
+.pd-sold {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    font-weight: 500;
+}
+.pd-oos {
+    margin-left: auto;
+    padding: 0.2rem 0.6rem;
+    background: #fef2f2;
+    color: #dc2626;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-radius: 999px;
+}
+
+@media (max-width: 480px) {
+    .pd-meta { font-size: 0.86rem; gap: 0.45rem; }
+    .pd-rating-score { font-size: 0.86rem; }
+    .pd-sold { font-size: 0.8rem; }
+}
+
+/* ============================================
+   BADGE % GIẢM nhỏ — nằm cạnh phải giá gốc trong modal
+   ============================================ */
+.price-original-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.price-discount-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.08rem 0.4rem;
+    background: #fef2f2;
+    color: #ef4444;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.4;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    .price-discount-badge { font-size: 0.68rem; padding: 0.06rem 0.36rem; }
+}

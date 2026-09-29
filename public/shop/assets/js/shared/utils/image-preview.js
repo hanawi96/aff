@@ -184,6 +184,10 @@ async function _openProductDetailModal(product, priceData) {
     modal.dataset.productId = product.id;
     document.body.style.overflow = 'hidden'; // Prevent background scroll
 
+    // Ẩn mục gợi ý cũ (tránh nhấp nháy nội dung SP trước khi build lại)
+    const relatedEl = document.getElementById('relatedProducts');
+    if (relatedEl) { relatedEl.style.display = 'none'; relatedEl.innerHTML = ''; }
+
     // 6. Setup carousel events (touch, click, keyboard)
     _setupCarouselEvents();
 
@@ -199,6 +203,104 @@ async function _openProductDetailModal(product, priceData) {
     } else {
         materialsContainer.innerHTML = '';
     }
+
+    // 10. Gợi ý 5 sản phẩm bán chạy (loại chính SP đang xem)
+    _loadBestSellers(product.id, document.getElementById('relatedProducts'));
+}
+
+/**
+ * Render mục "Sản phẩm bán chạy" ở cuối modal — top 5 theo purchases, bỏ SP đang xem.
+ * Bố cục mỗi item: ảnh trái + thông tin phải. Click → mở modal SP đó.
+ * @param {number|string} currentId - id SP đang xem (để loại khỏi gợi ý)
+ * @param {HTMLElement} container - #relatedProducts
+ */
+function _loadBestSellers(currentId, container) {
+    if (!container) return;
+
+    // Nguồn dữ liệu: window.allProducts (giống _findProduct). Fallback về productGrid.
+    let list = [];
+    if (Array.isArray(window.allProducts)) list = window.allProducts;
+    else if (window.productGrid && Array.isArray(window.productGrid.allProducts)) list = window.productGrid.allProducts;
+    else if (window.App?.currentPage?.allProducts) list = window.App.currentPage.allProducts;
+
+    if (!Array.isArray(list) || list.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    // Chỉ SP đang bán, khác SP hiện tại; sắp theo purchases giảm dần; lấy 5.
+    const items = list
+        .filter(p => p && p.id != null && String(p.id) !== String(currentId))
+        .filter(p => p.is_active === undefined || p.is_active === null || p.is_active === 1 || p.is_active === true)
+        .sort((a, b) => (Number(b.purchases) || 0) - (Number(a.purchases) || 0))
+        .slice(0, 5);
+
+    if (items.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    const rowsHtml = items.map((p) => {
+        const img = p.image_url || p.image || CONFIG.DEFAULT_IMAGE;
+        const name = p.name || 'Sản phẩm';
+        const price = _formatPrice(p.price);
+        const hasSale = p.original_price && p.original_price > p.price;
+        const original = hasSale ? `<span class="rp-price-original">${_formatPrice(p.original_price)}</span>` : '';
+        const discount = hasSale ? _calculateDiscount(p.original_price, p.price) : 0;
+        const discountTag = discount > 0 ? `<span class="rp-discount">-${discount}%</span>` : '';
+        const sold = Number(p.purchases) || 0;
+        const soldTag = sold > 0 ? `<span class="rp-sold">Đã bán ${sold}</span>` : '';
+        return `
+            <button type="button" class="rp-item" data-rp-id="${p.id}" aria-label="Xem ${_escAttr(name)}">
+                <div class="rp-thumb">
+                    <img src="${_escAttr(img)}" alt="${_escAttr(name)}" loading="lazy" decoding="async"
+                         onerror="if(this.dataset.fb){return}this.dataset.fb='1';this.src='${CONFIG.DEFAULT_IMAGE}'">
+                    ${discountTag}
+                </div>
+                <div class="rp-info">
+                    <p class="rp-name">${_escHtml(name)}</p>
+                    <div class="rp-price-row">
+                        <span class="rp-price">${price}</span>
+                        ${original}
+                    </div>
+                    ${soldTag}
+                </div>
+                <svg class="rp-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5 15.75 12l-7.5 7.5" /></svg>
+            </button>`;
+    }).join('');
+
+    container.innerHTML = `
+        <h3 class="rp-title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.25c.414 0 .75.336.75.75v.518a9.735 9.735 0 0 1 3.062.87.75.75 0 0 1-.624 1.364 8.235 8.235 0 0 0-2.438-.72V9.5l3.03 1.515a2.25 2.25 0 0 1 1.22 2.006v.229c0 3.314-2.686 6-6 6s-6-2.686-6-6v-.229a2.25 2.25 0 0 1 1.22-2.006L9.75 9.5V5.452a8.235 8.235 0 0 0-2.438.72.75.75 0 1 1-.624-1.364 9.735 9.735 0 0 1 3.062-.87V3c0-.414.336-.75.75-.75Z" /></svg>
+            <span>Sản phẩm bán chạy</span>
+        </h3>
+        <div class="rp-list">${rowsHtml}</div>
+    `;
+    container.style.display = 'block';
+
+    // Click item → mở modal SP tương ứng (dùng lại openProductDetail, tự sync URL).
+    eventManager.removeController('relatedProductsClick');
+    eventManager.addWithController('relatedProductsClick', container, 'click', (e) => {
+        const btn = e.target.closest('.rp-item');
+        if (!btn) return;
+        const id = btn.getAttribute('data-rp-id');
+        if (id && typeof window.openProductDetail === 'function') {
+            window.openProductDetail(parseInt(id, 10));
+        }
+    });
+}
+
+/** Escape cho text content. */
+function _escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+}
+/** Escape cho thuộc tính (src/alt). */
+function _escAttr(s) {
+    return String(s == null ? '' : s).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /**
@@ -561,7 +663,7 @@ function _updateCarouselUI(index) {
     if (processBadge) {
         if (currentImg.type === 'process') {
             processBadge.classList.add('show');
-            if (processLabel) processLabel.textContent = `Quy trình ${index}/6: ${currentImg.label}`;
+            if (processLabel) processLabel.textContent = currentImg.label;
         } else {
             processBadge.classList.remove('show');
         }
@@ -609,37 +711,20 @@ function _updateProductDetailSection(product) {
         : null;
     const isOutOfStock = stockQty !== null && Number.isFinite(stockQty) && stockQty <= 0;
 
-    // Categories — chỉ hiển thị 1 danh mục đầu tiên
-    const categories = product.categories || [];
-    const firstCat = categories[0];
-    const categoryBadges = firstCat
-        ? `<span class="product-detail-category" style="--cat-color: ${firstCat.color || '#6b7280'}">${firstCat.name || firstCat.category_name || ''}</span>`
-        : '';
-
-    // Rating — một ngôi sao + điểm (không dãy 5 sao)
-    const rating = product.rating || 0;
+    // Rating + đã bán (bỏ hẳn hiển thị danh mục theo yêu cầu)
+    const rating = (product.rating && product.rating > 0) ? product.rating : 5.0;
     const purchases = product.purchases || 0;
-    const ratingStarSingle = `<svg class="star filled rating-star-single" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"/></svg>`;
-
-    // SKU
-    const sku = product.sku || '';
+    const starSvg = `<svg class="pd-meta-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" /></svg>`;
 
     section.innerHTML = `
-        <div class="product-detail-meta-row">
-            <div class="product-detail-categories">${categoryBadges}</div>
-            <div class="product-detail-rating">
-                ${ratingStarSingle}
-                <span class="rating-score">${rating.toFixed(1)}</span>
-                <span class="rating-count">(${purchases} đã bán)</span>
-            </div>
+        <div class="pd-meta">
+            <span class="pd-rating">
+                ${starSvg}
+                <span class="pd-rating-score">${rating.toFixed(1)}</span>
+            </span>
+            ${purchases > 0 ? `<span class="pd-dot" aria-hidden="true"></span><span class="pd-sold">Đã bán ${purchases}</span>` : ''}
+            ${isOutOfStock ? `<span class="pd-oos">Hết hàng</span>` : ''}
         </div>
-        ${sku ? `<div class="product-detail-row product-detail-sku-row"><div class="product-detail-sku">SKU: ${sku}</div></div>` : ''}
-        ${isOutOfStock
-            ? `<div class="product-detail-stock out-of-stock-badge">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width:0.875rem;height:0.875rem;flex-shrink:0"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-2.625 6c-.54 0-.828.419-.936.634a1.96 1.96 0 0 0-.189.866c0 .298.059.605.189.866.108.215.395.634.936.634.54 0 .828-.419.936-.634.13-.26.189-.568.189-.866 0-.298-.059-.605-.189-.866-.108-.215-.395-.634-.936-.634Zm4.314.634c.108-.215.395-.634.936-.634.54 0 .828.419.936.634.13.26.189.568.189.866 0 .298-.059.605-.189.866-.108.215-.395.634-.936.634-.54 0-.828-.419-.936-.634a1.96 1.96 0 0 1-.189-.866c0-.298.059-.605.189-.866Zm2.023 6.828a.75.75 0 1 0-1.06-1.06 3.75 3.75 0 0 1-5.304 0 .75.75 0 0 0-1.06 1.06 5.25 5.25 0 0 0 7.424 0Z" clip-rule="evenodd" /></svg>
-                <span>Hết hàng</span>
-               </div>`
-            : ''}
     `;
 }
 
