@@ -1344,7 +1344,6 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 1rem;
-    transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
     box-shadow: 0 6px 24px rgba(200, 140, 100, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.85);
     position: relative;
     overflow: hidden;
@@ -1360,26 +1359,6 @@ body {
 
 .benefits-section-mom .benefit-card-new:nth-child(3n) {
     border-radius: 1.55rem 2.05rem 1.6rem 1.75rem;
-}
-
-.benefits-section-mom .benefit-card-new::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255, 250, 245, 0.9) 0%, rgba(255, 245, 238, 0.5) 100%);
-    opacity: 0;
-    transition: opacity 0.35s ease;
-    pointer-events: none;
-}
-
-.benefits-section-mom .benefit-card-new:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 32px rgba(200, 140, 100, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    border-color: rgba(244, 162, 97, 0.38);
-}
-
-.benefits-section-mom .benefit-card-new:hover::before {
-    opacity: 1;
 }
 
 .benefit-content {
@@ -1430,11 +1409,6 @@ body {
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 0.45s ease;
-}
-
-.benefit-card-new.benefit-card-with-image:hover .benefit-card-img {
-    transform: scale(1.03);
 }
 
 .benefit-card-body {
