@@ -9,7 +9,6 @@ function smartRoundPrice(price) {
     return Math.ceil((price + 1000) / 10000) * 10000 - 1000;
 }
 
-// Alias — cả markup lẫn profit đều dùng cùng 1 logic làm tròn lên X9.000
 const smartRoundPriceUp = smartRoundPrice;
 
 function hasMeaningfulDifference(a, b, epsilon = 0.01) {
@@ -367,7 +366,7 @@ export async function createProduct(data, env, corsHeaders) {
         const braceletType = normalizeBraceletType(data.bracelet_type);
 
         const insertColumns = [
-            'name', 'price', 'original_price', 'cost_price', 'markup_multiplier', 'category_id',
+            'name', 'price', 'original_price', 'cost_price', 'category_id',
             'stock_quantity', 'rating', 'purchases', 'sku', 'description', 'image_url',
             'is_active', 'pricing_method', 'target_profit'
         ];
@@ -376,7 +375,6 @@ export async function createProduct(data, env, corsHeaders) {
             price,
             data.original_price ? parseFloat(data.original_price) : null,
             data.cost_price !== undefined ? parseFloat(data.cost_price) : 0,
-            data.markup_multiplier !== undefined ? (data.markup_multiplier !== null ? parseFloat(data.markup_multiplier) : null) : null,
             data.category_id ? parseInt(data.category_id) : null,
             data.stock_quantity !== undefined ? parseInt(data.stock_quantity) : 0,
             data.rating !== undefined ? parseFloat(data.rating) : 0,
@@ -385,8 +383,10 @@ export async function createProduct(data, env, corsHeaders) {
             data.description || null,
             data.image_url || null,
             data.is_active !== undefined ? data.is_active : 1,
-            data.pricing_method || 'markup',
-            data.target_profit ? parseFloat(data.target_profit) : null
+            'profit',
+            data.target_profit !== undefined && data.target_profit !== null && data.target_profit !== ''
+                ? parseFloat(data.target_profit)
+                : null
         ];
         if (supportsBraceletType) {
             insertColumns.push('bracelet_type');
@@ -525,10 +525,6 @@ export async function updateProduct(data, env, corsHeaders) {
             updates.push('cost_price = ?');
             values.push(data.cost_price !== null ? parseFloat(data.cost_price) : 0);
         }
-        if (data.markup_multiplier !== undefined) {
-            updates.push('markup_multiplier = ?');
-            values.push(data.markup_multiplier !== null ? parseFloat(data.markup_multiplier) : null);
-        }
         if (data.category_id !== undefined) {
             updates.push('category_id = ?');
             values.push(data.category_id ? parseInt(data.category_id) : null);
@@ -563,11 +559,15 @@ export async function updateProduct(data, env, corsHeaders) {
         }
         if (data.pricing_method !== undefined) {
             updates.push('pricing_method = ?');
-            values.push(data.pricing_method || 'markup');
+            values.push('profit');
         }
         if (data.target_profit !== undefined) {
             updates.push('target_profit = ?');
-            values.push(data.target_profit ? parseFloat(data.target_profit) : null);
+            values.push(
+                data.target_profit !== null && data.target_profit !== ''
+                    ? parseFloat(data.target_profit)
+                    : null
+            );
         }
         const supportsBraceletType = await hasBraceletTypeColumn(env);
         if (supportsBraceletType && data.bracelet_type !== undefined) {
@@ -595,7 +595,6 @@ export async function updateProduct(data, env, corsHeaders) {
         const touchesPricing = (
             data.price !== undefined ||
             data.cost_price !== undefined ||
-            data.markup_multiplier !== undefined ||
             data.pricing_method !== undefined ||
             data.target_profit !== undefined
         );
@@ -747,7 +746,7 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
         if (Array.isArray(changedMaterials) && changedMaterials.length > 0) {
             const ph = changedMaterials.map(() => '?').join(',');
             const stmt = env.DB.prepare(`
-                SELECT p.id, p.name, p.markup_multiplier, p.pricing_method, p.target_profit,
+                SELECT p.id, p.name, p.pricing_method, p.target_profit,
                        p.price AS old_price, p.cost_price AS old_cost_price,
                        pm.quantity, m.item_cost
                 FROM products p
@@ -767,7 +766,7 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
             rows = r.results;
         } else {
             const stmt = env.DB.prepare(`
-                SELECT p.id, p.name, p.markup_multiplier, p.pricing_method, p.target_profit,
+                SELECT p.id, p.name, p.pricing_method, p.target_profit,
                        p.price AS old_price, p.cost_price AS old_cost_price,
                        pm.quantity, m.item_cost
                 FROM products p
@@ -787,7 +786,6 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
             if (!productMap.has(row.id)) {
                 productMap.set(row.id, {
                     id: row.id, name: row.name,
-                    markup_multiplier: row.markup_multiplier,
                     pricing_method: row.pricing_method,
                     target_profit: row.target_profit,
                     old_price: row.old_price,
@@ -813,7 +811,7 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
         // ── 3. Compute new prices purely in JS (zero extra DB round-trips) ───────────────
         let updatedCount = 0, skippedCount = 0;
         const updates = [];
-        const toUpdate = [];   // { id, costPrice, price, markup }
+        const toUpdate = [];   // { id, costPrice, price | null }
         const allProductIds = [];
 
         for (const product of productMap.values()) {
@@ -826,32 +824,30 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
             newCostPrice = Math.round(newCostPrice * 100) / 100;
             if (!isFinite(newCostPrice)) newCostPrice = 0;
 
-            const pricingMethod = product.pricing_method || 'markup';
-            const targetProfit = Number(product.target_profit) || 0;
-            let newPrice, newMarkup;
-
-            if (pricingMethod === 'profit' && product.target_profit != null && targetProfit >= 0) {
+            const hasTargetProfit = product.target_profit != null && product.target_profit !== '';
+            const targetProfit = Number(product.target_profit);
+            let newPrice = Number(product.old_price) || 0;
+            if (hasTargetProfit && isFinite(targetProfit) && targetProfit >= 0) {
                 newPrice = smartRoundPriceUp(newCostPrice + targetProfit);
-                newMarkup = newCostPrice > 0 ? newPrice / newCostPrice : 2.5;
-            } else {
-                newMarkup = (product.markup_multiplier != null && isFinite(product.markup_multiplier))
-                    ? Number(product.markup_multiplier)
-                    : (materials.length <= 3 ? 2.5 : materials.length <= 6 ? 3.0 : 3.5);
-                newPrice = smartRoundPrice(newCostPrice * newMarkup);
             }
             if (!isFinite(newPrice)) newPrice = 0;
-            if (!isFinite(newMarkup)) newMarkup = 2.5;
 
             allProductIds.push(pid);
 
-            if (hasMeaningfulDifference(newCostPrice, product.old_cost_price) || hasMeaningfulDifference(newPrice, product.old_price)) {
-                toUpdate.push({ id: pid, costPrice: newCostPrice, price: newPrice, markup: newMarkup });
+            const costChanged = hasMeaningfulDifference(newCostPrice, product.old_cost_price);
+            const priceChanged = hasTargetProfit && hasMeaningfulDifference(newPrice, product.old_price);
+            if (costChanged || priceChanged) {
+                toUpdate.push({
+                    id: pid,
+                    costPrice: newCostPrice,
+                    price: priceChanged ? newPrice : null
+                });
                 updatedCount++;
                 updates.push({
                     id: pid, name: product.name,
                     old_cost_price: product.old_cost_price, new_cost_price: newCostPrice,
-                    old_price: product.old_price, new_price: newPrice,
-                    pricing_method: pricingMethod, markup: newMarkup, target_profit: product.target_profit
+                    old_price: product.old_price, new_price: priceChanged ? newPrice : product.old_price,
+                    pricing_method: 'profit', target_profit: product.target_profit
                 });
             } else {
                 skippedCount++;
@@ -866,10 +862,17 @@ export async function recalculateAllProductPrices(env, corsHeaders, changedMater
         // nguyên tử: hoặc tất cả giá được cập nhật, hoặc không thay đổi gì.
         const batchStmts = [];
         for (const p of toUpdate) {
-            batchStmts.push(
-                env.DB.prepare('UPDATE products SET cost_price=?, price=?, markup_multiplier=? WHERE id=?')
-                    .bind(p.costPrice, p.price, p.markup, p.id)
-            );
+            if (p.price == null) {
+                batchStmts.push(
+                    env.DB.prepare('UPDATE products SET cost_price=? WHERE id=?')
+                        .bind(p.costPrice, p.id)
+                );
+            } else {
+                batchStmts.push(
+                    env.DB.prepare('UPDATE products SET cost_price=?, price=? WHERE id=?')
+                        .bind(p.costPrice, p.price, p.id)
+                );
+            }
         }
 
         // Stamp ALL processed product_materials in one single query using literal IDs.
@@ -945,7 +948,7 @@ export async function dismissOutdatedNotification(env, corsHeaders) {
 // Eliminates N+1 query problem (was 121+ queries → now 1).
 async function buildProductMaterialsMap(env) {
     const { results: rows } = await env.DB.prepare(`
-        SELECT p.id, p.name, p.markup_multiplier, p.pricing_method, p.target_profit,
+        SELECT p.id, p.name, p.pricing_method, p.target_profit,
                p.price as current_price, p.cost_price as current_cost_price,
                pm.quantity, m.item_cost,
                pm.updated_at_unix as formula_updated_at_unix,
@@ -962,7 +965,6 @@ async function buildProductMaterialsMap(env) {
         if (!map.has(r.id)) {
             map.set(r.id, {
                 id: r.id, name: r.name,
-                markup_multiplier: r.markup_multiplier,
                 pricing_method: r.pricing_method,
                 target_profit: r.target_profit,
                 current_price: r.current_price,
@@ -990,19 +992,16 @@ function computeExpectedPrices(product) {
     costPrice = Math.round(costPrice * 100) / 100;
     if (latestMaterial <= latestFormula) return null;
 
-    const method = product.pricing_method || 'markup';
-    const tp = Number(product.target_profit || 0);
-    let price;
-    if (method === 'profit' && product.target_profit != null && tp >= 0) {
+    const hasTargetProfit = product.target_profit != null && product.target_profit !== '';
+    const tp = Number(product.target_profit);
+    let price = Number(product.current_price) || 0;
+    if (hasTargetProfit && isFinite(tp) && tp >= 0) {
         price = smartRoundPriceUp(costPrice + tp);
-    } else {
-        let mu = product.markup_multiplier;
-        if (mu == null) mu = mats.length <= 3 ? 2.5 : mats.length <= 6 ? 3.0 : 3.5;
-        price = smartRoundPrice(costPrice * mu);
     }
 
-    if (!hasMeaningfulDifference(costPrice, product.current_cost_price) &&
-        !hasMeaningfulDifference(price, product.current_price)) return null;
+    const costChanged = hasMeaningfulDifference(costPrice, product.current_cost_price);
+    const priceChanged = hasTargetProfit && hasMeaningfulDifference(price, product.current_price);
+    if (!costChanged && !priceChanged) return null;
 
     return { expectedCostPrice: costPrice, expectedPrice: price };
 }

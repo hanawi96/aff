@@ -932,14 +932,8 @@ function calculateTotalCost() {
         if (!costPriceManualOverride) {
             costPriceInput.value = formatNumber(total);
             
-            // Tính lại giá bán theo ĐÚNG phương thức đang chọn:
-            // - 'profit': giá bán = giá vốn + lãi mong muốn (tự gợi ý lãi nếu để trống)
-            // - 'markup': giá bán = giá vốn × hệ số markup
-            const pricingMethod = (typeof currentPricingMethod !== 'undefined') ? currentPricingMethod : 'markup';
-            if (pricingMethod === 'profit' && typeof updateSellingPriceFromProfit === 'function') {
+            if (typeof updateSellingPriceFromProfit === 'function') {
                 updateSellingPriceFromProfit();
-            } else if (typeof updateSellingPriceFromMarkup === 'function') {
-                updateSellingPriceFromMarkup();
             }
             
             // Trigger profit calculation
