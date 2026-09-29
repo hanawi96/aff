@@ -233,7 +233,7 @@
       if (announce) {
         const total = calcTotal(active.selected);
         active.showStatus?.(
-          `✅ Đã nạp ${label} · ${rows.length} NL · ${formatVnd(total)}`,
+          ` Đã nạp ${label} · ${rows.length} NL · ${formatVnd(total)}`,
           'success',
           2000
         );
@@ -665,7 +665,7 @@
     lastSelection = [];
     close();
     onApplied?.(payload);
-    showStatus?.(`✅ Đã điền giá vốn ${formatVnd(total)} (${count} NL)`, 'success', 2000);
+    showStatus?.(` Đã điền giá vốn ${formatVnd(total)} (${count} NL)`, 'success', 2000);
   }
 
   function close() {

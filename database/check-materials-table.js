@@ -24,15 +24,15 @@ async function checkTables() {
         const hasCostConfig = tables.rows.some(t => t.name === 'cost_config');
         const hasMaterials = tables.rows.some(t => t.name === 'materials');
         
-        console.log('\n✅ Table check:');
-        console.log(`  - cost_config: ${hasCostConfig ? '✅ EXISTS' : '❌ MISSING'}`);
-        console.log(`  - materials: ${hasMaterials ? '✅ EXISTS' : '❌ MISSING'}`);
+        console.log('\n Table check:');
+        console.log(`  - cost_config: ${hasCostConfig ? ' EXISTS' : '❌ MISSING'}`);
+        console.log(`  - materials: ${hasMaterials ? ' EXISTS' : '❌ MISSING'}`);
         
         if (hasCostConfig) {
             console.log('\n⚠️  Migration 051 has NOT been run yet!');
             console.log('   Run: node database/run-migration-051.js');
         } else if (hasMaterials) {
-            console.log('\n✅ Migration 051 has been run successfully!');
+            console.log('\n Migration 051 has been run successfully!');
         }
         
     } catch (error) {

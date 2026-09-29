@@ -109,7 +109,7 @@ async function main() {
     console.log('='.repeat(100));
 
     if (rows.length === 0) {
-        console.log('✅ Không có đơn nào cần backfill.');
+        console.log(' Không có đơn nào cần backfill.');
         client.close();
         return;
     }
@@ -192,7 +192,7 @@ async function main() {
 
         updated++;
         console.log(
-            `✅ ${r.order_id}: ` +
+            ` ${r.order_id}: ` +
             `province="${newProvinceName}" (${newProvinceId}) | ` +
             `ward="${newWardName}" (${newWardId}) | ` +
             `street="${newStreet || ''}"`

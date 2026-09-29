@@ -1173,7 +1173,7 @@ async function loadProducts() {
       }
       
       renderFeaturedProducts();
-      showStatus('✅ Đã tải ' + allProductsCache.length + ' sản phẩm!', 'success');
+      showStatus(' Đã tải ' + allProductsCache.length + ' sản phẩm!', 'success');
       
       setTimeout(() => {
         const statusEl = document.getElementById('shopvd-status');
@@ -4867,7 +4867,7 @@ async function updateOrder(orderData) {
       resetShopvdOrderFormAfterSave();
       handlePancakeChatDbSaveCheck(true, { forceRefresh: true });
       schedulePullPendingFromServer(500);
-      showStatus('✅ Đã cập nhật đơn hàng', 'success', 2500);
+      showStatus(' Đã cập nhật đơn hàng', 'success', 2500);
     } else {
       showStatus(`❌ Lỗi: ${result.error || 'Không thể cập nhật đơn'}`, 'error');
     }
@@ -5526,7 +5526,7 @@ async function maybeAutoFillFromOpenChat() {
       silentEmpty: true,
       quietStatus: true,
       draftSource: 'auto-fill',
-      successMessage: '✅ Đã tự lấy địa chỉ từ chat',
+      successMessage: ' Đã tự lấy địa chỉ từ chat',
       successDurationMs: 2800,
     });
     if (!result?.ok) {
@@ -5553,7 +5553,7 @@ function scheduleMaybeAutoFillFromOpenChat(delayMs = 500) {
 async function parseAndApplyCustomerText(rawText, options = {}) {
   const silentEmpty = options.silentEmpty === true;
   const quietStatus = options.quietStatus === true;
-  const successMessage = options.successMessage || '✅ Đã lấy thông tin khách từ tin nhắn';
+  const successMessage = options.successMessage || ' Đã lấy thông tin khách từ tin nhắn';
   const text = String(rawText || '').trim();
 
   if (!text) {
@@ -5740,7 +5740,7 @@ function applyPhoneFromPancakeTagClick(phone) {
   shopvdLastPhoneTagFill = { phone: p, at: now };
 
   if (!suppressToast) {
-    showStatus(unchanged ? `✅ SĐT ${p} đã sẵn sàng` : `✅ Đã điền SĐT ${p}`, 'success', 1500);
+    showStatus(unchanged ? ` SĐT ${p} đã sẵn sàng` : ` Đã điền SĐT ${p}`, 'success', 1500);
   }
 
   phoneInput.classList.remove('shopvd-phone-just-filled');
@@ -6258,7 +6258,7 @@ function renderAllProducts() {
 
       const added = addCheckedAllTabProduct(checkbox);
       if (added) {
-        showStatus('✅ Đã thêm vào đơn', 'success');
+        showStatus(' Đã thêm vào đơn', 'success');
         setTimeout(() => {
           document.getElementById('shopvd-status')?.classList.add('hidden');
         }, 2000);
@@ -6398,14 +6398,14 @@ function handleBulkAdd() {
   }
 
   if (missingWeightCount > 0) {
-    showStatus(`✅ Đã thêm ${addedCount} sản phẩm. ${missingWeightCount} sản phẩm thiếu cân nặng nên chưa thêm.`, 'warning');
+    showStatus(` Đã thêm ${addedCount} sản phẩm. ${missingWeightCount} sản phẩm thiếu cân nặng nên chưa thêm.`, 'warning');
     return;
   }
 
   if (addedCount === 0) return;
 
   // Show success message
-  showStatus(`✅ Đã thêm ${addedCount} sản phẩm!`, 'success');
+  showStatus(` Đã thêm ${addedCount} sản phẩm!`, 'success');
   setTimeout(() => {
     const statusEl = document.getElementById('shopvd-status');
     if (statusEl) statusEl.classList.add('hidden');
@@ -6589,7 +6589,7 @@ function renderFeaturedProducts() {
       if (sizeInput) sizeInput.value = '';
       if (notesInput) notesInput.value = '';
       
-      showStatus(`✅ Đã thêm: ${product.name}`, 'success');
+      showStatus(` Đã thêm: ${product.name}`, 'success');
       setTimeout(() => {
         const statusEl = document.getElementById('shopvd-status');
         if (statusEl) statusEl.classList.add('hidden');
@@ -6801,7 +6801,7 @@ function addSearchProductToOrder() {
 
   if (!added) return;
 
-  showStatus(`✅ Đã thêm: ${product.name}`, 'success');
+  showStatus(` Đã thêm: ${product.name}`, 'success');
   setTimeout(() => {
     document.getElementById('shopvd-status')?.classList.add('hidden');
   }, 2000);
@@ -7258,7 +7258,7 @@ function removeProduct(productId) {
 
   // Show feedback
   if (afterCount < beforeCount) {
-    showStatus('✅ Đã xóa sản phẩm', 'success');
+    showStatus(' Đã xóa sản phẩm', 'success');
     setTimeout(() => {
       const statusEl = document.getElementById('shopvd-status');
       if (statusEl) statusEl.classList.add('hidden');
@@ -7483,7 +7483,7 @@ function renderProducts() {
           calculateTotal();
           autoUpdateFreeshipCheckbox();
           
-          showStatus('✅ Đã lưu thay đổi!', 'success');
+          showStatus(' Đã lưu thay đổi!', 'success');
           setTimeout(() => {
             const statusEl = document.getElementById('shopvd-status');
             if (statusEl) statusEl.classList.add('hidden');
@@ -7619,7 +7619,7 @@ function renderProducts() {
           renderProducts();
           calculateTotal();
           autoUpdateFreeshipCheckbox();
-          showStatus('✅ Đã lưu!', 'success');
+          showStatus(' Đã lưu!', 'success');
           setTimeout(() => {
             const statusEl = document.getElementById('shopvd-status');
             if (statusEl) statusEl.classList.add('hidden');
@@ -8882,9 +8882,9 @@ async function sendOrderConfirmToChat(options = {}) {
 
   if (!quiet) {
     if (sent && followSent) {
-      showStatus('✅ Đã gửi xác nhận + tin nhắc khách', 'success', 2200);
+      showStatus(' Đã gửi xác nhận + tin nhắc khách', 'success', 2200);
     } else if (sent) {
-      showStatus('✅ Đã gửi tin xác nhận — tin nhắc chưa gửi được', 'warning', 3200);
+      showStatus(' Đã gửi tin xác nhận — tin nhắc chưa gửi được', 'warning', 3200);
     } else {
       showStatus('⚠️ Chưa gửi được — tin đã nằm sẵn ô chat, bấm Gửi giúp', 'warning', 3200);
     }
@@ -8955,7 +8955,7 @@ async function copyOrderConfirmText() {
 
   if (sendResult.sent) {
     const code = built.orderCode ? ` (${built.orderCode})` : '';
-    showStatus(`✅ Đã gửi xác nhận từ đơn đã lưu${code}`, 'success', 2500);
+    showStatus(` Đã gửi xác nhận từ đơn đã lưu${code}`, 'success', 2500);
   } else if (sendResult.blocked) {
     showStatus(
       '⚠️ Chat đang mở khác khách của đơn — không gửi nhầm. Kiểm tra lại SĐT/chat.',
@@ -8963,9 +8963,9 @@ async function copyOrderConfirmText() {
       4200
     );
   } else if (sendResult.filled) {
-    showStatus('✅ Đã điền xác nhận từ đơn đã lưu — bấm Gửi giúp', 'warning', 3200);
+    showStatus(' Đã điền xác nhận từ đơn đã lưu — bấm Gửi giúp', 'warning', 3200);
   } else {
-    showStatus('✅ Đã copy xác nhận từ đơn đã lưu (Ctrl+V nếu cần)', 'success', 2800);
+    showStatus(' Đã copy xác nhận từ đơn đã lưu (Ctrl+V nếu cần)', 'success', 2800);
   }
 }
 
@@ -9221,17 +9221,17 @@ async function createOrder(orderData, options = {}) {
           flashBtn: false,
         });
         if (sendResult.sent) {
-          showStatus('✅ Đã tạo đơn và gửi xác nhận cho khách', 'success', 2500);
+          showStatus(' Đã tạo đơn và gửi xác nhận cho khách', 'success', 2500);
         } else if (sendResult.blocked) {
           showStatus(
-            '✅ Đã tạo đơn — chat đang mở khác khách, không gửi nhầm. Mở đúng chat rồi bấm Gửi xác nhận.',
+            ' Đã tạo đơn — chat đang mở khác khách, không gửi nhầm. Mở đúng chat rồi bấm Gửi xác nhận.',
             'warning',
             4500
           );
         } else if (sendResult.filled) {
-          showStatus('✅ Đã tạo đơn — tin xác nhận đã điền, bấm Gửi giúp', 'warning', 3200);
+          showStatus(' Đã tạo đơn — tin xác nhận đã điền, bấm Gửi giúp', 'warning', 3200);
         } else {
-          showStatus('✅ Đã tạo đơn — đã copy xác nhận (Ctrl+V nếu cần)', 'success', 2800);
+          showStatus(' Đã tạo đơn — đã copy xác nhận (Ctrl+V nếu cần)', 'success', 2800);
         }
       }
 
@@ -9543,7 +9543,7 @@ function setupEventListeners() {
     }
     document.getElementById('manual-product-name')?.focus();
 
-    showStatus('✅ Đã thêm sản phẩm!', 'success');
+    showStatus(' Đã thêm sản phẩm!', 'success');
     setTimeout(() => {
       const statusEl = document.getElementById('shopvd-status');
       if (statusEl) statusEl.classList.add('hidden');
@@ -9752,7 +9752,7 @@ function setupEventListeners() {
 
   document.getElementById('discount-applied-remove')?.addEventListener('click', () => {
     clearDiscountSelection();
-    showStatus('✅ Đã xóa giảm giá', 'success');
+    showStatus(' Đã xóa giảm giá', 'success');
     setTimeout(() => {
       const statusEl = document.getElementById('shopvd-status');
       if (statusEl) statusEl.classList.add('hidden');
@@ -9909,7 +9909,7 @@ function setupEventListeners() {
   document.getElementById('remove-discount-badge-btn')?.addEventListener('click', () => {
     clearDiscountSelection();
 
-    showStatus('✅ Đã xóa giảm giá', 'success');
+    showStatus(' Đã xóa giảm giá', 'success');
     setTimeout(() => {
       const statusEl = document.getElementById('shopvd-status');
       if (statusEl) statusEl.classList.add('hidden');
@@ -10105,7 +10105,7 @@ function setupEventListeners() {
       setDiscountQuickStatus(`Đã áp dụng mã ${discount.code}`, 'success');
       setDiscountCodeStatus(`Đã áp dụng mã ${discount.code}`, 'success');
 
-      showStatus(`✅ Áp dụng mã ${discount.code} thành công`, 'success');
+      showStatus(` Áp dụng mã ${discount.code} thành công`, 'success');
       setTimeout(() => {
         const statusEl = document.getElementById('shopvd-status');
         if (statusEl) statusEl.classList.add('hidden');
@@ -10232,7 +10232,7 @@ function setupEventListeners() {
     // Recalculate total
     calculateTotal();
     
-    showStatus('✅ Đã áp dụng giảm giá!', 'success');
+    showStatus(' Đã áp dụng giảm giá!', 'success');
     setTimeout(() => {
       const statusEl = document.getElementById('shopvd-status');
       if (statusEl) statusEl.classList.add('hidden');

@@ -55,7 +55,7 @@
   function showToast(msg, type = 'info', ttl = 2200) {
     if (typeof window.showStatus === 'function') {
       try {
-        const prefix = type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : '⏳ ';
+        const prefix = type === 'error' ? '❌ ' : type === 'success' ? ' ' : '⏳ ';
         window.showStatus(prefix + String(msg || ''), type, ttl);
         return;
       } catch (_) { /* ignore */ }
