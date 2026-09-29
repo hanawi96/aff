@@ -2279,7 +2279,7 @@ export class QuickCheckout {
                     window.location.href =
                         `/shop/order-success.html?orderId=${encodeURIComponent(orderId)}&total=${encodeURIComponent(totalAmount ?? '')}`;
                 } else {
-                    window.location.href = '/shop/';
+                    window.location.href = '/';
                 }
                 
                 // Reset button state

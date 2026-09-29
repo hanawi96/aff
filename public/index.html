@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -15,10 +15,14 @@
     <link rel="preconnect" href="https://ctv-api.yendev96.workers.dev" crossorigin>
     <link rel="dns-prefetch" href="https://ctv-api.yendev96.workers.dev">
     <link rel="preconnect" href="https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&subset=vietnamese&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="shop/assets/css/form-validation.css">
-    <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css">
-    <link rel="stylesheet" href="shop/styles.css?v=12">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="shop/assets/css/form-validation.css" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="shop/assets/css/form-validation.css">
+        <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css">
+    </noscript>
+    <link rel="stylesheet" href="shop/styles.css?v=14">
     <link rel="stylesheet" href="shop/assets/css/home.css?v=2">
     <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css">
     <link rel="stylesheet" href="shop/cart.css?v=2">
@@ -41,7 +45,7 @@
                 
                 <!-- Navigation - Desktop -->
                 <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="#home" class="text-gray-700 hover:text-primary transition font-medium text-sm">Trang chủ</a>
+                    <a href="/" class="text-gray-700 hover:text-primary transition font-medium text-sm">Trang chủ</a>
                     <a href="#products" class="text-gray-700 hover:text-primary transition font-medium text-sm">Sản phẩm</a>
                     <a href="#process" class="text-gray-700 hover:text-primary transition font-medium text-sm">Quy trình</a>
                     <a href="#reviews" class="text-gray-700 hover:text-primary transition font-medium text-sm">Lời mẹ chia sẻ</a>
@@ -89,7 +93,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem; display: inline-block;">
                             <path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" />
                         </svg>
-                        <span class="absolute -top-1 -right-1 bg-secondary text-white text-sm rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-md" id="cartCount">0</span>
+                        <span class="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-md" id="cartCount">0</span>
                     </button>
                     <button class="lg:hidden text-gray-600 hover:text-primary transition p-2" id="menuBtn">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.5rem; height: 1.5rem; display: inline-block;"><path fill-rule="evenodd" d="M3 6.75A.75.75 0 0 1 3.75 6h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 6.75ZM3 12a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75A.75.75 0 0 1 3 12Zm0 5.25a.75.75 0 0 1 .75-.75h16.5a.75.75 0 0 1 0 1.5H3.75a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /></svg>
@@ -101,7 +105,7 @@
         <!-- Mobile Menu -->
         <div class="lg:hidden hidden bg-white border-t border-primary/20" id="mobileMenu">
             <nav class="container mx-auto px-4 py-4 flex flex-col space-y-3 items-center text-center">
-                <a href="#home" class="text-gray-700 hover:text-primary transition font-medium py-2">Trang chủ</a>
+                <a href="/" class="text-gray-700 hover:text-primary transition font-medium py-2">Trang chủ</a>
                 <a href="#products" class="text-gray-700 hover:text-primary transition font-medium py-2">Sản phẩm</a>
                 <a href="#process" class="text-gray-700 hover:text-primary transition font-medium py-2">Quy trình</a>
                 <a href="#reviews" class="text-gray-700 hover:text-primary transition font-medium py-2">Lời mẹ chia sẻ</a>
@@ -213,12 +217,13 @@
                             Xem quy trình làm
                         </a>
                     </div>
+                    <p class="text-sm text-gray-600 mt-2 text-center md:text-left">Các mẹ kiểm tra hàng thoải mái trước khi thanh toán</p>
                 </div>
                 
                 <!-- Right: Image -->
                 <div class="relative">
                     <div class="relative">
-                        <img src="assets/images/591718600_708804902275744_4218533615448447888_n.jpg" alt="Vòng đầu tam handmade" class="w-full h-auto rounded-3xl hero-image-blur">
+                        <img src="assets/images/591718600_708804902275744_4218533615448447888_n.jpg" alt="Vòng đầu tam handmade" class="w-full h-auto rounded-3xl hero-image-blur" width="1024" height="1024" fetchpriority="high" decoding="async">
                     </div>
                     
                     <!-- Decorative floating elements -->
@@ -260,108 +265,72 @@
 
             <!-- Benefits Grid - 3 Items -->
             <div class="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
-                <!-- Benefit 1 - Sleep Well -->
                 <div class="group">
-                    <div class="bg-white rounded-3xl p-8 shadow-md transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 h-full flex flex-col items-center text-center relative overflow-hidden">
-                        <!-- Decorative corner -->
-                        <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full"></div>
-                        
-                        <!-- Icon -->
-                        <div class="w-20 h-20 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg relative z-10">
-                            <span class="text-4xl">🌙</span>
+                    <div class="bg-white rounded-3xl shadow-md transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 h-full flex flex-col text-center overflow-hidden">
+                        <div class="w-full aspect-square overflow-hidden">
+                            <img src="/assets/images/anh-be-deo-vong/ngu-ngon.jpg" alt="Bé đang ngủ, đeo vòng dâu tằm" class="w-full h-full object-cover" loading="lazy" decoding="async">
                         </div>
-                        
-                        <!-- Content -->
-                        <div class="flex-1">
+                        <div class="p-6 flex-1 flex flex-col">
                             <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary transition-colors">
                                 Giúp bé ngủ ngon
                             </h3>
                             <p class="text-gray-600 leading-relaxed">
                                 Giảm giật mình khi ngủ, giúp bé có giấc ngủ sâu và ngon hơn. Mẹ yên tâm, bé ngủ say.
                             </p>
-                        </div>
-                        
-                        <!-- Decorative dots -->
-                        <div class="flex gap-1.5 mt-6">
-                            <div class="w-2 h-2 rounded-full bg-primary/30"></div>
-                            <div class="w-2 h-2 rounded-full bg-accent/30"></div>
-                            <div class="w-2 h-2 rounded-full bg-secondary/30"></div>
+                            <div class="flex gap-1.5 mt-6 justify-center">
+                                <div class="w-2 h-2 rounded-full bg-primary/30"></div>
+                                <div class="w-2 h-2 rounded-full bg-accent/30"></div>
+                                <div class="w-2 h-2 rounded-full bg-secondary/30"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Benefit 2 - Protection -->
                 <div class="group">
-                    <div class="bg-white rounded-3xl p-8 shadow-md transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 h-full flex flex-col items-center text-center relative overflow-hidden">
-                        <!-- Decorative corner -->
-                        <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-accent/10 to-transparent rounded-bl-full"></div>
-                        
-                        <!-- Icon -->
-                        <div class="w-20 h-20 bg-gradient-to-br from-accent/20 to-secondary/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg relative z-10">
-                            <span class="text-4xl">🛡️</span>
+                    <div class="bg-white rounded-3xl shadow-md transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 h-full flex flex-col text-center overflow-hidden">
+                        <div class="w-full aspect-square overflow-hidden">
+                            <img src="/assets/images/anh-be-deo-vong/bao-ve.jpg" alt="Cổ tay bé đeo vòng dâu tằm" class="w-full h-full object-cover" loading="lazy" decoding="async">
                         </div>
-                        
-                        <!-- Content -->
-                        <div class="flex-1">
+                        <div class="p-6 flex-1 flex flex-col">
                             <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary transition-colors">
                                 Bảo vệ tâm linh
                             </h3>
                             <p class="text-gray-600 leading-relaxed">
                                 Theo quan niệm dân gian, vòng dâu tằm có dương khí mạnh giúp bảo vệ bé khỏi các vấn đề về tâm linh xấu.
                             </p>
-                        </div>
-                        
-                        <!-- Decorative dots -->
-                        <div class="flex gap-1.5 mt-6">
-                            <div class="w-2 h-2 rounded-full bg-accent/30"></div>
-                            <div class="w-2 h-2 rounded-full bg-secondary/30"></div>
-                            <div class="w-2 h-2 rounded-full bg-primary/30"></div>
+                            <div class="flex gap-1.5 mt-6 justify-center">
+                                <div class="w-2 h-2 rounded-full bg-accent/30"></div>
+                                <div class="w-2 h-2 rounded-full bg-secondary/30"></div>
+                                <div class="w-2 h-2 rounded-full bg-primary/30"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Benefit 3 - Peace & Luck -->
                 <div class="group">
-                    <div class="bg-white rounded-3xl p-8 shadow-md transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 h-full flex flex-col items-center text-center relative overflow-hidden">
-                        <!-- Decorative corner -->
-                        <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-secondary/10 to-transparent rounded-bl-full"></div>
-                        
-                        <!-- Icon -->
-                        <div class="w-20 h-20 bg-gradient-to-br from-secondary/20 to-primary/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg relative z-10">
-                            <span class="text-4xl">🍀</span>
+                    <div class="bg-white rounded-3xl shadow-md transition-all duration-300 border-2 border-primary/10 hover:border-primary/30 h-full flex flex-col text-center overflow-hidden">
+                        <div class="w-full aspect-square overflow-hidden">
+                            <img src="/assets/images/anh-be-deo-vong/binh-an.jpg" alt="Bàn tay bé đeo vòng dâu tằm" class="w-full h-full object-cover" loading="lazy" decoding="async">
                         </div>
-                        
-                        <!-- Content -->
-                        <div class="flex-1">
+                        <div class="p-6 flex-1 flex flex-col">
                             <h3 class="text-xl font-bold text-gray-800 mb-3 group-hover:text-primary transition-colors">
                                 Bình an & may mắn
                             </h3>
                             <p class="text-gray-600 leading-relaxed">
                                 Mang lại sự bình an, may mắn và hạnh phúc cho bé. Một món quà ý nghĩa từ thiên nhiên.
                             </p>
-                        </div>
-                        
-                        <!-- Decorative dots -->
-                        <div class="flex gap-1.5 mt-6">
-                            <div class="w-2 h-2 rounded-full bg-secondary/30"></div>
-                            <div class="w-2 h-2 rounded-full bg-primary/30"></div>
-                            <div class="w-2 h-2 rounded-full bg-accent/30"></div>
+                            <div class="flex gap-1.5 mt-6 justify-center">
+                                <div class="w-2 h-2 rounded-full bg-secondary/30"></div>
+                                <div class="w-2 h-2 rounded-full bg-primary/30"></div>
+                                <div class="w-2 h-2 rounded-full bg-accent/30"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bottom Note -->
-            <div class="text-center mt-12 md:mt-16">
-                <div class="inline-block bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 px-6 py-4 rounded-2xl border-2 border-dashed border-primary/30 max-w-3xl">
-                    <p class="text-gray-700 leading-relaxed">
-                        <span class="font-semibold text-primary">💝 Lưu ý:</span> Vòng dâu tằm là sản phẩm tự nhiên, công dụng dựa trên kinh nghiệm dân gian được truyền từ đời này sang đời khác. Mỗi bé có thể có kết quả khác nhau.
-                    </p>
-                </div>
-            </div>
-
             <!-- CTA Button -->
-            <div class="text-center mt-8">
+            <div class="text-center mt-12 md:mt-16">
                 <a href="#products" class="inline-flex items-center gap-2 md:gap-3 bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-primary text-white px-6 md:px-10 py-3 md:py-4 rounded-full font-bold text-base md:text-lg transition-all shadow-xl hover:shadow-2xl transform hover:scale-105 group">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 md:w-6 md:h-6 group-hover:rotate-12 transition-transform flex-shrink-0">
                         <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
@@ -371,6 +340,16 @@
                         <path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" />
                     </svg>
                 </a>
+                <p class="text-sm text-gray-600 mt-2">Các mẹ kiểm tra hàng thoải mái trước khi thanh toán</p>
+            </div>
+
+            <!-- Bottom Note -->
+            <div class="text-center mt-8">
+                <div class="inline-block bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 px-6 py-4 rounded-2xl border-2 border-dashed border-primary/30 max-w-3xl">
+                    <p class="text-gray-700 leading-relaxed">
+                        <span class="font-semibold text-primary">💝 Lưu ý:</span> Vòng dâu tằm là sản phẩm tự nhiên, công dụng dựa trên kinh nghiệm dân gian được truyền từ đời này sang đời khác. Mỗi bé có thể có kết quả khác nhau.
+                    </p>
+                </div>
             </div>
         </div>
     </section>
@@ -380,7 +359,7 @@
         <div class="container mx-auto px-4">
             <!-- Section Header -->
             <div class="text-center mb-12">
-               
+                
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
                     Từng công đoạn<br>
                     <span class="font-handwritten text-primary text-4xl md:text-5xl">đều là tình yêu thương</span>
@@ -402,84 +381,84 @@
                 <div class="text-center group">
                     <div class="relative mb-4">
                         <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
-                            <img src="/assets/images/quy-trinh-lam-vong/1.webp" alt="Chọn nguyên liệu" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <img src="/assets/images/quy-trinh-lam-vong/1.webp" alt="Chọn nguyên liệu" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" loading="lazy" decoding="async">
                         </div>
                         <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             1
                         </div>
                     </div>
                     <h3 class="font-semibold text-base text-gray-800 mb-1.5">Chọn nguyên liệu</h3>
-                    <p class="text-base text-gray-600 leading-relaxed">Chọn các cành dâu tằm chất già và đặc lõi nhất</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">Chọn các cành dâu tằm chất già và đặc lõi nhất</p>
                 </div>
 
                 <!-- Step 2 -->
                 <div class="text-center group">
                     <div class="relative mb-4">
                         <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
-                            <img src="/assets/images/quy-trinh-lam-vong/2.webp" alt="Bóc vỏ dâu tằm" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <img src="/assets/images/quy-trinh-lam-vong/2.webp" alt="Bóc dâu tằm" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" loading="lazy" decoding="async">
                         </div>
                         <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             2
                         </div>
                     </div>
-                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Bóc vỏ dâu tằm</h3>
-                    <p class="text-base text-gray-600 leading-relaxed">Bóc vỏ cành dâu tằm cẩn thận</p>
+                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Bóc dâu tằm</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">Bóc vỏ cành dâu tằm cẩn thận</p>
                 </div>
 
                 <!-- Step 3 -->
                 <div class="text-center group">
                     <div class="relative mb-4">
                         <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
-                            <img src="/assets/images/quy-trinh-lam-vong/3.webp" alt="Phơi khô" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <img src="/assets/images/quy-trinh-lam-vong/3.webp" alt="Phơi khô" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" loading="lazy" decoding="async">
                         </div>
                         <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             3
                         </div>
                     </div>
-                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Phơi khô 3 nắng</h3>
-                    <p class="text-base text-gray-600 leading-relaxed">Phơi khô dâu tằm tự nhiên bằng nắng mặt trời</p>
+                    <h3 class="font-semibold text-base text-gray-800 mb-1.5">Phơi khô</h3>
+                    <p class="text-xs text-gray-600 leading-relaxed">Phơi khô dâu tằm tự nhiên bằng nắng mặt trời</p>
                 </div>
 
                 <!-- Step 4 -->
                 <div class="text-center group">
                     <div class="relative mb-4">
                         <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
-                            <img src="/assets/images/quy-trinh-lam-vong/4.webp" alt="Mài nhỏ cành" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <img src="/assets/images/quy-trinh-lam-vong/4.webp" alt="Mài nhỏ cành" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" loading="lazy" decoding="async">
                         </div>
                         <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             4
                         </div>
                     </div>
                     <h3 class="font-semibold text-base text-gray-800 mb-1.5">Mài nhỏ cành dâu</h3>
-                    <p class="text-base text-gray-600 leading-relaxed">Mài cành dâu cho nhỏ để phù hợp với tay bé</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">Mài cành dâu cho nhỏ để phù hợp với tay bé</p>
                 </div>
 
                 <!-- Step 5 -->
                 <div class="text-center group">
                     <div class="relative mb-4">
                         <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
-                            <img src="/assets/images/quy-trinh-lam-vong/5.webp" alt="Mài mịn viền" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <img src="/assets/images/quy-trinh-lam-vong/5.webp" alt="Mài mịn viền" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" loading="lazy" decoding="async">
                         </div>
                         <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             5
                         </div>
                     </div>
                     <h3 class="font-semibold text-base text-gray-800 mb-1.5">Mài mịn viền hạt dâu</h3>
-                    <p class="text-base text-gray-600 leading-relaxed">Mài mịn viền hạt để không làm xước và đau tay bé</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">Mài mịn viền hạt dâu để không làm xước và đau tay bé</p>
                 </div>
 
                 <!-- Step 6 -->
                 <div class="text-center group">
                     <div class="relative mb-4">
                         <div class="w-full aspect-square rounded-2xl overflow-hidden shadow-lg group-hover:shadow-xl transition border-2 border-primary/10">
-                            <img src="/assets/images/quy-trinh-lam-vong/vong-dau-tam-gia.webp" alt="Xỏ vòng" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <img src="/assets/images/quy-trinh-lam-vong/vong-dau-tam-gia.webp" alt="Xỏ vòng" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" loading="lazy" decoding="async">
                         </div>
                         <div class="absolute -top-2 -left-2 w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             6
                         </div>
                     </div>
                     <h3 class="font-semibold text-base text-gray-800 mb-1.5">Xỏ vòng</h3>
-                    <p class="text-base text-gray-600 leading-relaxed">Xỏ vòng tỉ mỉ, hoàn thiện sản phẩm</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">Xỏ vòng tỉ mỉ, hoàn thiện sản phẩm</p>
                 </div>
             </div>
 
@@ -489,6 +468,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
                     <span>Đặt hàng ngay cho bé yêu</span>
                 </a>
+                <p class="text-sm text-gray-600 mt-2">Các mẹ kiểm tra hàng thoải mái trước khi thanh toán</p>
             </div>
         </div>
     </section>
@@ -617,6 +597,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                         </svg>
                     </a>
+                    <p class="text-sm text-gray-600 mt-2">Các mẹ kiểm tra hàng thoải mái trước khi thanh toán</p>
                 </div>
             </div>
         </div>
@@ -1130,7 +1111,9 @@
                             <path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" />
                         </svg>
                     </a>
-                   
+                    <p class="text-sm text-gray-500 mt-2">
+                        Các mẹ kiểm tra hàng thoải mái trước khi thanh toán
+                    </p>
                 </div>
             </div>
         </div>
@@ -1189,6 +1172,8 @@
                         src="assets/images/story.webp" 
                         alt="Người làm vòng dâu tằm" 
                         class="artisan-image"
+                        loading="lazy"
+                        decoding="async"
                     >
                 </div>
 
@@ -1223,7 +1208,7 @@
                         <div class="highlight-card">
                             <div class="highlight-icon">💝</div>
                             <div class="highlight-content">
-                                <h4 class="highlight-title">Không hóa chất</h4>
+                                <h4 class="highlight-title">Không hoa chất</h4>
                                 <p class="highlight-text">Chỉ phơi khô dưới năng, an toàn cho bé </p>
                             </div>
                         </div>
@@ -1250,6 +1235,7 @@
                                 </svg>
                             </a>
                         </div>
+                        <p class="text-sm text-gray-600 mt-2 text-center">Các mẹ kiểm tra hàng thoải mái trước khi thanh toán</p>
                     </div>
                 </div>
             </div>
@@ -1300,15 +1286,15 @@
                         <span>Về chúng tôi</span>
                     </h4>
                     <ul class="space-y-2.5">
-                        <li><a href="/shop/index.html#process" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><a href="/#process" class="text-gray-600 hover:text-primary transition text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>Giới thiệu</span>
                         </a></li>
-                        <li><a href="/shop/index.html#process" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><a href="/#process" class="text-gray-600 hover:text-primary transition text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>Quy trình thủ công</span>
                         </a></li>
-                        <li><a href="/shop/policies/terms.html" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><a href="/shop/policies/terms.html" class="text-gray-600 hover:text-primary transition text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>Điều khoản dịch vụ</span>
                         </a></li>
@@ -1322,15 +1308,15 @@
                         <span>Hỗ trợ mẹ</span>
                     </h4>
                     <ul class="space-y-2.5">
-                        <li><a href="/shop/policies/return.html" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><a href="/shop/policies/return.html" class="text-gray-600 hover:text-primary transition text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>Chính sách đổi trả</span>
                         </a></li>
-                        <li><a href="/shop/policies/payment.html" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><a href="/shop/policies/payment.html" class="text-gray-600 hover:text-primary transition text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>Phương thức thanh toán</span>
                         </a></li>
-                        <li><a href="/shop/index.html#faq" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><a href="/#faq" class="text-gray-600 hover:text-primary transition text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>Câu hỏi thường gặp</span>
                         </a></li>
@@ -1344,15 +1330,15 @@
                         <span>Liên hệ</span>
                     </h4>
                     <ul class="space-y-2.5">
-                        <li><a href="tel:0972483892" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><a href="tel:0972483892" class="text-gray-600 hover:text-primary transition text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>0972.483.892</span>
                         </a></li>
-                        <li><a href="mailto:vongdautambyvui@gmail.com" class="text-gray-600 hover:text-primary transition text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><a href="mailto:vongdautambyvui@gmail.com" class="text-gray-600 hover:text-primary transition text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>vongdautambyvui@gmail.com</span>
                         </a></li>
-                        <li><span class="text-gray-600 text-sm flex items-center justify-center md:justify-start gap-2">
+                        <li><span class="text-gray-600 text-base flex items-center justify-center md:justify-start gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary/50" style="width: 0.75rem; height: 0.75rem;"><path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" /></svg>
                             <span>Thôn Đông Cao, Mê Linh, Hà Nội</span>
                         </span></li>
@@ -1370,9 +1356,9 @@
             
             <!-- Bottom Section -->
             <div class="text-center">
-                <p class="text-gray-600 text-sm mb-3">
+                <p class="text-gray-600 text-md mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.75rem; height: 0.75rem; display: inline-block; margin-right: 0.25rem; vertical-align: middle;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-                    Làm bằng tình yêu thương dành cho bé
+                    Làm bằng tình yêu thương dành cho bé yêu
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.75rem; height: 0.75rem; display: inline-block; margin-left: 0.25rem; vertical-align: middle;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
                 </p>
                 <p class="text-gray-500 text-sm">
@@ -1454,7 +1440,7 @@
                                 </button>
                             </div>
                         </div>
-                        <p style="font-size: 1rem; color:#888; margin-top:4px;">🎁 Miễn phí vận chuyển khi mua từ 2SP</p>
+                        <p style="font-size:0.85rem; color:#888; margin-top:4px;">🎁 Miễn phí vận chuyển khi mua từ 2SP</p>
                     </div>
                     
                     <!-- Phone -->
@@ -1465,7 +1451,7 @@
                         </svg>
                         Số điện thoại<span class="required">*</span>
                     </label>
-                    <input type="tel" class="checkout-form-input" id="checkoutPhone" placeholder="Nhập số điện thoại" required>
+                    <input type="tel" inputmode="numeric" pattern="[0-9]*" class="checkout-form-input" id="checkoutPhone" placeholder="Nhập số điện thoại" required>
                 </div>
                 
                 <!-- Name -->
@@ -1552,7 +1538,7 @@
                             Xác nhận
                         </button>
                     </div>
-                    <small id="customWeightHint" style="color: #666; font-size: 1rem; margin-top: 4px; display: flex; align-items: center; gap: 0.5rem;">
+                    <small id="customWeightHint" style="color: #666; font-size: 0.85rem; margin-top: 4px; display: flex; align-items: center; gap: 0.5rem;">
                         <span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg> Nhập từ 3kg đến 50kg</span>
                         <button type="button" class="custom-weight-change-btn hidden" id="customWeightChangeBtn" style="margin-left: auto;">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Chọn lại
@@ -1572,7 +1558,7 @@
                         Tên bé (sẽ được khắc lên thẻ)<span class="required">*</span>
                     </label>
                     <input type="text" class="checkout-form-input" id="checkoutBabyName" placeholder="Ví dụ: Minh An, Bảo Ngọc" maxlength="30">
-                    <small style="color: #666; font-size: 1rem; margin-top: 4px; display: block;">
+                    <small style="color: #666; font-size: 0.85rem; margin-top: 4px; display: block;">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" /></svg> Tên sẽ được khắc chính xác như bạn nhập
                     </small>
                 </div>
@@ -1597,15 +1583,6 @@
                     <div class="available-codes-quick" id="availableCodesQuick">
                         <p class="codes-title-quick">💝 Mã khả dụng cho mẹ:</p>
                         <div class="code-list-quick" id="codeListQuick"></div>
-                        <p class="discount-tip">
-                            💡 Mẹo: Mua thêm bó dâu tằm để được miễn phí vận chuyển
-                            <button class="btn-view-bundle" onclick="quickCheckout.scrollToCrossSellSection()" title="Xem bó dâu tằm" aria-label="Xem bó dâu tằm">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;">
-                                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                                    <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
-                                </svg>
-                            </button>
-                        </p>
                     </div>
                     
                     <button class="btn-view-codes" id="viewCodesBtn" type="button">
@@ -1615,6 +1592,16 @@
                         </svg>
                         Xem tất cả mã giảm giá
                     </button>
+                    
+                    <p class="discount-tip">
+                        💡 Mẹo: Mua thêm bó dâu tằm để được miễn phí vận chuyển
+                        <button class="btn-view-bundle" onclick="quickCheckout.scrollToCrossSellSection()" title="Xem bó dâu tằm" aria-label="Xem bó dâu tằm">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;">
+                                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </p>
                 </div>
                 
                 <!-- Payment Method -->
@@ -1653,6 +1640,13 @@
                             </svg>
                             Thông tin chuyển khoản
                         </div>
+                        <!-- QR Code chuyển khoản tự động -->
+                        <div class="bank-qr-wrap" id="bankQrWrap" style="display:none">
+                            <div class="bank-qr-loading" id="bankQrLoading">Đang tạo mã QR...</div>
+                            <img id="bankQrImg" alt="QR chuyển khoản" class="bank-qr-img" style="display:none" onerror="document.getElementById('bankQrLoading').textContent='Không tải được mã QR'" onload="this.style.display='block';document.getElementById('bankQrLoading').style.display='none'" />
+                            <p class="bank-qr-hint">Quét mã QR để chuyển khoản đúng số tiền</p>
+                        </div>
+
                         <div class="bank-info-content">
                             <div class="bank-info-row">
                                 <span class="bank-info-label">Số tiền cần chuyển:</span>
@@ -1669,8 +1663,8 @@
                             <div class="bank-info-row">
                                 <span class="bank-info-label">Số tài khoản:</span>
                                 <span class="bank-info-value">
-                                    <span id="bankAccountNumber">6968969012</span>
-                                    <button class="copy-btn" onclick="quickCheckout.copyBankInfo('6968969012')" title="Sao chép">
+                                    <span id="bankAccountNumber">19036266560015</span>
+                                    <button class="copy-btn" onclick="quickCheckout.copyBankInfo('19036266560015')" title="Sao chép">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;">
                                             <path fill-rule="evenodd" d="M17.663 3.118c.225.015.45.032.673.05C19.876 3.298 21 4.604 21 6.109v9.642a3 3 0 0 1-3 3V16.5c0-5.922-4.576-10.775-10.384-11.217.324-1.132 1.3-2.01 2.548-2.114.224-.019.448-.036.673-.051A3 3 0 0 1 13.5 1.5H15a3 3 0 0 1 2.663 1.618ZM12 4.5A1.5 1.5 0 0 1 13.5 3H15a1.5 1.5 0 0 1 1.5 1.5H12Z" clip-rule="evenodd" />
                                             <path d="M3 8.625c0-1.036.84-1.875 1.875-1.875h.375A3.75 3.75 0 0 1 9 10.5v1.875c0 1.036.84 1.875 1.875 1.875h1.875A3.75 3.75 0 0 1 16.5 18v2.625c0 1.035-.84 1.875-1.875 1.875h-9.75A1.875 1.875 0 0 1 3 20.625v-12Z" />
@@ -1854,12 +1848,13 @@
       
       // Show/hide button based on scroll position
       window.addEventListener('scroll', function() {
+        if (!scrollToTopBtn) return;
         if (window.pageYOffset > 500) {
           scrollToTopBtn.style.display = 'flex';
         } else {
           scrollToTopBtn.style.display = 'none';
         }
-      });
+      }, { passive: true });
       
       // Scroll to top when clicked
       scrollToTopBtn.addEventListener('click', function() {
@@ -2117,6 +2112,14 @@
                         </svg>
                         <span>Chạm để phóng to</span>
                     </div>
+                    
+                    <!-- Process Badge (shows on process images) -->
+                    <div class="carousel-process-badge" id="carouselProcessBadge">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15.92 3.15c.18.14.22.42.09.6l-7.14 9.79a.47.47 0 0 1-.59.11c-.35-.23-.8-.4-1.34-.48a3.27 3.27 0 0 1-.88-.29 3.12 3.12 0 0 1-.74-.56 3.1 3.1 0 0 1-.55-.75 3.27 3.27 0 0 1-.29-.88c-.08-.54-.25-.99-.48-1.34a.47.47 0 0 1 .11-.59l9.79-7.14c.18-.13.46-.09.6.09l.07.08Zm-8.38 12.12a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+                        </svg>
+                        <span id="carouselProcessLabel">Quy trình thủ công</span>
+                    </div>
                 </div>
                 
                 <!-- Product Pricing Section -->
@@ -2198,7 +2201,7 @@
         </div>
     </div>
     
-    <script type="module" src="shop/assets/js/app.js?v=16"></script>
+    <script type="module" src="shop/assets/js/app.js?v=15"></script>
     <script defer src="shop/assets/js/faq-modal.js"></script>
     <script defer src="shop/assets/js/feedback-carousel.js"></script>
 </body>

@@ -1370,7 +1370,7 @@ const cart = {
                     window.location.href =
                         `/shop/order-success.html?orderId=${encodeURIComponent(orderId)}&total=${encodeURIComponent(total ?? '')}`;
                 } else {
-                    window.location.href = '/shop/';
+                    window.location.href = '/';
                 }
                 
             } else {
