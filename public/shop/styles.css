@@ -1465,6 +1465,12 @@ body {
         aspect-ratio: 1 / 1;
     }
 
+    .benefit-card-body,
+    .benefit-title-new,
+    .benefit-desc-new {
+        text-align: center;
+    }
+
     .benefit-card-body {
         padding: 1.125rem 1.25rem 1.35rem;
     }

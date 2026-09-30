@@ -1295,7 +1295,7 @@ body {
 /* FAQ Accordion Styles - Handmade Design */
 .faq-accordion-item {
     background: linear-gradient(135deg, #ffffff 0%, #fff9f5 100%);
-    border: 2px solid rgba(244, 162, 97, 0.2);
+    border: 1px solid rgb(246 199 161);
     border-radius: 16px;
     overflow: hidden;
     transition: all 0.3s ease;
