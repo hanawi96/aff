@@ -2,7 +2,7 @@
 // PRODUCT GRID COMPONENT
 // ============================================
 
-import { renderProducts } from './product-card.js';
+import { renderProducts } from './product-card.js?v=6';
 
 /** Phần trăm giảm đang hiện trên thẻ sản phẩm. Không giảm thì là 0. */
 function _discountPercent(product) {
