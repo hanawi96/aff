@@ -15,16 +15,12 @@ class AddressService {
         if (this.loaded) return this.addressData;
 
         try {
-            let basePath;
-            const pathname = window.location.pathname;
-
-            if (pathname.includes('/shop/')) {
-                basePath = '../assets/data/tree_2.json?v=2025b';
-            } else if (pathname.includes('/admin/')) {
-                basePath = '../assets/data/tree_2.json?v=2025b';
-            } else {
-                basePath = '/assets/data/tree_2.json?v=2025b';
-            }
+            // File này nằm ở shop/assets/js/shared/services/.
+            // Leo lên gốc thư mục public rồi vào assets/data — đúng cả Live Server (/public/...) và shopvd.store (/).
+            const basePath = new URL(
+                '../../../../../assets/data/tree_2.json?v=2025b',
+                import.meta.url
+            ).href;
 
             const response = await fetch(basePath);
             if (!response.ok) {

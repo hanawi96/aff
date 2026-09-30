@@ -2,7 +2,7 @@
 // HIERARCHICAL ADDRESS SELECTOR WITH SEARCH (2 cấp: Tỉnh/TP → Phường/Xã)
 // ============================================
 
-import { addressService } from '../shared/services/address.service.js';
+import { addressService } from '../shared/services/address.service.js?v=2025c';
 
 /** Static shell markup (admin m.html template #mOrderAddressShellTpl must stay in sync). */
 export const HIERARCHICAL_ADDRESS_SHELL_HTML =

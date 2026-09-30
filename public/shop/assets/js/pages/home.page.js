@@ -7,7 +7,7 @@ import { cartService } from '../shared/services/cart.service.js';
 import { ProductGrid, ProductActions } from '../features/products/index.js?v=5';
 import { renderCategories, CategoryActions } from '../features/categories/index.js?v=2';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=2';
-import { QuickCheckout } from '../features/checkout/index.js';
+import { QuickCheckout } from '../features/checkout/index.js?v=2025c';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
 import { bundleProductsService } from '../shared/services/bundle-products.service.js';
