@@ -8086,6 +8086,10 @@ body {
     border-top: 1px solid #f0f0f0;
 }
 
+.rp-section + .rp-section {
+    margin-top: 1.15rem;
+}
+
 .rp-title {
     display: flex;
     align-items: center;

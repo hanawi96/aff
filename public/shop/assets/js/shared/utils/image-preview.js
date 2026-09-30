@@ -211,45 +211,42 @@ async function _openProductDetailModal(product, priceData) {
         materialsContainer.innerHTML = '';
     }
 
-    // 10. Gợi ý 5 sản phẩm bán chạy (loại chính SP đang xem)
-    _loadBestSellers(product.id, document.getElementById('relatedProducts'));
+    // 10. Gợi ý bán chạy toàn shop và bán chạy trong danh mục của SP đang xem
+    _loadBestSellers(product, document.getElementById('relatedProducts'));
 }
 
-/**
- * Render mục "Sản phẩm bán chạy" ở cuối modal — top 5 theo purchases, bỏ SP đang xem.
- * Bố cục mỗi item: ảnh trái + thông tin phải. Click → mở modal SP đó.
- * @param {number|string} currentId - id SP đang xem (để loại khỏi gợi ý)
- * @param {HTMLElement} container - #relatedProducts
- */
-function _loadBestSellers(currentId, container) {
-    if (!container) return;
+function _catalogProducts() {
+    if (Array.isArray(window.allProducts)) return window.allProducts;
+    if (window.productGrid && Array.isArray(window.productGrid.allProducts)) return window.productGrid.allProducts;
+    if (window.App?.currentPage?.allProducts) return window.App.currentPage.allProducts;
+    return [];
+}
 
-    // Nguồn dữ liệu: window.allProducts (giống _findProduct). Fallback về productGrid.
-    let list = [];
-    if (Array.isArray(window.allProducts)) list = window.allProducts;
-    else if (window.productGrid && Array.isArray(window.productGrid.allProducts)) list = window.productGrid.allProducts;
-    else if (window.App?.currentPage?.allProducts) list = window.App.currentPage.allProducts;
+function _primaryCategory(product) {
+    const cats = Array.isArray(product?.categories) ? product.categories : [];
+    const primary = cats.find((c) => c && (c.is_primary === 1 || c.is_primary === true)) || cats[0];
+    const id = primary?.id ?? product?.category_id;
+    const name = primary?.name || product?.category_name || '';
+    return { id: id != null && id !== '' ? String(id) : '', name: String(name || '') };
+}
 
-    if (!Array.isArray(list) || list.length === 0) {
-        container.style.display = 'none';
-        container.innerHTML = '';
-        return;
-    }
+function _productInCategory(product, categoryId) {
+    if (!categoryId || !product) return false;
+    if (String(product.category_id) === categoryId) return true;
+    if (Array.isArray(product.category_ids) && product.category_ids.some((id) => String(id) === categoryId)) return true;
+    if (Array.isArray(product.categories) && product.categories.some((c) => c && String(c.id) === categoryId)) return true;
+    return false;
+}
 
-    // Chỉ SP đang bán, khác SP hiện tại; sắp theo purchases giảm dần; lấy 5.
-    const items = list
-        .filter(p => p && p.id != null && String(p.id) !== String(currentId))
-        .filter(p => p.is_active === undefined || p.is_active === null || p.is_active === 1 || p.is_active === true)
-        .sort((a, b) => (Number(b.purchases) || 0) - (Number(a.purchases) || 0))
-        .slice(0, 5);
+function _rankBestSellers(list, currentId) {
+    return list
+        .filter((p) => p && p.id != null && String(p.id) !== String(currentId))
+        .filter((p) => p.is_active === undefined || p.is_active === null || p.is_active === 1 || p.is_active === true)
+        .sort((a, b) => (Number(b.purchases) || 0) - (Number(a.purchases) || 0));
+}
 
-    if (items.length === 0) {
-        container.style.display = 'none';
-        container.innerHTML = '';
-        return;
-    }
-
-    const rowsHtml = items.map((p) => {
+function _bestSellerRows(items) {
+    return items.map((p) => {
         const fullImg = p.image_url || p.image || CONFIG.DEFAULT_IMAGE;
         const img = productThumbUrl(fullImg);
         const name = p.name || 'Sản phẩm';
@@ -280,14 +277,58 @@ function _loadBestSellers(currentId, container) {
                 </button>
             </div>`;
     }).join('');
+}
 
-    container.innerHTML = `
-        <h3 class="rp-title">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-            <span>Sản phẩm bán chạy</span>
-        </h3>
-        <div class="rp-list">${rowsHtml}</div>
-    `;
+function _bestSellerSection(title, items) {
+    return `
+        <section class="rp-section">
+            <h3 class="rp-title">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
+                <span>${_escHtml(title)}</span>
+            </h3>
+            <div class="rp-list">${_bestSellerRows(items)}</div>
+        </section>`;
+}
+
+/**
+ * Cuối modal: 5 bán chạy toàn shop, rồi 5 bán chạy của danh mục SP đang xem.
+ * @param {Object} product
+ * @param {HTMLElement} container - #relatedProducts
+ */
+function _loadBestSellers(product, container) {
+    if (!container) return;
+
+    const list = _catalogProducts();
+    if (!Array.isArray(list) || list.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    const currentId = product?.id;
+    const category = _primaryCategory(product);
+    const categoryItems = category.id
+        ? _rankBestSellers(list.filter((p) => _productInCategory(p, category.id)), currentId).slice(0, 5)
+        : [];
+    const keptIds = new Set(categoryItems.map((p) => String(p.id)));
+    const globalItems = _rankBestSellers(list, currentId)
+        .filter((p) => !keptIds.has(String(p.id)))
+        .slice(0, 5);
+
+    if (globalItems.length === 0 && categoryItems.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    const sections = [];
+    if (categoryItems.length) {
+        const title = category.name ? `Cùng danh  mục` : 'Bán chạy cùng danh mục';
+        sections.push(_bestSellerSection(title, categoryItems));
+    }
+    if (globalItems.length) sections.push(_bestSellerSection('Sản phẩm bán chạy', globalItems));
+
+    container.innerHTML = sections.join('');
     container.style.display = 'block';
 
     // Delegation: nút "+" → thêm nhanh vào giỏ; phần còn lại của item → mở modal SP.
