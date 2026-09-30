@@ -1110,14 +1110,10 @@ body {
 
 .product-badge.string-draw {
     color: #c2410c;
-    border: 1px solid #fdba74;
-    box-shadow: 0 2px 8px rgba(244, 162, 97, 0.28);
 }
 
 .product-badge.string-elastic {
     color: #0f766e;
-    border: 1px solid #99f6e4;
-    box-shadow: 0 2px 8px rgba(15, 118, 110, 0.16);
 }
 
 .product-badge.new {
@@ -1250,9 +1246,9 @@ body {
     padding: 0.15rem 0.5rem;
     background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
     color: #4a4a4a;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    border-radius: 10px;
+    border-radius: 15px;
     box-shadow: 0 2px 4px rgba(192, 192, 192, 0.3);
     border: 1px solid rgba(192, 192, 192, 0.4);
 }
@@ -1724,14 +1720,26 @@ body {
     border-radius: 14px;
     padding: 0.9rem 0.95rem;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.7rem;
 }
 
 .highlight-icon {
-    font-size: 2rem;
+    width: 2.15rem;
+    height: 2.15rem;
     flex-shrink: 0;
-    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: linear-gradient(145deg, #f6c39a, #e98b66);
+    color: #fff;
+}
+
+.highlight-icon svg {
+    width: 1.2rem;
+    height: 1.2rem;
+    display: block;
 }
 
 .highlight-content {
@@ -1797,14 +1805,15 @@ body {
     }
 
     .highlight-card {
-        align-items: flex-start;
+        align-items: center;
         text-align: left;
         padding: 0.85rem;
     }
 
     .highlight-icon {
-        font-size: 2.5rem;
-        margin-bottom: 0.5rem;
+        width: 2rem;
+        height: 2rem;
+        margin-bottom: 0;
     }
 }
 
