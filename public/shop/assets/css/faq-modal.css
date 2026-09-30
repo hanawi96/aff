@@ -207,12 +207,12 @@
 
 .faq-btn-zalo {
   flex: 2;
-  background: #111827;
+  background: #0068ff;
   color: #fff;
 }
 
 .faq-btn-zalo:hover {
-  background: #1f2937;
+  background: #0052cc;
 }
 
 .faq-btn-close {
