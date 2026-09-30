@@ -1353,7 +1353,7 @@ body {
 
 /* Benefits — tone ấm, tin cậy (mẹ bỉm sữa): bo góc mềm, viền chấm nhẹ */
 .benefits-section-mom .benefit-card-new {
-    border: 1px dashed rgb(255 194 145);
+    border: 1.5px dashed rgb(255 194 145);
     border-radius: 1.5rem 2rem 1.35rem 2.15rem;
     padding: 1.75rem;
     display: flex;
