@@ -114,6 +114,8 @@ export async function getAllProducts(env, corsHeaders, options = {}) {
             product.category_ids = product.categories.map(c => c.id);
         }
 
+        await attachProductStringTypes(env, products);
+
         return jsonResponse({
             success: true,
             products: products
@@ -202,6 +204,8 @@ export async function getProductsPage(env, corsHeaders, page = 1, limit = 16, op
             product.category_ids = product.categories.map((c) => c.id);
         }
 
+        await attachProductStringTypes(env, products);
+
         const hasMore = offset + products.length < total;
 
         return jsonResponse({
@@ -218,6 +222,32 @@ export async function getProductsPage(env, corsHeaders, page = 1, limit = 16, op
             success: false,
             error: error.message
         }, 500, corsHeaders);
+    }
+}
+
+/** day_do / day_ngu_sac = dây rút, day_cuoc = dây co giãn. Dây rút được ưu tiên nếu trùng. */
+async function attachProductStringTypes(env, products) {
+    if (!products?.length) return;
+    const ids = products.map((p) => p.id);
+    const placeholders = ids.map(() => '?').join(',');
+    const { results } = await env.DB.prepare(`
+        SELECT product_id, material_name
+        FROM product_materials
+        WHERE product_id IN (${placeholders})
+          AND material_name IN ('day_do', 'day_ngu_sac', 'day_cuoc')
+    `).bind(...ids).all();
+
+    const byId = {};
+    for (const row of results || []) {
+        const isDraw = row.material_name === 'day_do' || row.material_name === 'day_ngu_sac';
+        if (isDraw) byId[row.product_id] = 'draw';
+        else if (row.material_name === 'day_cuoc' && byId[row.product_id] !== 'draw') {
+            byId[row.product_id] = 'elastic';
+        }
+    }
+
+    for (const product of products) {
+        if (byId[product.id]) product.string_type = byId[product.id];
     }
 }
 

@@ -22,7 +22,7 @@
         <link rel="stylesheet" href="shop/assets/css/form-validation.css">
         <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css">
     </noscript>
-    <link rel="stylesheet" href="shop/styles.css?v=18">
+    <link rel="stylesheet" href="shop/styles.css?v=21">
     <link rel="stylesheet" href="shop/assets/css/home.css?v=2">
     <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css">
     <link rel="stylesheet" href="shop/cart.css?v=22">
@@ -1194,27 +1194,32 @@
 
             <!-- Story Content -->
             <div class="artisan-story-content">
-                <!-- Image -->
-                <div class="artisan-image-wrapper">
-                    <img 
-                        src="assets/images/story.webp" 
-                        alt="Người làm vòng dâu tằm" 
-                        class="artisan-image"
-                        loading="lazy"
-                        decoding="async"
-                    >
-                </div>
-
-                <!-- Text Content -->
-                <div class="artisan-text-content">
+                <div class="artisan-story-lead">
+                    <figure class="artisan-image-wrapper">
+                        <img
+                            src="assets/images/story.webp"
+                            alt="Người làm vòng dâu tằm"
+                            class="artisan-image"
+                            loading="lazy"
+                            decoding="async"
+                        >
+                    </figure>
                     <div class="artisan-story">
                         <p>Nhiều mẹ bảo em: vòng dâu làm thủ công vừa lâu, lại không được đẹp. Giờ trên mạng bán đầy, vừa rẻ vừa bắt mắt – sao cạnh tranh nổi?</p>
                         <p>Nghe riết cũng nản chứ các mẹ.</p>
                         <p>Người ta bán cả trăm cái mỗi ngày, còn em, lẹt đẹt vài cái mà bụi bặm cực luôn.</p>
                         <p>Nhưng em biết, nhiều mẹ chưa thực sự hiểu rằng…</p>
-                        <p><strong>Những chiếc vòng dâu tằm đang bán 2k đến 5k tràn lan</strong></p>
-                        <p>Đa phần không phải gỗ dâu thật. Chúng được làm từ gỗ cao su, gỗ lồng mức nhập từ Trung Quốc. Hạt thì tròn đều, bóng loáng vì đã được sơn và tẩm hóa chất chống mốc.</p>
-                        <p>Nhìn rất bắt mắt, nên mẹ nào mua cũng thấy đẹp là đúng rồi.</p>
+                    </div>
+                </div>
+
+                <div class="artisan-story-market">
+                    <p class="artisan-story-kicker">Những chiếc vòng dâu tằm đang bán 2k đến 5k tràn lan</p>
+                    <p>Đa phần không phải gỗ dâu thật. Chúng được làm từ gỗ cao su, gỗ lồng mức nhập từ Trung Quốc. Hạt thì tròn đều, bóng loáng vì đã được sơn và tẩm hóa chất chống mốc.</p>
+                    <p>Nhìn rất bắt mắt, nên mẹ nào mua cũng thấy đẹp là đúng rồi.</p>
+                </div>
+
+                <div class="artisan-text-content">
+                    <div class="artisan-story">
                         <p>Nhưng em thì vẫn chọn làm thủ công. Đẹp xấu chưa biết, nhưng ít nhất em biết rõ: đây là gỗ dâu thật, nhà trồng – Việt Nam mình.</p>
                         <p>Em tin, vẫn còn rất nhiều mẹ bỉm ngoài kia đang cần một chiếc vòng dâu thật – lành – yên tâm cho bé đeo. Chỉ là… chưa biết đến em thôi.</p>
                     </div>
@@ -1225,7 +1230,7 @@
                             <div class="highlight-icon">🤲</div>
                             <div class="highlight-content">
                                 <h4 class="highlight-title">Cam kết dâu tằm thật</h4>
-                                <p class="highlight-text">Được làm hoàn toàn từ cây dâu tằm Việt Nam</p>
+                                <p class="highlight-text">Được làm hoàn toàn từ cây dâu tằm ta Việt Nam</p>
                             </div>
                         </div>
 
@@ -1240,8 +1245,8 @@
                         <div class="highlight-card">
                             <div class="highlight-icon">💝</div>
                             <div class="highlight-content">
-                                <h4 class="highlight-title">Không hoa chất</h4>
-                                <p class="highlight-text">Chỉ phơi khô dưới năng, an toàn cho bé </p>
+                                <h4 class="highlight-title">Không hóa chất</h4>
+                                <p class="highlight-text">Chỉ phơi khô dưới nắng mặt trời, an toàn cho bé </p>
                             </div>
                         </div>
                     </div>
@@ -1260,7 +1265,7 @@
                                 <p class="text-gray-700 font-medium mb-1">Để mình làm một chiếc vòng cho bé nhà mẹ nhé</p>
                                 <p class="text-sm text-gray-500">Mỗi chiếc vòng đều được làm với tình yêu thương</p>
                             </div>
-                            <a href="#products" class="flex-shrink-0 inline-flex items-center gap-2 bg-white hover:bg-primary text-primary hover:text-white border-2 border-primary px-6 py-3 rounded-full font-semibold text-sm transition shadow-sm hover:shadow-md">
+                            <a href="#products" class="artisan-story-cta flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm">
                                 <span>Xem tất cả các mẫu...</span>
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem;">
                                     <path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" />
@@ -2306,7 +2311,7 @@
         </div>
     </div>
     
-    <script type="module" src="shop/assets/js/app.js?v=37"></script>
+    <script type="module" src="shop/assets/js/app.js?v=38"></script>
     <script defer src="shop/assets/js/faq-modal.js"></script>
     <script defer src="shop/assets/js/feedback-carousel.js"></script>
 </body>

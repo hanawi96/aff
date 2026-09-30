@@ -1100,6 +1100,28 @@ body {
     box-shadow: 0 3px 10px rgba(231, 111, 81, 0.4);
 }
 
+.product-badge.string-draw,
+.product-badge.string-elastic {
+    left: auto;
+    right: 12px;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0.35rem 0.65rem;
+}
+
+.product-badge.string-draw {
+    color: #c2410c;
+    border: 1px solid #fdba74;
+    box-shadow: 0 2px 8px rgba(244, 162, 97, 0.28);
+}
+
+.product-badge.string-elastic {
+    color: #0f766e;
+    border: 1px solid #99f6e4;
+    box-shadow: 0 2px 8px rgba(15, 118, 110, 0.16);
+}
+
 .product-badge.new {
     background: linear-gradient(135deg, #27ae60, #229954);
     box-shadow: 0 3px 10px rgba(39, 174, 96, 0.3);
@@ -1517,42 +1539,79 @@ body {
 
 /* Story Content Container */
 .artisan-story-content {
-    background: white;
-    border: 2px dashed rgba(244, 162, 97, 0.2);
+    background: #fff;
+    border: 1px solid rgba(244, 162, 97, 0.28);
     border-radius: 24px;
-    padding: 2.5rem;
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
+    padding: 2rem 2.25rem 1.75rem;
+    box-shadow: 0 10px 30px rgba(244, 162, 97, 0.08);
     display: flex;
-    gap: 2.5rem;
-    align-items: center;
+    flex-direction: column;
+    gap: 1.25rem;
     position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.artisan-story-content:hover {
-    box-shadow: 0 6px 20px rgba(244, 162, 97, 0.2);
-    transform: translateY(-2px);
+.artisan-story-lead {
+    display: grid;
+    grid-template-columns: 148px 1fr;
+    gap: 1.75rem;
+    align-items: start;
 }
 
 /* Image */
 .artisan-image-wrapper {
-    flex-shrink: 0;
-    position: relative;
+    margin: 0;
+    text-align: center;
 }
 
 .artisan-image {
-    width: 200px;
-    height: 200px;
+    width: 148px;
+    height: 148px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid var(--primary-color);
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.2);
-    transition: all 0.3s ease;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 3px #f4a261, 0 8px 18px rgba(244, 162, 97, 0.22);
 }
 
-.artisan-image:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(244, 162, 97, 0.3);
+.artisan-image-caption {
+    margin-top: 0.55rem;
+    color: #9a3412;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.artisan-story-market {
+    padding: 0.95rem 1.1rem 0.2rem;
+    background: #fff8f1;
+    border: 1px solid #f3d7be;
+    border-radius: 16px;
+}
+
+.artisan-story-market p {
+    margin: 0 0 0.7rem;
+    color: #5c4a3a;
+    font-size: 1.02rem;
+    line-height: 1.7;
+}
+
+.artisan-story-kicker {
+    color: #9a3412 !important;
+    font-size: 1.05rem !important;
+    font-weight: 700;
+}
+
+.artisan-story-cta {
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: #fff;
+    border: none;
+    box-shadow: 0 8px 16px rgba(231, 111, 81, 0.28);
+    transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.artisan-story-cta:hover {
+    color: #fff;
+    filter: brightness(0.97);
+    box-shadow: 0 10px 18px rgba(231, 111, 81, 0.34);
 }
 
 /* Text Content */
@@ -1571,9 +1630,9 @@ body {
 
 .artisan-story {
     font-size: 1.05rem;
-    line-height: 1.8;
-    color: var(--text-dark);
-    margin-bottom: 1.5rem;
+    line-height: 1.75;
+    color: #3f3a36;
+    margin-bottom: 0;
 }
 
 .artisan-story p {
@@ -1593,19 +1652,13 @@ body {
 
 .highlight-card {
     flex: 1;
-    background: linear-gradient(135deg, rgba(248, 237, 235, 0.8), rgba(233, 196, 106, 0.1));
-    border-radius: 12px;
-    padding: 1rem;
+    background: #fffaf6;
+    border: 1px solid #f3e4d6;
+    border-radius: 14px;
+    padding: 0.9rem 0.95rem;
     display: flex;
     align-items: flex-start;
-    gap: 0.75rem;
-    transition: all 0.3s ease;
-}
-
-.highlight-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 16px rgba(244, 162, 97, 0.2);
-    border-color: rgba(244, 162, 97, 0.3);
+    gap: 0.7rem;
 }
 
 .highlight-icon {
@@ -1642,10 +1695,15 @@ body {
     }
 
     .artisan-story-content {
-        flex-direction: column;
-        padding: 1.5rem 10px;
-        gap: 1.5rem;
-        text-align: center;
+        padding: 1.25rem 1rem 1.1rem;
+        gap: 1rem;
+    }
+
+    .artisan-story-lead {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: left;
+        gap: 0.9rem;
     }
 
     .artisan-image-wrapper {
@@ -1653,8 +1711,8 @@ body {
     }
 
     .artisan-image {
-        width: 150px;
-        height: 150px;
+        width: 120px;
+        height: 120px;
     }
 
     .artisan-greeting {
@@ -1672,10 +1730,9 @@ body {
     }
 
     .highlight-card {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 1rem;
+        align-items: flex-start;
+        text-align: left;
+        padding: 0.85rem;
     }
 
     .highlight-icon {
