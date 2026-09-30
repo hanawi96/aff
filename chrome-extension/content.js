@@ -3653,6 +3653,12 @@ function shopvdShipProvinceHtml(order) {
   return `<span class="shopvd-ship-province" title="${escapeHtml(label)}">${escapeHtml(label)}</span>`;
 }
 
+function shopvdReturningCustomerBadgeHtml(count) {
+  const n = Number(count) || 0;
+  if (n <= 1) return '';
+  return `<span class="shopvd-ship-badge is-return" title="${n} đơn trên hệ thống">Khách quen (${n}đ)</span>`;
+}
+
 function shopvdFormatStatusMoney(amount) {
   const n = Number(amount);
   if (!Number.isFinite(n)) return '';
@@ -3745,9 +3751,7 @@ function renderDbSaveStatusCard(payload = {}) {
       const amount = o.total_amount ? shopvdFormatStatusMoney(o.total_amount) : '';
       const preview = o.products_preview || '';
       const provinceHtml = shopvdShipProvinceHtml(o);
-      const multiNote = payload.isActive && count > 1
-        ? `<span class="shopvd-ship-multi">${count} đơn · xem đơn chưa gửi mới nhất</span>`
-        : (count > 1 ? `<span class="shopvd-ship-multi">${count} đơn trên hệ thống</span>` : '');
+      const returnBadge = shopvdReturningCustomerBadgeHtml(count);
 
       const canEdit = isShopvdOrderEditable(o.status) && Number(o.id) > 0;
       const editBtn = canEdit
@@ -3764,6 +3768,7 @@ function renderDbSaveStatusCard(payload = {}) {
         <div class="shopvd-ship-main">
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
           ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
+          ${returnBadge}
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
           <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${deleteBtn}</span>
         </div>
@@ -3773,7 +3778,6 @@ function renderDbSaveStatusCard(payload = {}) {
           ${amount ? `<span class="shopvd-ship-amount">${amount}</span>` : ''}
           ${amount && preview ? '<span class="shopvd-ship-sep">·</span>' : ''}
           ${preview ? `<span class="shopvd-ship-preview">${preview}</span>` : ''}
-          ${multiNote}
         </div>`;
 
       shopvdLastSavedOrderMeta = {
@@ -3784,14 +3788,13 @@ function renderDbSaveStatusCard(payload = {}) {
       };
     } else {
       strip.classList.add('is-saved');
-      const detail = count > 1
-        ? `Đã có ${count} đơn trên hệ thống`
-        : 'Đã có đơn trên hệ thống';
+      const returnBadge = shopvdReturningCustomerBadgeHtml(count);
       body.innerHTML = `
         <div class="shopvd-ship-main">
-          <span class="shopvd-ship-phone-inline">${phone}</span>
+          ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
+          ${returnBadge}
         </div>
-        <div class="shopvd-ship-detail">${detail}</div>`;
+        <div class="shopvd-ship-detail">Đã có đơn trên hệ thống</div>`;
       shopvdLastSavedOrderMeta = { id: 0, phone: normalizeDraftPhone(phone) || '', convKey: convKey || '', orderCode: '' };
     }
     shopvdDbStatusSettled = { convKey, phone, state: 'saved' };
@@ -5072,9 +5075,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
       const amount = o.total_amount ? shopvdFormatStatusMoney(o.total_amount) : '';
       const preview = o.products_preview || '';
       const provinceHtml = shopvdShipProvinceHtml(o);
-      const multiNote = payload.isActive && count > 1
-        ? `<span class="shopvd-ship-multi">${count} đơn · xem đơn chưa gửi mới nhất</span>`
-        : (count > 1 ? `<span class="shopvd-ship-multi">${count} đơn trên hệ thống</span>` : '');
+      const returnBadge = shopvdReturningCustomerBadgeHtml(count);
       const canEdit = isShopvdOrderEditable(o.status) && Number(o.id) > 0;
       const editBtn = canEdit
         ? `<button type="button" class="shopvd-edit-order-btn" data-order-id="${Number(o.id)}" title="Sửa đơn ${escapeHtml(o.order_id || '')}" aria-label="Sửa đơn hàng">
@@ -5090,6 +5091,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
         <div class="shopvd-ship-main">
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
           ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
+          ${returnBadge}
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
           <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${deleteBtn}</span>
         </div>
@@ -5099,16 +5101,17 @@ function renderPhoneSearchResultPanel(payload = {}) {
           ${amount ? `<span class="shopvd-ship-amount">${amount}</span>` : ''}
           ${amount && preview ? '<span class="shopvd-ship-sep">·</span>' : ''}
           ${preview ? `<span class="shopvd-ship-preview">${preview}</span>` : ''}
-          ${multiNote}
         </div>`;
       return;
     }
 
+    const returnBadge = shopvdReturningCustomerBadgeHtml(count);
     body.innerHTML = `
       <div class="shopvd-ship-main">
-        <span class="shopvd-ship-phone-inline">${escapeHtml(phone)}</span>
+        ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
+        ${returnBadge}
       </div>
-      <div class="shopvd-ship-detail">${count > 1 ? `Đã có ${count} đơn trên hệ thống` : 'Đã có đơn trên hệ thống'}</div>`;
+      <div class="shopvd-ship-detail">Đã có đơn trên hệ thống</div>`;
   }
 }
 

@@ -386,13 +386,35 @@ function updateSelectionUI() {
 // ============================================
 // DOWNLOAD HELPERS
 // ============================================
+function _exportFileName(exportId) {
+    const row = exportHistoryAllItems.find((e) => Number(e.id) === Number(exportId));
+    return row?.file_name || `SPX_DonHang_${exportId}.xlsx`;
+}
+
+/** Tải file về máy. Chỉ thành công khi nhận được đúng file Excel. */
 async function downloadExportFile(exportId) {
+    const response = await fetch(`${CONFIG.API_URL}?action=downloadExport&id=${exportId}`);
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok || contentType.includes('application/json')) {
+        let message = 'Không tải được file';
+        try {
+            const data = await response.json();
+            if (data?.error) message = data.error;
+        } catch (_) { /* response was not JSON */ }
+        throw new Error(message);
+    }
+
+    const blob = await response.blob();
+    if (!blob || blob.size < 32) throw new Error('File export rỗng');
+
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = `${CONFIG.API_URL}?action=downloadExport&id=${exportId}`;
-    link.download = '';
+    link.href = url;
+    link.download = _exportFileName(exportId);
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 async function markExportAsDownloaded(exportId) {
@@ -410,20 +432,19 @@ async function downloadAndUpdateExport(exportId) {
     try {
         showToast('Đang tải file...', 'info');
         await downloadExportFile(exportId);
-        closeExportHistoryModal();
-
-        setTimeout(async () => {
-            try {
-                const updatedCount = await markExportAsDownloaded(exportId);
-                exportHistoryCache = null;
-                updateExportHistoryBadge().catch(() => {});
-                loadOrdersData().catch(() => {});
-                if (updatedCount > 0) {
-                    showToast(`✅ Đã tải file và cập nhật ${updatedCount} đơn sang "Đã gửi hàng"`, 'success');
-                }
-            } catch (e) { console.error('Mark downloaded error:', e); }
-        }, 500);
-
+        const updatedCount = await markExportAsDownloaded(exportId);
+        const row = exportHistoryAllItems.find((e) => Number(e.id) === Number(exportId));
+        if (row) row.status = 'downloaded';
+        exportHistoryCache = null;
+        if (document.getElementById('exportHistoryModal')) renderExportListPage();
+        updateExportHistoryBadge().catch(() => {});
+        loadOrdersData().catch(() => {});
+        showToast(
+            updatedCount > 0
+                ? `✅ Đã tải file và cập nhật ${updatedCount} đơn sang "Đã gửi hàng"`
+                : '✅ Đã tải file',
+            'success'
+        );
     } catch (error) {
         console.error('Download error:', error);
         showToast('Lỗi: ' + error.message, 'error');

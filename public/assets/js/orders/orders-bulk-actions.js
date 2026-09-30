@@ -805,7 +805,8 @@ async function skipShippedOrders() {
 }
 
 /**
- * Perform the actual export (SPX + HĐĐT đồng thời)
+ * Perform the actual export (chỉ file Excel SPX).
+ * Hóa đơn điện tử xuất riêng qua bulkExportInvoice.
  */
 async function performExport(orders) {
     showToast('Đang tạo file Excel...', 'info');
@@ -819,71 +820,15 @@ async function performExport(orders) {
         }
     }
 
-    // --- 1. Export SPX ---
     const spxResult = await exportToSPXExcelAndSave(orders);
 
-    // --- 2. Export HĐĐT đồng thời ---
-    let invoiceResult = null;
-    try {
-        if (typeof XLSX === 'undefined') {
-            await loadXLSXLibrary();
-        }
+    showToast(`✅ Đã tạo file export - ${spxResult.filename}`, 'success');
 
-        const { duplicates, duplicateIds } = detectInvoicedDuplicates(orders);
-        let invoiceOrders = orders;
-
-        if (duplicates.length > 0) {
-            // Tự động bỏ qua đơn đã xuất HĐ trước đó (không hỏi modal)
-            invoiceOrders = orders.filter(o => !duplicateIds.has(Number(o.id)));
-            if (invoiceOrders.length === 0) {
-                console.log('[performExport] Tất cả đơn đã xuất HĐ trước, bỏ qua export HĐĐT.');
-            }
-        }
-
-        if (invoiceOrders.length > 0) {
-            const { buffer, filename, rowCount } = createInvoiceExcelBuffer(invoiceOrders);
-            const base64 = await _uint8ArrayToBase64(buffer);
-            const orderIds = invoiceOrders.map(o => o.id);
-
-            const resp = await fetch(`${CONFIG.API_URL}?action=saveInvoiceExport`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    fileName: filename,
-                    fileData: base64,
-                    orderIds,
-                    orderCount: invoiceOrders.length,
-                    invoiceRowCount: rowCount,
-                }),
-            });
-            const data = await resp.json();
-            if (data.success) {
-                invoiceResult = { filename, orderCount: invoiceOrders.length, rowCount };
-            } else {
-                console.warn('[performExport] Lưu HĐĐT thất bại:', data.error);
-            }
-        }
-    } catch (err) {
-        console.warn('[performExport] Export HĐĐT lỗi (không ảnh hưởng SPX):', err);
-    }
-
-    // --- 3. Hiển thị kết quả ---
-    let message = `✅ Đã tạo file export - ${spxResult.filename}`;
-    if (invoiceResult) {
-        message += `\n✅ Đã tạo file HĐĐT (${invoiceResult.orderCount} đơn, ${invoiceResult.rowCount} dòng)`;
-    }
-    showToast(message, 'success');
-
-    // Clear selection
     clearSelection();
 
-    // Invalidate cache and update badges
     exportHistoryCache = null;
-    invoiceHistoryCache = null;
     await updateExportHistoryBadge();
-    updateInvoiceHistoryBadge();
 
-    // Show export history modal
     showExportHistoryModal();
 }
 

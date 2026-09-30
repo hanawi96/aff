@@ -472,6 +472,11 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
+.shopvd-ship-badge.is-return {
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
 
 .shopvd-ship-actions {
   margin-left: auto;

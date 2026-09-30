@@ -172,6 +172,9 @@ async function _openProductDetailModal(product, priceData) {
     // 1. Build carousel with product image + process images
     _buildImageCarousel(product);
 
+    // Ảnh sản phẩm phải giải mã xong trước khi modal hiện, tránh khung trống rồi ảnh mới xuất hiện.
+    await _waitForProductSlide();
+
     // 2. Set titles
     const displayName = product.name || 'Sản phẩm';
     if (title) title.textContent = displayName;
@@ -183,7 +186,7 @@ async function _openProductDetailModal(product, priceData) {
     // 4. Show product detail info (categories, stock, SKU)
     _updateProductDetailSection(product);
 
-    // 5. Show modal FIRST (before async operations)
+    // 5. Show modal after the product photo is ready
     modal.classList.add('active');
     modal.dataset.productId = product.id;
     document.body.style.overflow = 'hidden'; // Prevent background scroll
@@ -334,13 +337,16 @@ function _buildImageCarousel(product) {
     const processBase = 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/quy-trinh-lam-vong';
     const processImages = _processImageLabels.map((label, i) => ({
         url: `${processBase}/${i + 1}.webp`,
+        fullUrl: `${processBase}/${i + 1}.webp`,
         alt: label,
         label,
         type: 'process'
     }));
+    const fullProductUrl = product.image_url || CONFIG.DEFAULT_IMAGE;
     const images = [
         {
-            url: product.image_url || CONFIG.DEFAULT_IMAGE,
+            url: productThumbUrl(fullProductUrl),
+            fullUrl: fullProductUrl,
             alt: product.name || 'Sản phẩm',
             label: 'Sản phẩm',
             type: 'product'
@@ -356,9 +362,11 @@ function _buildImageCarousel(product) {
         <div class="image-carousel-slide" data-index="${idx}" data-type="${img.type}">
             <img src="${img.url}"
                  alt="${img.alt}"
-                 data-image-url="${img.url}"
+                 data-image-url="${img.fullUrl || img.url}"
                  data-image-name="${img.alt}"
                  loading="${idx === 0 ? 'eager' : 'lazy'}"
+                 decoding="${idx === 0 ? 'sync' : 'async'}"
+                 ${idx === 0 ? 'fetchpriority="high"' : ''}
                  onerror="if(this.dataset.fallback){return}this.dataset.fallback='1';this.src='${CONFIG.DEFAULT_IMAGE}'">
         </div>
     `).join('');
@@ -388,6 +396,29 @@ function _buildImageCarousel(product) {
 
     // Initial UI update
     _updateCarouselUI(0);
+}
+
+/** Tải ảnh sản phẩm ngoài modal (modal đang ẩn nên ảnh bên trong chưa được vẽ). */
+function _waitForProductSlide() {
+    const img = document.querySelector('#imageCarouselTrack .image-carousel-slide[data-index="0"] img');
+    const url = img?.getAttribute('src') || '';
+    if (!url) return Promise.resolve();
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+
+    return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+            if (done) return;
+            done = true;
+            resolve();
+        };
+        const pre = new Image();
+        pre.onload = finish;
+        pre.onerror = finish;
+        pre.src = url;
+        if (pre.decode) pre.decode().then(finish).catch(finish);
+        setTimeout(finish, 1200);
+    });
 }
 
 /**
