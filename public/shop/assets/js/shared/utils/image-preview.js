@@ -1240,11 +1240,7 @@ function _displayStringTypeInfo(hasRedString, hasRopeString) {
     const container = document.getElementById('productStringInfo');
     if (!container) return;
 
-    if (hasRedString) {
-        container.className = 'product-string-info red-string';
-        container.style.display = 'list-item';
-        container.textContent = 'Vòng có thể nới rộng khi bé lớn, mua size sơ sinh thì đến khi lớn bé vẫn đeo được thoải mái, không lo bị trật.';
-    } else if (hasRopeString) {
+    if (hasRopeString && !hasRedString) {
         container.className = 'product-string-info rope-string';
         container.style.display = 'list-item';
         container.textContent = 'Dây vòng làm bằng dây cước gân co giãn loại 1, rất bền chắc, khó đứt, không thấm nước và gọn gàng, không lo vướng.';
