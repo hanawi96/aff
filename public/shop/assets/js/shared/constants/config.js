@@ -37,14 +37,25 @@ export const CONFIG = {
 
 const R2_PUBLIC_HOST = 'pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev';
 
-/**
- * Ảnh đại diện trên thẻ sản phẩm: Cloudflare cắt rộng 480px.
- * Ảnh không nằm trên R2 thì giữ nguyên. Modal chi tiết vẫn dùng ảnh gốc.
- */
-export function productThumbUrl(imageUrl) {
+function resizedR2Url(imageUrl, width, quality) {
     const url = String(imageUrl || '').trim();
     if (!url.includes(R2_PUBLIC_HOST)) return url;
-    return `https://shopvd.store/cdn-cgi/image/width=480,quality=75,format=auto/${url}`;
+    return `https://shopvd.store/cdn-cgi/image/width=${width},quality=${quality},format=auto/${url}`;
+}
+
+/** Ảnh thẻ sản phẩm trên trang chủ: rộng 480px. */
+export function productThumbUrl(imageUrl) {
+    return resizedR2Url(imageUrl, 480, 75);
+}
+
+/** Ảnh đang hiện trong modal chi tiết: rộng 960px. */
+export function productDetailUrl(imageUrl) {
+    return resizedR2Url(imageUrl, 960, 80);
+}
+
+/** Ảnh khi bấm xem lớn từ modal: rộng 1200px. */
+export function productZoomUrl(imageUrl) {
+    return resizedR2Url(imageUrl, 1200, 80);
 }
 
 export const DISCOUNT_CODES = [

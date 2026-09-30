@@ -4,7 +4,7 @@
 
 import { loadCommonPartials } from './shared/partials-loader.js';
 import { HomePage } from './pages/home.page.js?v=14';
-import './shared/utils/image-preview.js?v=19'; // Import image preview utility
+import './shared/utils/image-preview.js?v=22'; // Import image preview utility
 import { checkAndSaveReferralFromURL } from './shared/utils/ctv-tracking.js'; // Import CTV tracking
 
 /**

@@ -4,7 +4,7 @@
 // Includes: Product Detail Modal with URL sync & share
 // ============================================
 
-import { CONFIG, productThumbUrl } from '../constants/config.js?v=2';
+import { CONFIG, productThumbUrl, productDetailUrl, productZoomUrl } from '../constants/config.js?v=4';
 import { MODAL_CONSTANTS } from '../constants/modal-constants.js';
 import { materialsCache } from './materials-cache.js';
 import { eventManager } from './event-manager.js';
@@ -172,9 +172,6 @@ async function _openProductDetailModal(product, priceData) {
     // 1. Build carousel with product image + process images
     _buildImageCarousel(product);
 
-    // Ảnh sản phẩm phải giải mã xong trước khi modal hiện, tránh khung trống rồi ảnh mới xuất hiện.
-    await _waitForProductSlide();
-
     // 2. Set titles
     const displayName = product.name || 'Sản phẩm';
     if (title) title.textContent = displayName;
@@ -186,7 +183,7 @@ async function _openProductDetailModal(product, priceData) {
     // 4. Show product detail info (categories, stock, SKU)
     _updateProductDetailSection(product);
 
-    // 5. Show modal after the product photo is ready
+    // 5. Hiện modal ngay. Ảnh thẻ đã có sẵn; bản 1200px được đổi vào sau khi tải xong.
     modal.classList.add('active');
     modal.dataset.productId = product.id;
     document.body.style.overflow = 'hidden'; // Prevent background scroll
@@ -197,6 +194,7 @@ async function _openProductDetailModal(product, priceData) {
 
     // 6. Setup carousel events (touch, click, keyboard)
     _setupCarouselEvents();
+    _upgradeProductSlide();
 
     // 7. Setup action buttons
     _setupPreviewButtons(product.id);
@@ -387,7 +385,8 @@ function _buildImageCarousel(product) {
     const images = [
         {
             url: productThumbUrl(fullProductUrl),
-            fullUrl: fullProductUrl,
+            detailUrl: productDetailUrl(fullProductUrl),
+            fullUrl: productZoomUrl(fullProductUrl),
             alt: product.name || 'Sản phẩm',
             label: 'Sản phẩm',
             type: 'product'
@@ -403,6 +402,7 @@ function _buildImageCarousel(product) {
         <div class="image-carousel-slide" data-index="${idx}" data-type="${img.type}">
             <img src="${img.url}"
                  alt="${img.alt}"
+                 ${img.detailUrl ? `data-detail-url="${img.detailUrl}"` : ''}
                  data-image-url="${img.fullUrl || img.url}"
                  data-image-name="${img.alt}"
                  loading="${idx === 0 ? 'eager' : 'lazy'}"
@@ -439,27 +439,20 @@ function _buildImageCarousel(product) {
     _updateCarouselUI(0);
 }
 
-/** Tải ảnh sản phẩm ngoài modal (modal đang ẩn nên ảnh bên trong chưa được vẽ). */
-function _waitForProductSlide() {
+/** Đổi ảnh sản phẩm trong modal từ bản thẻ sang bản 960px sau khi đã giải mã, không chặn lúc mở. */
+function _upgradeProductSlide() {
     const img = document.querySelector('#imageCarouselTrack .image-carousel-slide[data-index="0"] img');
-    const url = img?.getAttribute('src') || '';
-    if (!url) return Promise.resolve();
-    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    const detailUrl = img?.dataset.detailUrl || '';
+    if (!img || !detailUrl || img.getAttribute('src') === detailUrl) return;
 
-    return new Promise((resolve) => {
-        let done = false;
-        const finish = () => {
-            if (done) return;
-            done = true;
-            resolve();
-        };
-        const pre = new Image();
-        pre.onload = finish;
-        pre.onerror = finish;
-        pre.src = url;
-        if (pre.decode) pre.decode().then(finish).catch(finish);
-        setTimeout(finish, 1200);
-    });
+    const apply = () => {
+        if (!img.isConnected || img.dataset.detailUrl !== detailUrl) return;
+        img.src = detailUrl;
+    };
+    const pre = new Image();
+    pre.onload = apply;
+    pre.src = detailUrl;
+    if (pre.decode) pre.decode().then(apply).catch(() => {});
 }
 
 /**
