@@ -3762,13 +3762,10 @@ function renderDbSaveStatusCard(payload = {}) {
 
       body.innerHTML = `
         <div class="shopvd-ship-main">
-          <span class="shopvd-ship-badge is-done">Đã lưu DB</span>
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
+          ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
-          <span class="shopvd-ship-phone-inline">${phone}</span>
-          ${priorityBtn}
-          ${editBtn}
-          ${deleteBtn}
+          <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${deleteBtn}</span>
         </div>
         <div class="shopvd-ship-detail">
           ${provinceHtml}
@@ -3792,7 +3789,6 @@ function renderDbSaveStatusCard(payload = {}) {
         : 'Đã có đơn trên hệ thống';
       body.innerHTML = `
         <div class="shopvd-ship-main">
-          <span class="shopvd-ship-badge is-done">Đã lưu DB</span>
           <span class="shopvd-ship-phone-inline">${phone}</span>
         </div>
         <div class="shopvd-ship-detail">${detail}</div>`;
@@ -4345,10 +4341,16 @@ function isShopvdOrderEditable(status) {
   return SHOPVD_EDITABLE_ORDER_STATUSES.has(shopvdNormalizeStatusSlug(status));
 }
 
+const SHOPVD_SHIPPED_ORDER_STATUSES = new Set(['shipped', 'in_transit', 'delivered']);
+
+function isShopvdOrderShipped(status) {
+  return SHOPVD_SHIPPED_ORDER_STATUSES.has(shopvdNormalizeStatusSlug(status));
+}
+
 /** Nút sao ưu tiên trên thanh trạng thái đơn đã lưu DB */
 function shopvdDeleteOrderBtnHtml(order, phone) {
   const id = Number(order?.id) || 0;
-  if (id <= 0) return '';
+  if (id <= 0 || isShopvdOrderShipped(order?.status)) return '';
   const code = escapeHtml(order.order_id || '');
   const phoneAttr = escapeHtml(phone || '');
   return `<button type="button" class="shopvd-delete-order-btn" data-order-id="${id}" data-order-code="${code}" data-order-phone="${phoneAttr}" title="Xóa đơn ${code}" aria-label="Xóa đơn hàng">
@@ -4397,7 +4399,7 @@ async function deleteSavedOrderFromBtn(btn) {
 
 function shopvdPriorityStarBtnHtml(order) {
   const id = Number(order?.id) || 0;
-  if (id <= 0) return '';
+  if (id <= 0 || isShopvdOrderShipped(order?.status)) return '';
   const isPri = Number(order.is_priority) === 1;
   return `<button type="button" class="shopvd-priority-order-btn${isPri ? ' is-active' : ''}" data-order-id="${id}" data-priority="${isPri ? 1 : 0}" title="${isPri ? 'Bỏ ưu tiên' : 'Đánh dấu ưu tiên'}" aria-label="${isPri ? 'Bỏ ưu tiên' : 'Đánh dấu ưu tiên'}" aria-pressed="${isPri ? 'true' : 'false'}">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -5086,13 +5088,10 @@ function renderPhoneSearchResultPanel(payload = {}) {
 
       body.innerHTML = `
         <div class="shopvd-ship-main">
-          <span class="shopvd-ship-badge is-done">Đã lưu DB</span>
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
+          ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
-          <span class="shopvd-ship-phone-inline">${escapeHtml(phone)}</span>
-          ${priorityBtn}
-          ${editBtn}
-          ${deleteBtn}
+          <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${deleteBtn}</span>
         </div>
         <div class="shopvd-ship-detail">
           ${provinceHtml}
@@ -5107,7 +5106,6 @@ function renderPhoneSearchResultPanel(payload = {}) {
 
     body.innerHTML = `
       <div class="shopvd-ship-main">
-        <span class="shopvd-ship-badge is-done">Đã lưu DB</span>
         <span class="shopvd-ship-phone-inline">${escapeHtml(phone)}</span>
       </div>
       <div class="shopvd-ship-detail">${count > 1 ? `Đã có ${count} đơn trên hệ thống` : 'Đã có đơn trên hệ thống'}</div>`;
