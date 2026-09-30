@@ -2749,7 +2749,7 @@ body {
     border-radius: 999px;
     padding: 0.25rem 0.6rem;
     font-size: 1rem;
-    font-weight: 650;
+    font-weight: 600;
     color: #111827;
     max-width: 100%;
 }
@@ -5619,17 +5619,20 @@ body {
 
 /* Baby Weight Selection Modal */
 .baby-weight-modal {
-    max-width: 600px;
+    max-width: 420px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.16);
 }
 
 .baby-weight-header {
-    background: linear-gradient(135deg, #f4a261, #e76f51);
-    color: white;
-    padding: 1.5rem;
+    background: #fff;
+    color: #111827;
+    padding: 1.15rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
     border-radius: 20px 20px 0 0;
     display: flex;
     align-items: center;
@@ -5642,56 +5645,61 @@ body {
     font-size: 1.5rem;
 }
 
-.baby-weight-header h3 {
+.baby-weight-header h3,
+.baby-weight-modal-title {
     flex: 1;
-    font-size: 1.3rem;
+    font-size: 1.05rem;
     font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #111827;
     margin: 0;
 }
 
 .baby-weight-header .modal-close-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    color: #64748b;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .baby-weight-header .modal-close-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: rotate(90deg);
+    background: #f1f5f9;
+    color: #111827;
 }
 
 .baby-weight-body {
-    padding: 1.5rem;
+    padding: 1.15rem 1.25rem 1.25rem;
     overflow-y: auto;
     flex: 1;
-    max-height: calc(90vh - 200px);
+    max-height: calc(90vh - 180px);
+    background: #fff;
 }
 
 .baby-weight-product {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, #f8edeb, rgba(233, 196, 106, 0.1));
+    gap: 0.85rem;
+    padding: 0.75rem;
+    background: #fafafa;
     border-radius: 12px;
-    margin-bottom: 1.25rem;
-    border: 2px solid rgba(244, 162, 97, 0.2);
+    margin-bottom: 1.15rem;
+    border: 1px solid #e5e7eb;
 }
 
 .baby-weight-product-image {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
     border-radius: 10px;
     object-fit: cover;
-    border: 2px solid rgba(244, 162, 97, 0.3);
+    border: 1px solid #e5e7eb;
+    background: #fff;
 }
 
 .baby-weight-product-info {
@@ -5699,19 +5707,17 @@ body {
 }
 
 .baby-weight-product-name {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 0.15rem;
+    line-height: 1.35;
 }
 
 .baby-weight-product-price {
-    font-size: 1.1rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #f4a261, #e76f51);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #c2410c;
 }
 
 .baby-weight-warning {
@@ -5742,10 +5748,22 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 1rem;
+    font-size: 0.8rem;
     font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 0.75rem;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    margin-bottom: 0.7rem;
+}
+
+.quick-title {
+    text-transform: uppercase;
+}
+
+.custom-title {
+    font-size: 0.9rem;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #334155;
 }
 
 .quick-title i,
@@ -5756,61 +5774,43 @@ body {
 .baby-weight-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .weight-btn {
-    padding: 0.875rem;
-    background: white;
-    border: 2px solid rgba(244, 162, 97, 0.2);
-    border-radius: 10px;
-    font-size: 1rem;
+    min-height: 48px;
+    padding: 0.65rem 0.4rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 0.95rem;
     font-weight: 600;
-    color: #2c3e50;
+    color: #1e293b;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
     font-family: 'Quicksand', sans-serif;
 }
 
 .weight-btn:hover {
-    border-color: #f4a261;
-    background: #f8edeb;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.2);
+    border-color: #cbd5e1;
+    background: #f8fafc;
 }
 
-.weight-btn.selected {
-    background: linear-gradient(135deg, #f4a261, #e76f51);
-    color: white;
-    border-color: transparent;
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
-}
-
-/* Nút "Chưa sinh" với icon trái tim */
-.weight-btn-icon {
-    background: linear-gradient(135deg, #ffeef0, #ffe0e5);
-    border-color: rgba(255, 105, 135, 0.3);
-}
-
+.weight-btn-icon,
 .weight-btn-icon:hover {
-    background: linear-gradient(135deg, #ffe0e5, #ffd0d8);
-    border-color: #ff6987;
+    background: #fff;
+    border-color: #e5e7eb;
+    color: #1e293b;
 }
 
-.weight-btn-icon.selected {
-    background: linear-gradient(135deg, #ff6987, #ff4d7a);
-    border-color: transparent;
-}
-
-/* Nút "Nhập khác" */
 .weight-btn-custom {
-    background: linear-gradient(135deg, #f0f4f8, #e8eef5);
-    border: 2px dashed rgba(100, 150, 200, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    color: #4a6fa5;
+    gap: 0.3rem;
+    color: #1e293b;
+    background: #fff;
+    border: 1px solid #e5e7eb;
 }
 
 /* ============================================
@@ -5994,9 +5994,19 @@ body {
 }
 
 .weight-btn-custom:hover {
-    background: linear-gradient(135deg, #e8eef5, #dce6f0);
-    border-color: #4a6fa5;
-    transform: translateY(-2px);
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.weight-btn.selected,
+.weight-btn-icon.selected,
+.weight-btn-custom.selected,
+.weight-btn.selected:hover,
+.weight-btn-icon.selected:hover,
+.weight-btn-custom.selected:hover {
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: #fff;
+    border-color: transparent;
 }
 
 .weight-btn-custom svg {
@@ -6004,10 +6014,11 @@ body {
 }
 
 .baby-weight-custom {
-    padding: 1rem;
-    background: #f8edeb;
+    margin-top: 0.85rem;
+    padding: 0.85rem;
+    background: #fafafa;
     border-radius: 12px;
-    border: 2px dashed rgba(244, 162, 97, 0.3);
+    border: 1px solid #e5e7eb;
 }
 
 .custom-input-group {
@@ -6019,19 +6030,21 @@ body {
 
 .custom-weight-input {
     flex: 1;
-    padding: 0.875rem 1rem;
-    border: 2px solid rgba(244, 162, 97, 0.2);
+    padding: 0.75rem 0.9rem;
+    border: 1px solid #e5e7eb;
     border-radius: 10px;
     font-size: 1rem;
     font-weight: 600;
     font-family: 'Quicksand', sans-serif;
-    transition: all 0.2s ease;
+    background: #fff;
+    color: #111827;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .custom-weight-input:focus {
     outline: none;
-    border-color: #f4a261;
-    box-shadow: 0 0 0 3px rgba(244, 162, 97, 0.1);
+    border-color: #111827;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 }
 
 .custom-weight-unit {
@@ -6042,11 +6055,11 @@ body {
 
 /* Price Surcharge Info */
 .baby-weight-surcharge {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    margin-top: 0.85rem;
+    padding: 0.85rem;
+    background: #fffbeb;
     border-radius: 12px;
-    border: 2px solid #ffb74d;
+    border: 1px solid #fde68a;
     display: flex;
     gap: 0.75rem;
     animation: slideDown 0.3s ease;
@@ -6064,20 +6077,29 @@ body {
 }
 
 .surcharge-icon {
-    font-size: 2rem;
-    line-height: 1;
-    flex-shrink: 0;
+    display: none;
 }
 
 .surcharge-content {
     flex: 1;
+    min-width: 0;
 }
 
 .surcharge-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
     font-size: 1rem;
     font-weight: 700;
     color: #e65100;
     margin-bottom: 0.5rem;
+}
+
+.surcharge-title::before {
+    content: "⚠️";
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    line-height: 1.35;
 }
 
 .surcharge-details {
@@ -6125,52 +6147,51 @@ body {
 
 .baby-weight-footer {
     display: flex;
-    gap: 0.75rem;
-    padding: 1.25rem 1.5rem;
-    border-top: 2px dashed #ffd6e0;
+    gap: 0.6rem;
+    padding: 0.9rem 1.25rem 1.1rem;
+    border-top: 1px solid #f1f5f9;
     flex-shrink: 0;
-    background: white;
+    background: #fff;
 }
 
 .btn-cancel-weight {
     flex: 1;
-    padding: 0.875rem;
-    background: #f8edeb;
-    border: 2px solid rgba(244, 162, 97, 0.2);
-    border-radius: 10px;
-    font-size: 1rem;
+    padding: 0.8rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 0.95rem;
     font-weight: 700;
-    color: #2c3e50;
+    color: #334155;
     cursor: pointer;
-    transition: all 0.2s ease;
+    font-family: 'Quicksand', sans-serif;
+    transition: background 0.15s ease;
 }
 
 .btn-cancel-weight:hover {
-    background: rgba(233, 196, 106, 0.2);
-    transform: translateY(-2px);
+    background: #f8fafc;
 }
 
 .btn-confirm-weight {
-    flex: 2;
-    padding: 0.875rem;
+    flex: 1.4;
+    padding: 0.8rem;
     background: linear-gradient(135deg, #f4a261, #e76f51);
     border: none;
-    border-radius: 10px;
-    font-size: 1rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
     font-weight: 700;
     color: white;
     cursor: pointer;
-    transition: all 0.2s ease;
+    font-family: 'Quicksand', sans-serif;
+    transition: filter 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+    gap: 0.4rem;
 }
 
 .btn-confirm-weight:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(244, 162, 97, 0.4);
+    filter: brightness(0.96);
 }
 
 .btn-confirm-weight:disabled {
@@ -6186,7 +6207,6 @@ body {
         margin: 0;
         border-radius: 16px;
         width: 100%;
-        flex: 1;
     }
 
     .baby-weight-body {
@@ -6200,9 +6220,9 @@ body {
     }
 
     .weight-btn {
-        padding: 1rem 0.5rem;
-        font-size: 1rem;
-        min-height: 56px;
+        padding: 0.7rem 0.4rem;
+        font-size: 0.95rem;
+        min-height: 48px;
     }
 
     .baby-weight-header {
