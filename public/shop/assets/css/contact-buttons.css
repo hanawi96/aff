@@ -12,19 +12,18 @@
 .contact-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 24px;
-  border-radius: 50px;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
   text-decoration: none;
-  font-weight: 600;
-  font-size: 16px;
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
   cursor: pointer;
   border: none;
   outline: none;
-  font-family: 'Quicksand', sans-serif;
 }
 
 .contact-btn:hover {
@@ -74,16 +73,9 @@
     gap: 8px;
   }
   
-  .contact-btn span {
-    display: none;
-  }
-  
   .contact-btn {
-    padding: 8px;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    justify-content: center;
+    width: 44px;
+    height: 44px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
   }
   
@@ -101,9 +93,8 @@
   }
   
   .contact-btn {
-    padding: 7px;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   }
   
