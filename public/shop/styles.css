@@ -1498,6 +1498,77 @@ body {
     }
 }
 
+.process-video {
+    max-width: 720px;
+    margin: 2.75rem auto 0;
+    text-align: center;
+}
+
+.process-video-kicker {
+    margin: 0 0 0.85rem;
+    color: #9a3412;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.process-video-facade,
+.process-video-frame {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #1c1917;
+    box-shadow: 0 12px 28px rgba(244, 162, 97, 0.16);
+}
+
+.process-video-facade {
+    position: relative;
+    padding: 0;
+    cursor: pointer;
+}
+
+.process-video-facade img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.process-video-play {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(231, 111, 81, 0.35);
+}
+
+.process-video-play svg {
+    width: 28px;
+    height: 28px;
+    margin-left: 3px;
+}
+
+@media (max-width: 640px) {
+    .process-video {
+        margin-top: 2rem;
+    }
+
+    .process-video-play {
+        width: 54px;
+        height: 54px;
+    }
+}
+
 /* ============================================
    Artisan Story Section - Câu chuyện người làm vòng
    ============================================ */
