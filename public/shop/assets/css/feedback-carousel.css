@@ -56,11 +56,13 @@
     border-radius: 50%;
     width: 48px;
     height: 48px;
+    padding: 0;
     display: flex;
     align-items: center;
-    justify-center;
+    justify-content: center;
+    line-height: 0;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     z-index: 10;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -68,7 +70,6 @@
 .feedback-nav:hover {
     background: #f4a261;
     border-color: #f4a261;
-    transform: translateY(-50%) scale(1.1);
 }
 
 .feedback-nav:hover svg {
@@ -76,8 +77,10 @@
 }
 
 .feedback-nav svg {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
+    display: block;
+    flex-shrink: 0;
     color: #f4a261;
     transition: color 0.3s ease;
 }
@@ -107,8 +110,8 @@
     }
     
     .feedback-nav svg {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
     }
 }
 
