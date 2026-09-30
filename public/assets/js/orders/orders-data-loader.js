@@ -182,21 +182,47 @@ async function refreshOrdersListAfterMutation(result) {
     if (typeof resetTheTenBePanelCache === 'function') resetTheTenBePanelCache();
     if (typeof resetSendLaterUrgentBannerCache === 'function') resetSendLaterUrgentBannerCache();
 
-    let merged = false;
-    if (result?.order) {
-        merged = mergeOrderIntoLocalList(result.order);
-    } else if (result?.orderDbId) {
+    let order = result?.order || null;
+    if (!order && result?.orderDbId) {
         try {
             const res = await fetch(
                 `${CONFIG.API_URL}?action=getOrderById&id=${Number(result.orderDbId)}&timestamp=${Date.now()}`
             );
             const data = await res.json();
-            if (data.success && data.order) {
-                merged = mergeOrderIntoLocalList(data.order);
-            }
+            if (data.success && data.order) order = data.order;
         } catch (e) {
             console.warn('refreshOrdersListAfterMutation: getOrderById failed', e);
         }
+    }
+
+    const historyActive = typeof ordersHistoryState !== 'undefined' && ordersHistoryState.active;
+    if (order && historyActive) {
+        const id = Number(order.id);
+        if (Array.isArray(filteredOrdersData)) {
+            const idx = filteredOrdersData.findIndex((o) => Number(o.id) === id);
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
+            const status = String(order.status || '').toLowerCase().trim();
+            const stillVisible = statusFilter === 'all' || statusFilter === status;
+            if (idx >= 0 && stillVisible) {
+                filteredOrdersData[idx] = { ...filteredOrdersData[idx], ...order };
+            } else if (idx >= 0) {
+                filteredOrdersData.splice(idx, 1);
+            }
+        }
+        if (_isUnshippedStatus(order.status)) {
+            mergeOrderIntoLocalList(order);
+        }
+        if (typeof renderOrdersTable === 'function') renderOrdersTable();
+        if (typeof loadProductsAndCategories === 'function') {
+            void loadProductsAndCategories();
+        }
+        void loadOrdersData({ skipCache: true, silent: true, skipRender: true });
+        return;
+    }
+
+    let merged = false;
+    if (order) {
+        merged = mergeOrderIntoLocalList(order);
     }
 
     if (merged) {
@@ -357,7 +383,7 @@ async function copySPXFormat(orderId) {
         return;
     }
 
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
@@ -378,7 +404,7 @@ async function copySPXFormatExecute(orderId) {
     copySPXInProgress = true;
 
     try {
-        const order = allOrdersData.find(o => o.id === orderId);
+        const order = findLoadedOrderById(orderId);
         if (!order) {
             showToast('Không tìm thấy đơn hàng', 'error');
             return;
@@ -470,7 +496,7 @@ ${order.address || 'N/A'}`;
 
 // Show add/edit order notes modal
 function showAddOrderNotesModal(orderId, orderCode) {
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) return;
 
     const currentNotes = order.notes || '';

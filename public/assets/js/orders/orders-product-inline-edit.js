@@ -80,6 +80,7 @@ function inlineEditRowKey(orderId, index) {
 }
 
 function inlineEditGetOrder(orderId) {
+    if (typeof findLoadedOrderById === 'function') return findLoadedOrderById(orderId);
     return (typeof allOrdersData !== 'undefined' && Array.isArray(allOrdersData))
         ? allOrdersData.find(o => Number(o.id) === Number(orderId))
         : null;

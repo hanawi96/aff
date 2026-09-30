@@ -24,7 +24,7 @@ let editModalIsUpdating = false;
 // Edit product - open product selection modal to replace
 // productId format: "product_{orderId}_{index}" — index encoded directly in ID
 async function editProductName(productId, orderId, orderCode) {
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) { showToast('Không tìm thấy đơn hàng', 'error'); return; }
 
     let products = [];
@@ -458,7 +458,7 @@ async function saveProductChanges(orderId, productIndex, orderCode) {
 // Edit customer info
 function editCustomerInfo(orderId, orderCode) {
     // Find the order
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
@@ -670,7 +670,7 @@ async function saveCustomerInfo(orderId, orderCode) {
 
 // Edit address
 async function editAddress(orderId, orderCode) {
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
@@ -829,23 +829,12 @@ async function editAddress(orderId, orderCode) {
 
     window.addressSelector.renderProvinces(provinceSelect);
 
-    if (order.province_id) {
-        const provinceId = String(order.province_id);
-        const wardId = order.ward_id ? String(order.ward_id) : null;
-
-        provinceSelect.value = provinceId;
-        window.addressSelector.renderWards(wardSelect, provinceId);
-
-        if (wardId) {
-            setTimeout(() => {
-                wardSelect.value = wardId;
-                updateAddressPreview();
-            }, 50);
-        }
-
-        if (order.street_address) {
-            streetInput.value = order.street_address;
-        }
+    const editIds = window.addressSelector.resolveStoredAddress(order);
+    if (!editIds.legacy && editIds.provinceId) {
+        provinceSelect.value = editIds.provinceId;
+        window.addressSelector.renderWards(wardSelect, editIds.provinceId);
+        if (editIds.wardId) wardSelect.value = editIds.wardId;
+        if (order.street_address) streetInput.value = order.street_address;
     }
 
     function updateAddressPreview() {
@@ -894,7 +883,7 @@ async function saveAddress(orderId, orderCode) {
     const wardId = wardSelect?.value?.trim() || null;
     const streetAddress = streetInput?.value?.trim() || null;
 
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
 
     let provinceName, wardName, districtId, districtName, fullAddress;
 

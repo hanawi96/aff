@@ -48,10 +48,12 @@ function parseAddressForExport(order) {
         return { province: '', district: '', ward: '', detail: '' };
     }
 
-    if (order.province_id && window.addressSelector?.loaded
-        && !window.addressSelector.isLegacyOrderAddress(order)) {
-        const pId = String(order.province_id);
-        const wId = order.ward_id ? String(order.ward_id) : '';
+    const resolvedAddr = window.addressSelector?.loaded && typeof window.addressSelector.resolveStoredAddress === 'function'
+        ? window.addressSelector.resolveStoredAddress(order)
+        : null;
+    if (resolvedAddr && !resolvedAddr.legacy && resolvedAddr.provinceId) {
+        const pId = resolvedAddr.provinceId;
+        const wId = resolvedAddr.wardId || '';
         const pName = window.addressSelector.getProvinceName(pId);
         const wName = wId ? window.addressSelector.getWardName(pId, wId) : '';
         if (pName && (!wId || wName)) {

@@ -168,7 +168,7 @@ async function buildOrderModalSeed(order, mode, opts = {}) {
  * Duplicate an existing order (CTV / ưu tiên / ghi chú / giảm giá không sao chép)
  */
 async function duplicateOrder(orderId) {
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
@@ -180,7 +180,7 @@ async function duplicateOrder(orderId) {
  * Mở cùng form với thêm đơn, đủ trường để sửa toàn bộ đơn đã có.
  */
 async function editFullOrder(orderId) {
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;

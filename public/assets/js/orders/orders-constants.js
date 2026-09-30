@@ -132,6 +132,21 @@ function _isUnshippedStatus(status) {
     return UNSHIPPED_STATUS_SET.has(String(status || 'pending').toLowerCase().trim());
 }
 
+/**
+ * Đơn đang hiện trên bảng. History mode (đã gửi / tất cả) chỉ có trong filteredOrdersData,
+ * không có trong allOrdersData.
+ */
+function findLoadedOrderById(orderId) {
+    const id = Number(orderId);
+    if (!Number.isFinite(id)) return null;
+    if (Array.isArray(filteredOrdersData)) {
+        const visible = filteredOrdersData.find((o) => Number(o.id) === id);
+        if (visible) return visible;
+    }
+    if (!Array.isArray(allOrdersData)) return null;
+    return allOrdersData.find((o) => Number(o.id) === id) || null;
+}
+
 // Helper function to update order data in both allOrdersData and filteredOrdersData
 function updateOrderData(orderId, updates) {
     // Update in allOrdersData

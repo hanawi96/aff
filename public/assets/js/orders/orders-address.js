@@ -38,6 +38,14 @@ function syncDeskOrderStreetInputVisibility() {
     setDeskOrderStreetInputVisible(!!(wardSelect?.value));
 }
 
+/** Mã tỉnh/phường dùng cho form: mã tree_2 hiện tại, kể cả khi đơn còn lưu mã cũ. */
+function currentAddressIdsForOrder(order) {
+    if (!order || typeof window.addressSelector?.resolveStoredAddress !== 'function') return null;
+    const resolved = window.addressSelector.resolveStoredAddress(order);
+    if (resolved.legacy || !resolved.provinceId) return null;
+    return { province_id: resolved.provinceId, ward_id: resolved.wardId || '' };
+}
+
 window.setDeskOrderStreetInputVisible = setDeskOrderStreetInputVisible;
 window.syncDeskOrderStreetInputVisibility = syncDeskOrderStreetInputVisibility;
 
@@ -182,12 +190,13 @@ async function initAddressSelector(duplicateData = null) {
         const provinceSelect = document.getElementById('newOrderProvince');
         const wardSelect = document.getElementById('newOrderWard');
         window.addressSelector.renderProvinces(provinceSelect);
-        if (hydrateData?.province_id) {
-            const provinceId = String(hydrateData.province_id);
+        const nativeIds = currentAddressIdsForOrder(hydrateData);
+        if (nativeIds?.province_id) {
+            const provinceId = String(nativeIds.province_id);
             provinceSelect.value = provinceId;
             window.addressSelector.renderWards(wardSelect, provinceId);
-            if (hydrateData.ward_id) {
-                wardSelect.value = String(hydrateData.ward_id);
+            if (nativeIds.ward_id) {
+                wardSelect.value = String(nativeIds.ward_id);
             }
             if (hydrateData.street_address && streetInput) {
                 streetInput.value = hydrateData.street_address;
@@ -215,10 +224,11 @@ async function initAddressSelector(duplicateData = null) {
     await combo.mount();
     window._deskAddressCombobox = combo;
 
-    if (hydrateData?.province_id) {
+    const comboIds = currentAddressIdsForOrder(hydrateData);
+    if (comboIds?.province_id) {
         combo.hydrate({
-            province_id: hydrateData.province_id,
-            ward_id: hydrateData.ward_id
+            province_id: comboIds.province_id,
+            ward_id: comboIds.ward_id
         });
         if (hydrateData.street_address && streetInput) {
             streetInput.value = hydrateData.street_address;

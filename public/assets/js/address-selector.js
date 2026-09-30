@@ -31,6 +31,7 @@ class AddressSelector {
                 const provinceObj = {
                     Id: province.code,
                     Name: province.fullName,
+                    ShortName: province.name,
                     Wards: []
                 };
 
@@ -65,6 +66,7 @@ class AddressSelector {
                 return a.Name.localeCompare(b.Name, 'vi', { sensitivity: 'base' });
             });
 
+            this._nameIndex = null;
             this.loaded = true;
             console.log('✅ Loaded tree_2.json:', {
                 provinces: this.data.length,
@@ -115,76 +117,155 @@ class AddressSelector {
         return this.wardMap.get(key)?.Name || '';
     }
 
-    /** Chuẩn hóa tên tỉnh/phường để so khớp (bỏ tiền tố Tỉnh/TP, dấu). */
-    _normAddrName(name) {
+    /**
+     * Chuẩn hóa tên tỉnh/phường để so khớp.
+     * Bỏ dấu và tiền tố Tỉnh/TP/Phường/Xã. Mã tree_2 đã đổi (vd. Thái Nguyên 19 → 41)
+     * trong khi đơn vẫn lưu mã cũ kèm tên mới, nên so tên chứ không chỉ so mã.
+     */
+    _normPlaceName(name) {
         if (!name) return '';
         return String(name)
             .toLowerCase()
-            .replace(/^(tỉnh|tinh|thành phố|thanh pho|tp\.?)\s+/i, '')
             .normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/\u0111/g, 'd')
+            .replace(/đ/g, 'd')
+            .replace(/^(tinh|thanh pho|tp\.?|phuong|xa|thi tran|thi xa|quan|huyen)\s+/, '')
+            .replace(/\s+/g, ' ')
             .trim();
     }
 
+    _normAddrName(name) {
+        return this._normPlaceName(name);
+    }
+
+    _ensureNameIndex() {
+        if (this._nameIndex) return;
+        const index = new Map();
+        const add = (key, provinceId, wardId) => {
+            if (!key || key.startsWith('|') || key.endsWith('|')) return;
+            let list = index.get(key);
+            if (!list) {
+                list = [];
+                index.set(key, list);
+            }
+            if (!list.some((x) => x.provinceId === provinceId && x.wardId === wardId)) {
+                list.push({ provinceId, wardId });
+            }
+        };
+
+        for (const province of this.data) {
+            const provinceKeys = new Set([
+                this._normPlaceName(province.Name),
+                this._normPlaceName(province.ShortName)
+            ]);
+            for (const ward of province.Wards) {
+                const wardKeys = new Set([
+                    this._normPlaceName(ward.Name),
+                    this._normPlaceName(ward.ShortName)
+                ]);
+                for (const provinceKey of provinceKeys) {
+                    for (const wardKey of wardKeys) {
+                        add(`${provinceKey}|${wardKey}`, province.Id, ward.Id);
+                    }
+                }
+            }
+        }
+        this._nameIndex = index;
+    }
+
+    _namesMatchPlace(storedName, ...candidates) {
+        const stored = this._normPlaceName(storedName);
+        if (!stored) return true;
+        return candidates.some((name) => name && this._normPlaceName(name) === stored);
+    }
+
     /**
-     * Đơn lưu theo hệ 3 cấp cũ (hoặc ID tỉnh/phường không còn khớp tree_2).
-     * VD: province_id 26 = Vĩnh Phúc (cũ) nhưng tree_2 code 26 = Lai Châu.
+     * Địa chỉ 2 cấp còn nhận được trong tree_2 hiện tại.
+     * Khớp mã thì dùng mã. Mã cũ không còn trong cây thì khớp tên tỉnh + phường, chỉ khi đúng một kết quả.
+     * Có quận/huyện, hoặc tên không khớp một phường hiện tại → địa chỉ cũ, không đoán.
+     */
+    resolveStoredAddress(order) {
+        const empty = { legacy: false, provinceId: '', wardId: '', matchedBy: 'none' };
+        if (!order) return empty;
+        if (order.district_id || order.district_name) {
+            return { legacy: true, provinceId: '', wardId: '', matchedBy: 'district' };
+        }
+        if (!this.loaded) return empty;
+
+        const provinceId = order.province_id != null && order.province_id !== ''
+            ? String(order.province_id)
+            : '';
+        const wardId = order.ward_id != null && order.ward_id !== ''
+            ? String(order.ward_id)
+            : '';
+        const wardObj = provinceId && wardId ? this.wardMap.get(`${provinceId}-${wardId}`) : null;
+        const provinceObj = provinceId ? this.provinceMap.get(provinceId) : null;
+
+        if (wardObj && provinceObj
+            && this._namesMatchPlace(order.province_name, provinceObj.Name, provinceObj.ShortName)
+            && this._namesMatchPlace(order.ward_name, wardObj.Name, wardObj.ShortName)) {
+            return { legacy: false, provinceId, wardId, matchedBy: 'id' };
+        }
+
+        this._ensureNameIndex();
+        const nameKey = `${this._normPlaceName(order.province_name)}|${this._normPlaceName(order.ward_name)}`;
+        const hits = this._nameIndex.get(nameKey) || [];
+        if (hits.length === 1) {
+            return {
+                legacy: false,
+                provinceId: hits[0].provinceId,
+                wardId: hits[0].wardId,
+                matchedBy: 'name'
+            };
+        }
+
+        const hasStoredPlace = !!(order.province_name || order.ward_name || provinceId || wardId);
+        return {
+            legacy: hasStoredPlace,
+            provinceId: '',
+            wardId: '',
+            matchedBy: hits.length > 1 ? 'ambiguous' : 'none'
+        };
+    }
+
+    /**
+     * Đơn lưu theo hệ 3 cấp cũ, hoặc tên tỉnh/phường không còn khớp đúng một nơi trong tree_2.
      */
     isLegacyOrderAddress(order) {
         if (!order) return false;
-        if (order.district_id || order.district_name) return true;
-        if (!order.province_id) return false;
-        if (!this.loaded) return !!(order.province_name || order.ward_name);
-
-        const pId = String(order.province_id);
-        const wId = order.ward_id ? String(order.ward_id) : '';
-        if (!wId) return true;
-
-        const wardKey = `${pId}-${wId}`;
-        if (!this.wardMap.has(wardKey)) return true;
-
-        if (order.province_name) {
-            const fromTree = this.getProvinceName(pId);
-            if (fromTree && this._normAddrName(order.province_name) !== this._normAddrName(fromTree)) {
-                return true;
-            }
-        }
-        return false;
+        return this.resolveStoredAddress(order).legacy;
     }
 
-    /** Ghép địa chỉ hiển thị: legacy dùng tên đã lưu DB, mới dùng tree_2. */
+    /** Ghép địa chỉ hiển thị: legacy dùng tên đã lưu DB, 2 cấp dùng tree_2 theo mã đã giải. */
     formatOrderDisplayAddress(order) {
         if (!order) return 'Chưa có địa chỉ';
 
-        if (this.isLegacyOrderAddress(order)) {
-            const addrStr = (order.address && String(order.address).trim()) || '';
-            const legacy = [
-                order.street_address,
-                order.ward_name,
-                order.district_name,
-                order.province_name
-            ].filter(Boolean).join(', ');
-            return addrStr || legacy || 'Chưa có địa chỉ';
-        }
-
-        if (order.province_id && this.loaded) {
-            const pId = String(order.province_id);
-            const wId = order.ward_id ? String(order.ward_id) : '';
-            const parts = [order.street_address || ''];
-            if (wId) {
-                const w = this.getWardName(pId, wId);
-                if (w) parts.push(w);
+        if (this.loaded) {
+            const resolved = this.resolveStoredAddress(order);
+            if (!resolved.legacy && resolved.provinceId) {
+                const parts = [order.street_address || ''];
+                const wardName = resolved.wardId
+                    ? this.getWardName(resolved.provinceId, resolved.wardId)
+                    : '';
+                if (wardName) parts.push(wardName);
                 else if (order.ward_name) parts.push(order.ward_name);
+                const provinceName = this.getProvinceName(resolved.provinceId);
+                if (provinceName) parts.push(provinceName);
+                else if (order.province_name) parts.push(order.province_name);
+                const built = parts.filter(Boolean).join(', ');
+                if (built) return built;
             }
-            const p = this.getProvinceName(pId);
-            if (p) parts.push(p);
-            else if (order.province_name) parts.push(order.province_name);
-            const built = parts.filter(Boolean).join(', ');
-            if (built) return built;
         }
 
-        return order.address || 'Chưa có địa chỉ';
+        const addrStr = (order.address && String(order.address).trim()) || '';
+        const legacy = [
+            order.street_address,
+            order.ward_name,
+            order.district_name,
+            order.province_name
+        ].filter(Boolean).join(', ');
+        return addrStr || legacy || 'Chưa có địa chỉ';
     }
 
     generateFullAddress(streetAddress, provinceId, wardId) {

@@ -19,7 +19,7 @@
 // Confirm delete order
 function confirmDeleteOrder(orderId, orderCode) {
     // Find the order
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
@@ -192,7 +192,7 @@ async function deleteOrder(orderId, orderCode) {
 function confirmDeleteProduct(orderId, productIndex, orderCode) {
     // Look up productName & product count từ allOrdersData (tránh vỡ onclick khi tên có dấu nháy đơn)
     let productName = 'Sản phẩm';
-    const _order = allOrdersData.find(o => o.id === orderId);
+    const _order = findLoadedOrderById(orderId);
     if (_order) {
         let _count = 1;
         try {

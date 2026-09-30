@@ -1084,25 +1084,24 @@ function createSidebar() {
       </div>
     </div>
 
-    <!-- Order success toast (auto-hide, không chặn thao tác) -->
+    <!-- Order success toast: giữa sidebar, không chặn form phía sau -->
     <div id="shopvd-order-success-toast" class="shopvd-ost hidden" role="status" aria-live="polite">
-      <div class="shopvd-ost-icon" aria-hidden="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
-      <div class="shopvd-ost-body">
-        <div class="shopvd-ost-row">
-          <strong class="shopvd-ost-title">Đã tạo đơn</strong>
-          <button type="button" id="ost-order-id" class="shopvd-ost-order-id" title="Bấm để copy mã đơn">—</button>
+      <div class="shopvd-ost-petals" aria-hidden="true"></div>
+      <div class="shopvd-ost-card">
+        <button type="button" id="shopvd-ost-close" class="shopvd-ost-close" title="Đóng" aria-label="Đóng thông báo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <div class="shopvd-ost-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
         </div>
+        <strong class="shopvd-ost-title">Đã tạo đơn</strong>
+        <button type="button" id="ost-order-id" class="shopvd-ost-order-id" title="Bấm để copy mã đơn">—</button>
         <p id="ost-summary" class="shopvd-ost-summary"></p>
       </div>
-      <button type="button" id="shopvd-ost-close" class="shopvd-ost-close" title="Đóng" aria-label="Đóng thông báo">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
     </div>
   `;
 
@@ -4867,7 +4866,6 @@ async function updateOrder(orderData) {
       resetShopvdOrderFormAfterSave();
       handlePancakeChatDbSaveCheck(true, { forceRefresh: true });
       schedulePullPendingFromServer(500);
-      showStatus(' Đã cập nhật đơn hàng', 'success', 2500);
     } else {
       showStatus(`❌ Lỗi: ${result.error || 'Không thể cập nhật đơn'}`, 'error');
     }
@@ -7924,8 +7922,59 @@ const PAYMENT_METHOD_LABELS = {
 };
 
 const SHOPVD_OST_AUTO_HIDE_MS = 3200;
+const SHOPVD_OST_PETAL_COUNT = 32;
+const SHOPVD_OST_PETAL_COLORS = ['#059669', '#6ee7b7', '#fbbf24', '#fde68a', '#ffffff'];
 let shopvdOstHideTimer = 0;
 let shopvdOstFadeTimer = 0;
+
+function clearOrderSuccessPetals(toast) {
+  toast.querySelector('.shopvd-ost-petals')?.replaceChildren();
+}
+
+function burstOrderSuccessPetals(toast) {
+  const card = toast.querySelector('.shopvd-ost-card');
+  if (!card) return;
+  let layer = toast.querySelector('.shopvd-ost-petals');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.className = 'shopvd-ost-petals';
+    layer.setAttribute('aria-hidden', 'true');
+    toast.insertBefore(layer, card);
+  }
+  layer.replaceChildren();
+
+  const toastRect = toast.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  if (toastRect.width < 1 || cardRect.width < 1) return;
+
+  const originX = cardRect.left + cardRect.width / 2 - toastRect.left;
+  const originY = cardRect.top - toastRect.top + 10;
+  const frag = document.createDocumentFragment();
+
+  for (let i = 0; i < SHOPVD_OST_PETAL_COUNT; i++) {
+    const el = document.createElement('span');
+    const kind = i % 8;
+    const shape = kind === 0 || kind === 5 ? ' is-dot' : kind === 3 || kind === 6 ? ' is-slim' : '';
+    el.className = `shopvd-ost-petal${shape}`;
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const toSide = i % 4 !== 0;
+    const x = side * (toSide ? 186 + Math.random() * 96 : 20 + Math.random() * 120);
+    const rise = toSide ? 28 + Math.random() * 86 : 58 + Math.random() * 64;
+    const fall = toSide ? 180 + Math.random() * 170 : 36 + Math.random() * 70;
+    el.style.left = `${originX}px`;
+    el.style.top = `${originY}px`;
+    el.style.setProperty('--x', `${x.toFixed(1)}px`);
+    el.style.setProperty('--rise', `${rise.toFixed(1)}px`);
+    el.style.setProperty('--fall', `${fall.toFixed(1)}px`);
+    el.style.setProperty('--spin', `${((40 + Math.random() * 220) * (x < 0 ? -1 : 1)).toFixed(0)}deg`);
+    el.style.setProperty('--delay', `${(Math.random() * 0.09).toFixed(3)}s`);
+    el.style.setProperty('--dur', `${(1.28 + Math.random() * 0.18).toFixed(2)}s`);
+    el.style.setProperty('--c', SHOPVD_OST_PETAL_COLORS[i % SHOPVD_OST_PETAL_COLORS.length]);
+    frag.appendChild(el);
+  }
+
+  layer.appendChild(frag);
+}
 
 function hideOrderSuccessToast(immediate = false) {
   const toast = document.getElementById('shopvd-order-success-toast');
@@ -7939,6 +7988,7 @@ function hideOrderSuccessToast(immediate = false) {
   if (immediate || toast.classList.contains('hidden')) {
     toast.classList.add('hidden');
     toast.classList.remove('is-leaving');
+    clearOrderSuccessPetals(toast);
     return;
   }
 
@@ -7946,6 +7996,7 @@ function hideOrderSuccessToast(immediate = false) {
   shopvdOstFadeTimer = setTimeout(() => {
     toast.classList.add('hidden');
     toast.classList.remove('is-leaving');
+    clearOrderSuccessPetals(toast);
     shopvdOstFadeTimer = 0;
   }, 220);
 }
@@ -7970,6 +8021,9 @@ function showOrderSuccessToast(summary = {}) {
     total,
   ].filter(Boolean);
 
+  const titleEl = toast.querySelector('.shopvd-ost-title');
+  if (titleEl) titleEl.textContent = summary.updated ? 'Đã cập nhật đơn' : 'Đã tạo đơn';
+
   const idBtn = document.getElementById('ost-order-id');
   if (idBtn) {
     idBtn.textContent = orderId;
@@ -7982,10 +8036,9 @@ function showOrderSuccessToast(summary = {}) {
 
   clearTimeout(shopvdOstHideTimer);
   clearTimeout(shopvdOstFadeTimer);
-  toast.classList.remove('hidden', 'is-leaving');
-  // Restart enter animation if toast already visible
-  toast.classList.remove('is-enter');
+  toast.classList.remove('hidden', 'is-leaving', 'is-enter');
   void toast.offsetWidth;
+  burstOrderSuccessPetals(toast);
   toast.classList.add('is-enter');
 
   shopvdOstHideTimer = setTimeout(() => {

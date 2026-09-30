@@ -7163,35 +7163,52 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   transform: translateY(0);
 }
 
-/* ===== ORDER SUCCESS TOAST (shopvd-ost) ===== */
+/* ===== ORDER SUCCESS TOAST (shopvd-ost) — giữa sidebar ===== */
 .shopvd-ost {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 78px;
+  inset: 0;
   z-index: 40;
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 10px 10px 12px;
-  border-radius: 12px;
-  background: #052e1c;
-  color: #ecfdf5;
-  border: 1px solid rgba(52, 211, 153, 0.35);
-  box-shadow: 0 10px 28px rgba(6, 78, 59, 0.28), 0 2px 8px rgba(15, 23, 42, 0.12);
-  pointer-events: auto;
-  will-change: transform, opacity;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .shopvd-ost.hidden {
   display: none !important;
 }
 
-.shopvd-ost.is-enter {
-  animation: shopvdOstIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+.shopvd-ost.is-leaving {
+  pointer-events: none;
 }
 
-.shopvd-ost.is-leaving {
+.shopvd-ost-card {
+  position: relative;
+  z-index: 1;
+  width: min(340px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 28px 24px 22px;
+  border-radius: 20px;
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow:
+    0 24px 48px rgba(15, 23, 42, 0.16),
+    0 2px 8px rgba(15, 23, 42, 0.06);
+  pointer-events: auto;
+}
+
+.shopvd-ost.is-enter .shopvd-ost-card {
+  animation: shopvdOstIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.shopvd-ost.is-leaving .shopvd-ost-card {
   animation: shopvdOstOut 0.2s ease-in both;
   pointer-events: none;
 }
@@ -7199,7 +7216,7 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 @keyframes shopvdOstIn {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(8px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -7210,60 +7227,45 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 @keyframes shopvdOstOut {
   from {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(6px) scale(0.98);
   }
 }
 
 .shopvd-ost-icon {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  margin-top: 1px;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: #10b981;
-  color: #fff;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
-}
-
-.shopvd-ost-body {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.shopvd-ost-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
+  background: #ecfdf5;
+  color: #059669;
+  box-shadow: inset 0 0 0 6px #f0fdf4;
 }
 
 .shopvd-ost-title {
-  font-size: 13px;
+  margin: 0;
+  font-size: 17px;
   font-weight: 700;
-  letter-spacing: -0.01em;
-  color: #ecfdf5;
-  white-space: nowrap;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #0f172a;
 }
 
 .shopvd-ost-order-id {
-  min-width: 0;
   max-width: 100%;
-  padding: 1px 7px;
-  border: 1px solid rgba(110, 231, 183, 0.35);
-  border-radius: 6px;
-  background: rgba(16, 185, 129, 0.18);
-  color: #a7f3d0;
-  font-size: 12px;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border: 1px solid #d1fae5;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #047857;
+  font-size: 13px;
   font-weight: 700;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.01em;
@@ -7271,51 +7273,107 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .shopvd-ost-order-id:hover {
-  background: rgba(16, 185, 129, 0.28);
-  border-color: rgba(167, 243, 208, 0.55);
-  color: #ecfdf5;
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #065f46;
 }
 
 .shopvd-ost-order-id.is-copied {
-  background: rgba(52, 211, 153, 0.35);
-  border-color: #6ee7b7;
+  background: #059669;
+  border-color: #059669;
   color: #fff;
 }
 
 .shopvd-ost-summary {
-  margin: 0;
-  font-size: 11.5px;
-  line-height: 1.35;
-  color: #a7f3d0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin: 4px 0 0;
+  max-width: 280px;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .shopvd-ost-close {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  margin-top: 1px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 7px;
+  border-radius: 8px;
   background: transparent;
-  color: #6ee7b7;
+  color: #94a3b8;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 
 .shopvd-ost-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ecfdf5;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.shopvd-ost-petals {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shopvd-ost-petal {
+  position: absolute;
+  width: 9px;
+  height: 14px;
+  margin-left: -4.5px;
+  margin-top: -7px;
+  border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
+  background: var(--c, #059669);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  animation: shopvdOstPetal var(--dur, 1.4s) cubic-bezier(0.18, 0.7, 0.32, 1) var(--delay, 0s) both;
+}
+
+.shopvd-ost-petal.is-dot {
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  margin-top: -3px;
+  border-radius: 999px;
+}
+
+.shopvd-ost-petal.is-slim {
+  width: 5px;
+  height: 13px;
+  margin-left: -2.5px;
+  margin-top: -6.5px;
+  border-radius: 999px;
+}
+
+@keyframes shopvdOstPetal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.35);
+  }
+  12% {
+    opacity: 1;
+  }
+  28% {
+    opacity: 1;
+    transform: translate3d(var(--x), calc(var(--rise) * -1), 0) rotate(var(--spin)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--x) * 1.08), var(--fall), 0) rotate(calc(var(--spin) * 1.8)) scale(0.82);
+  }
 }
 
 .shopvd-btn-spinner {

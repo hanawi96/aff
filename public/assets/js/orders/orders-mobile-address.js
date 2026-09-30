@@ -21,6 +21,13 @@ function setDeskOrderStreetInputVisible(visible) {
     if (wrap) wrap.classList.toggle('hidden', !visible);
 }
 
+function mobileCurrentAddressIds(order) {
+    if (!order || typeof window.addressSelector?.resolveStoredAddress !== 'function') return null;
+    const resolved = window.addressSelector.resolveStoredAddress(order);
+    if (resolved.legacy || !resolved.provinceId) return null;
+    return { province_id: resolved.provinceId, ward_id: resolved.wardId || '' };
+}
+
 function syncDeskOrderStreetInputVisibility() {
     const wardSelect = document.getElementById('newOrderWard');
     setDeskOrderStreetInputVisible(!!(wardSelect?.value));
@@ -150,11 +157,12 @@ async function initMobileAddressSelector(orderForHydrate) {
         const provinceSelect = document.getElementById('newOrderProvince');
         const wardSelect = document.getElementById('newOrderWard');
         window.addressSelector.renderProvinces(provinceSelect);
-        if (hydrateData?.province_id) {
-            const provinceId = String(hydrateData.province_id);
+        const nativeIds = mobileCurrentAddressIds(hydrateData);
+        if (nativeIds?.province_id) {
+            const provinceId = String(nativeIds.province_id);
             provinceSelect.value = provinceId;
             window.addressSelector.renderWards(wardSelect, provinceId);
-            if (hydrateData.ward_id) wardSelect.value = String(hydrateData.ward_id);
+            if (nativeIds.ward_id) wardSelect.value = String(nativeIds.ward_id);
             if (hydrateData.street_address && streetInput) {
                 streetInput.value = hydrateData.street_address;
             }
@@ -185,10 +193,11 @@ async function initMobileAddressSelector(orderForHydrate) {
     await combo.mount();
     window._deskAddressCombobox = combo;
 
-    if (hydrateData?.province_id) {
+    const comboIds = mobileCurrentAddressIds(hydrateData);
+    if (comboIds?.province_id) {
         combo.hydrate({
-            province_id: hydrateData.province_id,
-            ward_id: hydrateData.ward_id
+            province_id: comboIds.province_id,
+            ward_id: comboIds.ward_id
         });
         if (hydrateData.street_address && streetInput) {
             streetInput.value = hydrateData.street_address;

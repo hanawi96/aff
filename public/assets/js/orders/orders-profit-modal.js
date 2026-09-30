@@ -4,7 +4,7 @@
 
 // Show profit breakdown modal
 function showProfitBreakdown(orderId) {
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) return;
 
     const { totalAmount, productCost } = calculateOrderTotals(order);

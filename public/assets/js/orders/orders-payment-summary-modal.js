@@ -3,7 +3,7 @@
 // ============================================
 
 function editOrderPaymentSummary(orderId, orderCode) {
-    const order = allOrdersData.find(o => o.id === orderId);
+    const order = findLoadedOrderById(orderId);
     if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
@@ -197,12 +197,11 @@ async function saveOrderPaymentSummary(orderId, orderCode) {
         return;
     }
 
-    const orderIndex = allOrdersData.findIndex(o => o.id === orderId);
-    if (orderIndex === -1) {
+    const order = findLoadedOrderById(orderId);
+    if (!order) {
         showToast('Không tìm thấy đơn hàng', 'error');
         return;
     }
-    const order = allOrdersData[orderIndex];
     const origPm = orderPaymentApiKey(order.payment_method);
     const origAmount = order.total_amount || 0;
     const origDeposit = getOrderDepositAmount(order);
