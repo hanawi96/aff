@@ -3640,6 +3640,19 @@ function shopvdShipTimeLabel(order) {
   return 'Cập nhật';
 }
 
+function shopvdProvinceLabel(name) {
+  let s = String(name || '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  s = s.replace(/^(tỉnh|thành phố|tp\.?)\s+/i, '').trim();
+  return s;
+}
+
+function shopvdShipProvinceHtml(order) {
+  const label = shopvdProvinceLabel(order?.province_name);
+  if (!label) return '';
+  return `<span class="shopvd-ship-province" title="${escapeHtml(label)}">${escapeHtml(label)}</span>`;
+}
+
 function shopvdFormatStatusMoney(amount) {
   const n = Number(amount);
   if (!Number.isFinite(n)) return '';
@@ -3731,6 +3744,7 @@ function renderDbSaveStatusCard(payload = {}) {
       const timeLabel = shopvdShipTimeLabel(o);
       const amount = o.total_amount ? shopvdFormatStatusMoney(o.total_amount) : '';
       const preview = o.products_preview || '';
+      const provinceHtml = shopvdShipProvinceHtml(o);
       const multiNote = payload.isActive && count > 1
         ? `<span class="shopvd-ship-multi">${count} đơn · xem đơn chưa gửi mới nhất</span>`
         : (count > 1 ? `<span class="shopvd-ship-multi">${count} đơn trên hệ thống</span>` : '');
@@ -3744,6 +3758,7 @@ function renderDbSaveStatusCard(payload = {}) {
           </button>`
         : '';
       const priorityBtn = shopvdPriorityStarBtnHtml(o);
+      const deleteBtn = shopvdDeleteOrderBtnHtml(o, phone);
 
       body.innerHTML = `
         <div class="shopvd-ship-main">
@@ -3753,8 +3768,11 @@ function renderDbSaveStatusCard(payload = {}) {
           <span class="shopvd-ship-phone-inline">${phone}</span>
           ${priorityBtn}
           ${editBtn}
+          ${deleteBtn}
         </div>
         <div class="shopvd-ship-detail">
+          ${provinceHtml}
+          ${provinceHtml && (amount || preview) ? '<span class="shopvd-ship-sep">·</span>' : ''}
           ${amount ? `<span class="shopvd-ship-amount">${amount}</span>` : ''}
           ${amount && preview ? '<span class="shopvd-ship-sep">·</span>' : ''}
           ${preview ? `<span class="shopvd-ship-preview">${preview}</span>` : ''}
@@ -4328,6 +4346,55 @@ function isShopvdOrderEditable(status) {
 }
 
 /** Nút sao ưu tiên trên thanh trạng thái đơn đã lưu DB */
+function shopvdDeleteOrderBtnHtml(order, phone) {
+  const id = Number(order?.id) || 0;
+  if (id <= 0) return '';
+  const code = escapeHtml(order.order_id || '');
+  const phoneAttr = escapeHtml(phone || '');
+  return `<button type="button" class="shopvd-delete-order-btn" data-order-id="${id}" data-order-code="${code}" data-order-phone="${phoneAttr}" title="Xóa đơn ${code}" aria-label="Xóa đơn hàng">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+    </svg>
+  </button>`;
+}
+
+async function deleteSavedOrderFromBtn(btn) {
+  const id = Number(btn?.getAttribute('data-order-id'));
+  if (!btn || !(id > 0) || btn.classList.contains('is-loading')) return;
+  const code = btn.getAttribute('data-order-code') || `#${id}`;
+  const phone = btn.getAttribute('data-order-phone') || '';
+  const who = phone ? ` của ${phone}` : '';
+  const ok = window.confirm(`Xóa đơn ${code}${who}?\nĐơn sẽ bị xóa hoàn toàn và không khôi phục được.`);
+  if (!ok) return;
+
+  btn.classList.add('is-loading');
+  try {
+    const response = await shopvdFetch(`${API_BASE_URL}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteOrder', orderId: id }),
+    });
+    const data = await response.json();
+    if (!data?.success) throw new Error(data?.error || 'Không thể xóa đơn');
+
+    shopvdOrderDetailCache.delete(id);
+    if (shopvdEditingOrder && Number(shopvdEditingOrder.dbId) === id) {
+      exitEditOrderMode();
+    }
+    clearDbStatusSettled();
+    showStatus(`Đã xóa đơn ${code}`, 'success', 2200);
+    handlePancakeChatDbSaveCheck(true, { forceRefresh: true });
+    const searchInput = document.getElementById('shopvd-phone-search-input');
+    const searchPhone = normalizeDraftPhone(sanitizePhoneDigits(searchInput?.value || ''));
+    if (searchPhone && isValidDraftPhone(searchPhone)) {
+      lookupOrderStatusByPhoneSearch(searchPhone, { force: true });
+    }
+  } catch (err) {
+    btn.classList.remove('is-loading');
+    showStatus(`⚠️ ${err?.message || 'Không xóa được đơn'}`, 'error', 2400);
+  }
+}
+
 function shopvdPriorityStarBtnHtml(order) {
   const id = Number(order?.id) || 0;
   if (id <= 0) return '';
@@ -4890,6 +4957,13 @@ function setupDbSaveStatusCard() {
       toggleSavedOrderPriorityFromBtn(priorityBtn);
       return;
     }
+    const deleteBtn = e.target.closest?.('.shopvd-delete-order-btn');
+    if (deleteBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteSavedOrderFromBtn(deleteBtn);
+      return;
+    }
     const btn = e.target.closest?.('.shopvd-edit-order-btn');
     if (!btn) return;
     e.preventDefault();
@@ -4995,6 +5069,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
       const timeLabel = shopvdShipTimeLabel(o);
       const amount = o.total_amount ? shopvdFormatStatusMoney(o.total_amount) : '';
       const preview = o.products_preview || '';
+      const provinceHtml = shopvdShipProvinceHtml(o);
       const multiNote = payload.isActive && count > 1
         ? `<span class="shopvd-ship-multi">${count} đơn · xem đơn chưa gửi mới nhất</span>`
         : (count > 1 ? `<span class="shopvd-ship-multi">${count} đơn trên hệ thống</span>` : '');
@@ -5007,6 +5082,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
           </button>`
         : '';
       const priorityBtn = shopvdPriorityStarBtnHtml(o);
+      const deleteBtn = shopvdDeleteOrderBtnHtml(o, phone);
 
       body.innerHTML = `
         <div class="shopvd-ship-main">
@@ -5016,8 +5092,11 @@ function renderPhoneSearchResultPanel(payload = {}) {
           <span class="shopvd-ship-phone-inline">${escapeHtml(phone)}</span>
           ${priorityBtn}
           ${editBtn}
+          ${deleteBtn}
         </div>
         <div class="shopvd-ship-detail">
+          ${provinceHtml}
+          ${provinceHtml && (amount || preview) ? '<span class="shopvd-ship-sep">·</span>' : ''}
           ${amount ? `<span class="shopvd-ship-amount">${amount}</span>` : ''}
           ${amount && preview ? '<span class="shopvd-ship-sep">·</span>' : ''}
           ${preview ? `<span class="shopvd-ship-preview">${preview}</span>` : ''}
@@ -5112,6 +5191,13 @@ function setupPhoneOrderSearch() {
       e.preventDefault();
       e.stopPropagation();
       toggleSavedOrderPriorityFromBtn(priorityBtn);
+      return;
+    }
+    const deleteBtn = e.target.closest?.('.shopvd-delete-order-btn');
+    if (deleteBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteSavedOrderFromBtn(deleteBtn);
       return;
     }
     const btn = e.target.closest?.('.shopvd-edit-order-btn');

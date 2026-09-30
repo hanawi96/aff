@@ -559,7 +559,7 @@ export async function dismissPendingUnsaved(data, env, corsHeaders) {
     }
 }
 
-const SHIPPING_STATUS_COLS = 'id, order_id, customer_name, status, created_at_unix, shipped_at_unix, planned_send_at_unix, total_amount, products, is_priority';
+const SHIPPING_STATUS_COLS = 'id, order_id, customer_name, status, created_at_unix, shipped_at_unix, planned_send_at_unix, total_amount, products, is_priority, province_name';
 
 /** Size/cân cho preview strip extension — số thuần → thêm kg. */
 function formatShippingPreviewSize(value) {
@@ -599,6 +599,7 @@ function formatShippingStatusOrder(row) {
         planned_send_at_unix: row.planned_send_at_unix,
         total_amount: row.total_amount,
         is_priority: Number(row.is_priority) === 1 ? 1 : 0,
+        province_name: row.province_name || '',
         products_preview: preview
     };
 }

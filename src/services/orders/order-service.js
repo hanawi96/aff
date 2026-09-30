@@ -1066,22 +1066,34 @@ export async function deleteOrder(data, env, corsHeaders) {
             }, 400, corsHeaders);
         }
 
-        // Delete from database
-        const result = await env.DB.prepare(`
-            DELETE FROM orders 
-            WHERE id = ?
-        `).bind(data.orderId).run();
+        const existing = await env.DB.prepare(`
+            SELECT id, order_id FROM orders WHERE id = ?
+        `).bind(data.orderId).first();
 
-        // Check if deletion was successful
-        // Note: Turso may not always return meta.changes, so we check if it exists
-        if (result.meta && result.meta.changes === 0) {
+        if (!existing) {
             return jsonResponse({
                 success: false,
                 error: 'Không tìm thấy đơn hàng'
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Deleted order from database:', data.orderId);
+        await env.DB.prepare(`
+            DELETE FROM order_items WHERE order_id = ?
+        `).bind(existing.id).run();
+
+        if (existing.order_id) {
+            try {
+                await env.DB.prepare(`
+                    DELETE FROM discount_usage WHERE order_id = ?
+                `).bind(existing.order_id).run();
+            } catch (_) { /* bảng có thể chưa có */ }
+        }
+
+        await env.DB.prepare(`
+            DELETE FROM orders WHERE id = ?
+        `).bind(existing.id).run();
+
+        console.log('✅ Deleted order from database:', existing.id, existing.order_id);
 
         return jsonResponse({
             success: true,
