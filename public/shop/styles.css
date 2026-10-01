@@ -7188,7 +7188,7 @@ body {
 .why-anh-copy p {
     margin: 0.55rem 0 0;
     color: #5c4a3a;
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1.7;
 }
 
@@ -7337,7 +7337,7 @@ body {
 .tale-aside p {
     margin: 0 0 0.9rem;
     color: #3f342c;
-    font-size: 1.05rem;
+    font-size: 1.1rem;
     line-height: 1.75;
 }
 
@@ -7383,7 +7383,7 @@ body {
     display: block;
     margin-bottom: 0.15rem;
     color: #3f342c;
-    font-size: 1rem;
+    font-size: 1.1rem;
 }
 
 .tale-mark {
@@ -7468,6 +7468,54 @@ body {
     .tale-close {
         flex-direction: column;
         align-items: flex-start;
+    }
+}
+
+.faq-invite {
+    max-width: 38rem;
+    margin: 3.5rem auto 0;
+    padding-top: 2.25rem;
+    border-top: 1px solid #f3d7be;
+    text-align: center;
+}
+
+.faq-invite-mark {
+    margin: 0;
+    font-size: 1.65rem;
+    line-height: 1;
+}
+
+.faq-invite h3 {
+    margin: 0.7rem 0 0;
+    color: #3f342c;
+    font-size: 1.85rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.faq-invite-lead {
+    max-width: 34rem;
+    margin: 0.75rem auto 0;
+    color: #5c4a3a;
+    font-size: 1.1rem;
+    line-height: 1.7;
+}
+
+.faq-invite-note {
+    margin: 0.65rem 0 0;
+    color: #8a7564;
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+@media (max-width: 767px) {
+    .faq-invite {
+        margin-top: 2.5rem;
+        padding-top: 1.75rem;
+    }
+
+    .faq-invite h3 {
+        font-size: 1.5rem;
     }
 }
 

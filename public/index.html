@@ -22,7 +22,7 @@
         <link rel="stylesheet" href="shop/assets/css/form-validation.css">
         <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css">
     </noscript>
-    <link rel="stylesheet" href="shop/styles.css?v=34">
+    <link rel="stylesheet" href="shop/styles.css?v=36">
     <link rel="stylesheet" href="shop/assets/css/home.css?v=2">
     <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css?v=2">
     <link rel="stylesheet" href="shop/cart.css?v=23">
@@ -906,7 +906,7 @@
             <!-- Trust Stats -->
             <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div class="text-center">
-                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">20.000+</div>
+                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">30.000+</div>
                     <p class="text-gray-600 font-medium">Mẹ tin dùng</p>
                 </div>
                 <div class="text-center">
@@ -918,7 +918,7 @@
                     <p class="text-gray-600 font-medium">Thủ công</p>
                 </div>
                 <div class="text-center">
-                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">5+</div>
+                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">2+</div>
                     <p class="text-gray-600 font-medium">Năm kinh nghiệm</p>
                 </div>
             </div>
@@ -1074,32 +1074,17 @@
                 </div>
             </div>
 
-            <!-- CTA Button - Kích thích mua hàng -->
-            <div class="text-center mt-10">
-                <div class="inline-block bg-gradient-to-br from-primary/10 to-accent/10 rounded-3xl p-8 max-w-2xl">
-                    <div class="mb-4">
-                        <span class="text-4xl">💝</span>
-                    </div>
-                    <h3 class="text-2xl md:text-3xl font-bold text-gray-800 mb-3">
-                        Bảo vệ con yêu ngay hôm nay
-                    </h3>
-                    <p class="text-gray-600 mb-6 leading-relaxed">
-                        Hơn 30.000+ mẹ đã tin tưởng chọn vòng dâu tằm thủ công cho bé. <br class="hidden md:block">
-                        Đừng để con yêu phải chờ đợi!
-                    </p>
-                    <a href="#products" class="inline-flex items-center gap-2 bg-gradient-to-r from-primary to-secondary hover:from-secondary hover:to-primary text-white px-6 py-3 rounded-full font-bold text-base transition transform hover:scale-105 shadow-xl hover:shadow-2xl">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem;">
-                            <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
-                        </svg>
-                        <span>Chọn vòng cho bé ngay</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem;">
-                            <path fill-rule="evenodd" d="M16.28 11.47a.75.75 0 0 1 0 1.06l-7.5 7.5a.75.75 0 0 1-1.06-1.06L14.69 12 7.72 5.03a.75.75 0 0 1 1.06-1.06l7.5 7.5Z" clip-rule="evenodd" />
-                        </svg>
-                    </a>
-                    <p class="text-sm text-gray-500 mt-2">
-                        Các mẹ kiểm tra hàng thoải mái trước khi thanh toán
-                    </p>
-                </div>
+            <div class="faq-invite">
+                <p class="faq-invite-mark" aria-hidden="true">💝</p>
+                <h3>Bảo vệ con yêu ngay hôm nay</h3>
+                <p class="faq-invite-lead">Hơn 30.000+ mẹ đã tin tưởng chọn vòng dâu tằm thủ công cho bé. Đừng để con yêu phải chờ đợi!</p>
+                <a class="real-vong-cta" href="#products">
+                    <span>Chọn vòng cho bé ngay</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
+                    </svg>
+                </a>
+                <p class="faq-invite-note">Các mẹ kiểm tra hàng thoải mái trước khi thanh toán</p>
             </div>
         </div>
     </section>
@@ -1130,7 +1115,6 @@
     <section class="tale" aria-label="Câu chuyện của người làm vòng">
         <div class="container mx-auto px-4">
             <header class="tale-head">
-                <p class="tale-kicker">💝 Câu chuyện của chúng tôi</p>
                 <h2>Mỗi chiếc vòng là<br><span class="font-handwritten">tâm huyết của người làm</span></h2>
             </header>
 
@@ -1215,7 +1199,7 @@
                             <span class="font-handwritten text-2xl text-primary leading-none">Vòng dâu tằm by Ánh</span>
                         </div>
                     </div>
-                    <p class="text-gray-600 mb-6 leading-relaxed text-sm">
+                    <p class="text-gray-600 mb-6 leading-relaxed" style="font-size: 1rem;">
                         Mỗi chiếc vòng được làm thủ công tỉ mỉ, gửi gắm yêu thương và mong ước tốt đẹp nhất đến bé yêu của mẹ
                     </p>
                     
