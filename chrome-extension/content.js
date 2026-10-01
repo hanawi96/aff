@@ -1201,21 +1201,23 @@ async function loadAddressData() {
     addressData = [];
     
     for (const province of raw) {
+      const provinceCode = String(province.code);
       const provinceObj = {
-        Id: province.code,
+        Id: provinceCode,
         Name: province.fullName,
         Wards: []
       };
       
-      provinceMap.set(province.code, provinceObj);
+      provinceMap.set(provinceCode, provinceObj);
       
       if (province.wards) {
         for (const ward of province.wards) {
           const shortLabel = ward.fullName.includes(',')
             ? ward.fullName.split(',')[0].trim()
             : ward.fullName;
+          const wardCode = String(ward.code);
           const wardObj = {
-            Id: ward.code,
+            Id: wardCode,
             Name: shortLabel,
             ShortName: ward.name,
             Level: ward.type
@@ -1223,7 +1225,7 @@ async function loadAddressData() {
           
           provinceObj.Wards.push(wardObj);
           
-          const wardKey = `${province.code}-${ward.code}`;
+          const wardKey = `${provinceCode}-${wardCode}`;
           wardMap.set(wardKey, wardObj);
         }
       }
@@ -1321,16 +1323,25 @@ function renderProvinceCombobox() {
   list.innerHTML = itemsHtml;
 }
 
+// Bỏ dấu tiếng Việt. NFD không biến "đ" thành "d", nên phải đổi riêng.
+function normalizeShopvdSearchText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+}
+
 // Filter province combobox by search
 function filterProvinceCombobox(searchText) {
   const list = document.getElementById('province-combobox-list');
   if (!list) return;
 
-  const normalized = searchText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normalized = normalizeShopvdSearchText(searchText);
   
   const items = list.querySelectorAll('.shopvd-combobox-item');
   items.forEach(item => {
-    const text = item.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const text = normalizeShopvdSearchText(item.textContent);
     if (text.includes(normalized)) {
       item.style.display = 'block';
     } else {
@@ -1435,9 +1446,10 @@ function renderWardCombobox(provinceId) {
     a.Name.localeCompare(b.Name, 'vi', { sensitivity: 'base' })
   );
 
-  const itemsHtml = sorted.map(ward =>
-    `<div class="shopvd-combobox-item" data-ward-id="${ward.Id}">${escapeHtml(ward.Name)}</div>`
-  ).join('');
+  const itemsHtml = sorted.map(ward => {
+    const search = normalizeShopvdSearchText(`${ward.Name} ${ward.ShortName || ''}`);
+    return `<div class="shopvd-combobox-item" data-ward-id="${ward.Id}" data-search="${search}">${escapeHtml(ward.Name)}</div>`;
+  }).join('');
 
   list.innerHTML = itemsHtml;
 }
@@ -1446,11 +1458,11 @@ function filterWardCombobox(searchText) {
   const list = document.getElementById('ward-combobox-list');
   if (!list) return;
 
-  const normalized = searchText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normalized = normalizeShopvdSearchText(searchText);
   
   const items = list.querySelectorAll('.shopvd-combobox-item');
   items.forEach(item => {
-    const text = item.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const text = item.dataset.search || normalizeShopvdSearchText(item.textContent);
     if (text.includes(normalized)) {
       item.style.display = 'block';
     } else {
@@ -3762,6 +3774,7 @@ function renderDbSaveStatusCard(payload = {}) {
           </button>`
         : '';
       const priorityBtn = shopvdPriorityStarBtnHtml(o);
+      const duplicateBtn = shopvdDuplicateOrderBtnHtml(o);
       const deleteBtn = shopvdDeleteOrderBtnHtml(o, phone);
 
       body.innerHTML = `
@@ -3770,7 +3783,7 @@ function renderDbSaveStatusCard(payload = {}) {
           ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
           ${returnBadge}
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
-          <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${deleteBtn}</span>
+          <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${duplicateBtn}${deleteBtn}</span>
         </div>
         <div class="shopvd-ship-detail">
           ${provinceHtml}
@@ -4344,6 +4357,17 @@ function isShopvdOrderEditable(status) {
   return SHOPVD_EDITABLE_ORDER_STATUSES.has(shopvdNormalizeStatusSlug(status));
 }
 
+function shopvdDuplicateOrderBtnHtml(order) {
+  const id = Number(order?.id) || 0;
+  if (id <= 0) return '';
+  const code = escapeHtml(order.order_id || '');
+  return `<button type="button" class="shopvd-duplicate-order-btn" data-order-id="${id}" title="Nhân bản đơn ${code}" aria-label="Nhân bản đơn hàng">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </svg>
+  </button>`;
+}
+
 const SHOPVD_SHIPPED_ORDER_STATUSES = new Set(['shipped', 'in_transit', 'delivered']);
 
 function isShopvdOrderShipped(status) {
@@ -4700,18 +4724,91 @@ function setFormPaymentFromOrder(order) {
   }
 }
 
+function shopvdAddressKey(value) {
+  return normalizeShopvdSearchText(value)
+    .replace(/^(dac khu|phuong|xa|thi tran|thi xa|quan|huyen|tinh|thanh pho|tp)\s+/, '')
+    .trim();
+}
+
+function findShopvdProvince(provinceId, provinceName) {
+  const id = String(provinceId || '').trim();
+  if (id && provinceMap.has(id)) return provinceMap.get(id);
+
+  const targetFull = normalizeShopvdSearchText(provinceName);
+  const targetShort = shopvdAddressKey(provinceName);
+  if (!targetFull && !targetShort) return null;
+
+  const exact = [];
+  const loose = [];
+  for (const province of addressData) {
+    const full = normalizeShopvdSearchText(province.Name);
+    const short = shopvdAddressKey(province.Name);
+    if (full === targetFull || (targetShort && short === targetShort)) exact.push(province);
+    else if (targetShort && short && (full.includes(targetShort) || targetShort.includes(short))) loose.push(province);
+  }
+  if (exact.length === 1) return exact[0];
+  if (!exact.length && loose.length === 1) return loose[0];
+  return null;
+}
+
+function findShopvdWard(province, wardId, wardName) {
+  if (!province?.Wards?.length) return null;
+  const id = String(wardId || '').trim();
+  if (id) {
+    const byId = province.Wards.find((ward) => String(ward.Id) === id);
+    if (byId) return byId;
+  }
+
+  const targetFull = normalizeShopvdSearchText(wardName);
+  const targetShort = shopvdAddressKey(wardName);
+  if (!targetFull) return null;
+
+  const exact = [];
+  for (const ward of province.Wards) {
+    const names = [ward.Name, ward.ShortName].filter(Boolean);
+    const matched = names.some((name) => {
+      const full = normalizeShopvdSearchText(name);
+      const short = shopvdAddressKey(name);
+      return full === targetFull || (targetShort && short === targetShort);
+    });
+    if (matched) exact.push(ward);
+  }
+  return exact.length === 1 ? exact[0] : null;
+}
+
+function resolveShopvdOrderAddress(order) {
+  let province = findShopvdProvince(order.province_id, order.province_name);
+  let ward = findShopvdWard(province, order.ward_id, order.ward_name);
+
+  if (!ward && order.ward_name) {
+    const hits = [];
+    for (const item of addressData) {
+      const found = findShopvdWard(item, '', order.ward_name);
+      if (found) hits.push({ province: item, ward: found });
+    }
+    if (hits.length === 1) {
+      province = hits[0].province;
+      ward = hits[0].ward;
+    }
+  }
+
+  return { province, ward };
+}
+
 async function setFormAddressFromOrder(order) {
-  const provinceId = order.province_id != null && order.province_id !== ''
-    ? String(order.province_id).trim()
-    : '';
-  const wardId = order.ward_id != null && order.ward_id !== ''
-    ? String(order.ward_id).trim()
-    : '';
   const street = String(order.street_address || '').trim();
-  const provinceName = String(order.province_name || '').trim();
   const wardName = String(order.ward_name || '').trim();
 
-  if (!provinceId) {
+  if (!addressLoaded) {
+    await loadAddressData();
+  }
+
+  const resolved = resolveShopvdOrderAddress(order);
+  const province = resolved.province;
+  const ward = resolved.ward;
+  const streetInput = document.getElementById('customer-street');
+
+  if (!province) {
     resetCustomerAddressForm();
     if (order.address) {
       const addressInput = document.getElementById('customer-address');
@@ -4720,38 +4817,16 @@ async function setFormAddressFromOrder(order) {
     return;
   }
 
-  if (!addressLoaded) {
-    await loadAddressData();
-  }
-
-  const provinceSelect = document.getElementById('customer-province');
-  const wardSelect = document.getElementById('customer-ward');
-  const streetInput = document.getElementById('customer-street');
-  if (!provinceSelect || !wardSelect) return;
-
-  provinceSelect.value = provinceId;
-  const provinceBtn = document.getElementById('province-combobox-btn');
-  const provinceText = document.getElementById('province-combobox-text');
-  if (provinceBtn && provinceText) {
-    provinceBtn.classList.add('selected');
-    provinceText.textContent = provinceName || provinceMap.get(provinceId)?.Name || 'Đã chọn';
-  }
-
-  renderWards(provinceId);
-  renderWardCombobox(provinceId);
-  document.getElementById('ward-combobox-wrapper')?.classList.remove('hidden');
-  const wardBtn = document.getElementById('ward-combobox-btn');
-  if (wardBtn) wardBtn.disabled = false;
-
-  if (wardId) {
-    await new Promise((r) => setTimeout(r, 30));
-    wardSelect.value = wardId;
+  selectProvinceFromCombobox(province.Id, { silent: true });
+  if (ward) {
+    selectWardFromCombobox(ward.Id, province.Id, { silent: true });
+  } else if (wardName) {
+    const wardBtn = document.getElementById('ward-combobox-btn');
     const wardText = document.getElementById('ward-combobox-text');
     if (wardBtn && wardText) {
       wardBtn.classList.add('selected');
-      wardText.textContent = wardName || wardMap.get(`${provinceId}-${wardId}`)?.Name || 'Đã chọn';
+      wardText.textContent = wardName;
     }
-    document.getElementById('customer-street-field')?.classList.remove('hidden');
   }
 
   if (streetInput) streetInput.value = street;
@@ -4848,6 +4923,44 @@ function resetShopvdOrderFormAfterSave() {
   clearOrderFormValidationOnReset();
   exitEditOrderMode();
   clearFormBoundConversation();
+}
+
+async function startDuplicateSavedOrder(orderDbId) {
+  const id = Number(orderDbId);
+  if (!Number.isFinite(id) || id <= 0 || shopvdEditOrderLoading) return;
+
+  shopvdEditOrderLoading = true;
+  const dupBtn = document.querySelector(`.shopvd-duplicate-order-btn[data-order-id="${id}"]`);
+  dupBtn?.classList.add('is-loading');
+  showStatus('⏳ Đang tải đơn để nhân bản...', 'info', 4000);
+
+  try {
+    if (!addressLoaded) await loadAddressData();
+    if (!allProductsCache.length) {
+      try { await loadProducts(); } catch (_) { /* giữ sản phẩm có trong đơn */ }
+    }
+
+    const order = await fetchOrderById(id);
+    const sourceCode = String(order.order_id || `#${id}`);
+
+    shopvdRestoringDraft = true;
+    try {
+      resetShopvdOrderFormAfterSave();
+      await hydrateOrderIntoForm(order);
+    } finally {
+      shopvdRestoringDraft = false;
+    }
+
+    exitEditOrderMode();
+    document.querySelector('.shopvd-address-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    showStatus(`Đã nhân bản ${sourceCode} vào form — kiểm tra rồi bấm Tạo đơn`, 'success', 3200);
+  } catch (err) {
+    console.warn('[ShopVD] startDuplicateSavedOrder failed:', err);
+    showStatus(`❌ ${err?.message || 'Không nhân bản được đơn'}`, 'error', 3200);
+  } finally {
+    shopvdEditOrderLoading = false;
+    dupBtn?.classList.remove('is-loading');
+  }
 }
 
 async function startEditSavedOrder(orderDbId) {
@@ -4969,6 +5082,14 @@ function setupDbSaveStatusCard() {
       deleteSavedOrderFromBtn(deleteBtn);
       return;
     }
+    const dupBtn = e.target.closest?.('.shopvd-duplicate-order-btn');
+    if (dupBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dupId = Number(dupBtn.getAttribute('data-order-id'));
+      if (dupId > 0) startDuplicateSavedOrder(dupId);
+      return;
+    }
     const btn = e.target.closest?.('.shopvd-edit-order-btn');
     if (!btn) return;
     e.preventDefault();
@@ -5085,6 +5206,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
           </button>`
         : '';
       const priorityBtn = shopvdPriorityStarBtnHtml(o);
+      const duplicateBtn = shopvdDuplicateOrderBtnHtml(o);
       const deleteBtn = shopvdDeleteOrderBtnHtml(o, phone);
 
       body.innerHTML = `
@@ -5093,7 +5215,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
           ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
           ${returnBadge}
           ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
-          <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${deleteBtn}</span>
+          <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${duplicateBtn}${deleteBtn}</span>
         </div>
         <div class="shopvd-ship-detail">
           ${provinceHtml}
@@ -5199,6 +5321,14 @@ function setupPhoneOrderSearch() {
       e.preventDefault();
       e.stopPropagation();
       deleteSavedOrderFromBtn(deleteBtn);
+      return;
+    }
+    const dupBtn = e.target.closest?.('.shopvd-duplicate-order-btn');
+    if (dupBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dupId = Number(dupBtn.getAttribute('data-order-id'));
+      if (dupId > 0) startDuplicateSavedOrder(dupId);
       return;
     }
     const btn = e.target.closest?.('.shopvd-edit-order-btn');
@@ -8008,7 +8138,7 @@ const PAYMENT_METHOD_LABELS = {
   deposit: 'Cọc',
 };
 
-const SHOPVD_OST_AUTO_HIDE_MS = 3200;
+const SHOPVD_OST_AUTO_HIDE_MS = 2200;
 const SHOPVD_OST_PETAL_COUNT = 32;
 const SHOPVD_OST_PETAL_COLORS = ['#059669', '#6ee7b7', '#fbbf24', '#fde68a', '#ffffff'];
 let shopvdOstHideTimer = 0;

@@ -546,6 +546,36 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   pointer-events: none;
 }
 
+.shopvd-duplicate-order-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff;
+  color: #c2410c;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.1s ease;
+}
+
+.shopvd-duplicate-order-btn:hover {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
+.shopvd-duplicate-order-btn:active {
+  transform: translateY(1px);
+}
+
+.shopvd-duplicate-order-btn.is-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
 .shopvd-priority-order-btn {
   display: inline-flex;
   align-items: center;
