@@ -8017,7 +8017,7 @@ body {
 .materials-header {
     margin-bottom: 0.55rem;
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 1.1rem;
     color: #6b7280;
     text-transform: none;
 }
@@ -8095,7 +8095,7 @@ body {
     align-items: center;
     gap: 0.4rem;
     margin: 0 0 0.75rem 0;
-    font-size: 0.95rem;
+    font-size: 1.1rem;
     font-weight: 800;
     color: #1f2937;
     letter-spacing: -0.01em;
