@@ -173,82 +173,77 @@ const storage = {
 const cart = {
     // Initialize cart
     init: async () => {
-        // Prevent double initialization
         if (state.isInitialized) {
             console.warn('⚠️ [CART] Already initialized, skipping...');
             return;
         }
         
         state.isInitialized = true;
-        
-        // Check and save CTV referral from URL (if exists)
-        await checkAndSaveReferralFromURL();
 
-        // Load shipping fee from admin settings first (before any rendering)
-        await cart.loadShippingFee();
-        
+        checkAndSaveReferralFromURL().catch(() => {});
+
         state.cart = storage.loadCart();
         state.discount = storage.loadDiscount();
+        cart.updateHeaderCount();
 
-        // Fetch category_id cho từng SP trong giỏ (dùng cho freeship logic)
-        await cart.loadProductCategories();
-        
-        // Load available discounts (await to ensure it completes)
-        await cart.loadAvailableDiscounts();
-        
-        // Wait for bundle products to load
-        await cart.loadBundleProducts();
-        
-        // Hide skeleton
-        await cart.hideSkeleton();
-        
         if (state.cart.length === 0) {
+            cart.hideSkeleton();
             cart.showEmpty();
-        } else {
-            // Ensure summary is visible before rendering
-            const summarySection = document.querySelector('.cart-summary-section');
-            summarySection?.classList.remove('hidden');
-            
-            // Wait a bit for DOM to be ready after skeleton hide
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
-            cart.render();
-            cart.updateSummary();
+            cart.setupEventListeners();
+            return;
         }
 
+        await cart.loadBundleProducts();
+        cart.hideItemSkeleton();
+        cart.render();
+        cart.applySavedDiscount();
         cart.setupEventListeners();
-        
-        // Initialize form validator ONLY if cart has items
-        if (state.cart.length > 0) {
-            cart.initializeValidator();
+        cart.initializeValidator();
+
+        await Promise.all([
+            cart.loadShippingFee(),
+            cart.loadProductCategories(),
+            cart.loadAvailableDiscounts()
+        ]);
+        cart.revealSummary();
+    },
+
+    hideItemSkeleton: () => {
+        document.getElementById('cartSkeleton')?.classList.add('hidden');
+    },
+
+    revealSummary: () => {
+        document.getElementById('cartSummarySkeleton')?.classList.add('hidden');
+        cart.updateSummary();
+    },
+
+    updateHeaderCount: () => {
+        const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+        const countEl = document.getElementById('cartCount');
+        if (countEl) {
+            countEl.textContent = '(' + totalItems + ' sản phẩm)';
         }
-        
-        // Fill demo data for testing
-        cart.fillDemoData();
-        
-        // If there's a saved discount, show it in the input
-        if (state.discount && state.cart.length > 0) {
-            // Wait for discount section to be rendered
-            setTimeout(() => {
-                const input = document.getElementById('discountCode');
-                const applyBtn = document.getElementById('applyDiscountBtn');
-                
-                if (input) {
-                    input.value = state.discount.code;
-                    input.disabled = true;
-                }
-                
-                if (applyBtn) {
-                    applyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clip-rule="evenodd" /></svg> Đổi mã';
-                    applyBtn.onclick = discount.changeCode;
-                    applyBtn.classList.add('btn-change-code');
-                }
-                
-                // Show discount result
-                const discountText = discountService.formatDiscountText(state.discount);
-                discount.showResult(`✓ Đã áp dụng mã ${state.discount.code} - ${discountText}`, 'success');
-            }, 200);
+    },
+
+    applySavedDiscount: () => {
+        if (!state.discount || state.cart.length === 0) return;
+
+        const input = document.getElementById('discountCode');
+        const applyBtn = document.getElementById('applyDiscountBtn');
+
+        if (input) {
+            input.value = state.discount.code;
+            input.disabled = true;
         }
+
+        if (applyBtn) {
+            applyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M4.755 10.059a7.5 7.5 0 0 1 12.548-3.364l1.903 1.903h-3.183a.75.75 0 1 0 0 1.5h4.992a.75.75 0 0 0 .75-.75V4.356a.75.75 0 0 0-1.5 0v3.18l-1.9-1.9A9 9 0 0 0 3.306 9.67a.75.75 0 1 0 1.45.388Zm15.408 3.352a.75.75 0 0 0-.919.53 7.5 7.5 0 0 1-12.548 3.364l-1.902-1.903h3.183a.75.75 0 0 0 0-1.5H2.984a.75.75 0 0 0-.75.75v4.992a.75.75 0 0 0 1.5 0v-3.18l1.9 1.9a9 9 0 0 0 15.059-4.035.75.75 0 0 0-.53-.918Z" clip-rule="evenodd" /></svg> Đổi mã';
+            applyBtn.onclick = discount.changeCode;
+            applyBtn.classList.add('btn-change-code');
+        }
+
+        const discountText = discountService.formatDiscountText(state.discount);
+        discount.showResult(`✓ Đã áp dụng mã ${state.discount.code} - ${discountText}`, 'success');
     },
     
     // Initialize form validator
@@ -418,38 +413,13 @@ const cart = {
 
     // Hide skeleton and show content with smooth transition
     hideSkeleton: () => {
-        const skeleton = document.getElementById('cartSkeleton');
-        const skeletonSummary = document.getElementById('cartSummarySkeleton');
-        
-        // Fade out skeleton with reduced delay (150ms for better performance)
-        const fadeOutPromises = [];
-        
-        if (skeleton) {
-            const promise = new Promise(resolve => {
-                skeleton.style.opacity = '0';
-                skeleton.style.transition = 'opacity 0.15s ease';
-                setTimeout(() => {
-                    skeleton.classList.add('hidden');
-                    resolve();
-                }, 150);
-            });
-            fadeOutPromises.push(promise);
-        }
-        
-        if (skeletonSummary) {
-            const promise = new Promise(resolve => {
-                skeletonSummary.style.opacity = '0';
-                skeletonSummary.style.transition = 'opacity 0.15s ease';
-                setTimeout(() => {
-                    skeletonSummary.classList.add('hidden');
-                    resolve();
-                }, 150);
-            });
-            fadeOutPromises.push(promise);
-        }
-        
-        // Return promise that resolves when all skeletons are hidden
-        return Promise.all(fadeOutPromises);
+        ['cartSkeleton', 'cartSummarySkeleton'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.style.transition = '';
+            el.style.opacity = '';
+            el.classList.add('hidden');
+        });
     },
 
     // Show empty cart
@@ -457,13 +427,8 @@ const cart = {
         const emptyCart = document.getElementById('emptyCart');
         
         emptyCart.classList.remove('hidden');
-        emptyCart.style.opacity = '0';
-        
-        // Fade in empty cart
-        requestAnimationFrame(() => {
-            emptyCart.style.transition = 'opacity 0.5s ease';
-            emptyCart.style.opacity = '1';
-        });
+        emptyCart.style.opacity = '';
+        emptyCart.style.transition = '';
         
         // Hide all sections safely
         const sectionsToHide = [
@@ -633,17 +598,15 @@ const cart = {
             
             return '<div class="cart-item" data-id="' + item.id + '" data-item-id="' + item.id + '">' +
                 '<div class="cart-item-main">' +
-                '<div class="item-image-container">' +
                 '<img src="' + (item.image || '/assets/images/product_img/tat-ca-mau.webp') + '" ' +
                 'alt="' + utils.escapeHtml(item.name) + '" ' +
                 'class="item-image" ' +
                 'onclick="cart.viewProduct(' + item.id + ')">' +
-                babyWeightHtml +
-                '</div>' +
                 '<div class="item-info">' +
                 '<div class="item-name" onclick="cart.viewProduct(' + item.id + ')">' +
                 utils.escapeHtml(item.name) +
                 '</div>' +
+                babyWeightHtml +
                 '<div class="item-price-quantity-row">' +
                 '<div class="item-price-group">' +
                 originalPriceHtml +
@@ -683,65 +646,24 @@ const cart = {
         }).join('');
 
         container.innerHTML = html;
-        
-        // Remove hidden class but keep opacity 0 initially
         container.classList.remove('hidden');
-        container.style.opacity = '0';
-        
-        // Show sections in priority order: customer info first (most important)
-        const sectionsToShow = [
-            'customerInfoSection',  // Hiện đầu tiên - quan trọng nhất
-            'discountSection',
-            'paymentSection',
-            'orderNoteSection'
-        ];
-        
-        // Prepare all sections (remove hidden but keep opacity 0)
-        sectionsToShow.forEach(sectionId => {
+        container.style.opacity = '';
+        container.style.transition = '';
+
+        ['customerInfoSection', 'discountSection', 'paymentSection', 'orderNoteSection'].forEach((sectionId) => {
             const section = document.getElementById(sectionId);
-            if (section) {
-                section.classList.remove('hidden');
-                section.style.opacity = '0';
-            }
+            if (!section) return;
+            section.classList.remove('hidden');
+            section.style.opacity = '';
+            section.style.transition = '';
         });
-        
-        // Dispatch event for address selector initialization BEFORE fade-in
+
         window.dispatchEvent(new Event('cartInitialized'));
-        
-        // Show bundle offer section (prepare it too)
         cart.renderBundleOffer();
-        
-        // Small delay to let address selector initialize
-        setTimeout(() => {
-            // Fade in all content together
-            requestAnimationFrame(() => {
-                // Fade in cart items
-                container.style.transition = 'opacity 0.5s ease';
-                container.style.opacity = '1';
-                
-                // Fade in all sections with slight stagger (including bundle section)
-                const allSections = [...sectionsToShow, 'bundleOfferSection'];
-                allSections.forEach((sectionId, index) => {
-                    const section = document.getElementById(sectionId);
-                    if (section && !section.classList.contains('hidden')) {
-                        section.style.transition = 'opacity 0.5s ease';
-                        setTimeout(() => {
-                            section.style.opacity = '1';
-                        }, CONFIG.FADE_IN_BASE_DELAY + (index * CONFIG.FADE_IN_STAGGER));
-                    }
-                });
-            });
-        }, CONFIG.ADDRESS_INIT_DELAY); // Wait for address selector to initialize
-        
-        // Show cart summary section
+
         const summarySection = document.querySelector('.cart-summary-section');
-        const cartSummary = document.querySelector('.cart-summary');
-        
-        summarySection.classList.remove('hidden');
-        
-        // Update cart count
-        const totalItems = state.cart.reduce((sum, item) => sum + item.quantity, 0);
-        document.getElementById('cartCount').textContent = '(' + totalItems + ' sản phẩm)';
+        summarySection?.classList.remove('hidden');
+        cart.updateHeaderCount();
     },
 
     // Render bundle offer
@@ -766,7 +688,8 @@ const cart = {
         
         // Render real products
         section.classList.remove('hidden');
-        section.style.opacity = '0';
+        section.style.opacity = '';
+        section.style.transition = '';
         
         const html = state.bundleProducts.map(product => {
             const isInCart = state.cart.some(item => item.id === product.id);
@@ -941,7 +864,6 @@ const cart = {
 
     // Cancel edit note (restore original note)
     cancelEditNote: (productId) => {
-        // Chỉ cần render lại, note vẫn còn trong state
         cart.render();
     },
 
@@ -1041,19 +963,11 @@ const cart = {
         const cartSummary = document.querySelector('.cart-summary');
         
         summarySection?.classList.remove('hidden');
-        
-        // Prepare summary (remove hidden but keep opacity 0)
+
         if (cartSummary) {
             cartSummary.classList.remove('hidden');
-            cartSummary.style.opacity = '0';
-            
-            // Fade in summary after a small delay
-            requestAnimationFrame(() => {
-                cartSummary.style.transition = 'opacity 0.5s ease';
-                setTimeout(() => {
-                    cartSummary.style.opacity = '1';
-                }, 100);
-            });
+            cartSummary.style.opacity = '';
+            cartSummary.style.transition = '';
         }
 
         // Update UI

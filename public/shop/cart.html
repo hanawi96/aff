@@ -8,8 +8,9 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="cart.css">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"></noscript>
+    <link rel="stylesheet" href="cart.css?v=5">
     <link rel="stylesheet" href="assets/css/form-validation.css">
     <link rel="stylesheet" href="assets/css/hierarchical-address-selector.css">
     <link rel="stylesheet" href="assets/css/list-address-selector.css">
@@ -741,7 +742,7 @@
     </script>
 
     <link rel="stylesheet" href="assets/css/faq-modal.css?v=3">
-    <script type="module" src="cart.js"></script>
+    <script type="module" src="cart.js?v=6"></script>
     <script src="assets/js/faq-modal.js"></script>
     <script type="module">
         // Import and initialize list address selector for cart page
@@ -761,11 +762,26 @@
                 return;
             }
             
-            // Open modal
-            openBtn.addEventListener('click', () => {
+            // Open modal. Danh sách tỉnh/phường chỉ tải lúc mẹ bấm mở.
+            openBtn.addEventListener('click', async () => {
                 modal.classList.remove('hidden');
                 document.body.style.overflow = 'hidden';
                 document.body.classList.add('modal-open');
+
+                if (window.cartAddressSelector) return;
+
+                const container = document.getElementById('modalAddressSelectorContainer');
+                if (container && !container.dataset.loading) {
+                    container.dataset.loading = '1';
+                    container.textContent = 'Đang tải danh sách địa chỉ...';
+                }
+
+                try {
+                    await ensureAddressSelector();
+                } catch (error) {
+                    console.error('Không tải được địa chỉ', error);
+                    if (container) container.textContent = 'Không tải được địa chỉ. Mẹ bấm mở lại giúp em.';
+                }
             });
             
             // Close modal
@@ -786,6 +802,10 @@
             
             // Confirm address
             confirmBtn.addEventListener('click', () => {
+                if (!window.cartAddressSelector) {
+                    alert('Danh sách địa chỉ đang tải, mẹ chờ một chút');
+                    return;
+                }
                 const addressData = window.cartAddressSelector.getAddress();
                 
                 // Validate
@@ -807,20 +827,24 @@
             console.log('✅ Address modal setup complete');
         }
         
-        // Wait for DOM and cart to be ready
-        window.addEventListener('cartInitialized', async () => {
-            // Initialize address selector in MODAL instead of inline
-            const modalContainer = document.getElementById('modalAddressSelectorContainer');
-            
-            if (modalContainer && !window.cartAddressSelector) {
-                window.cartAddressSelector = new ListAddressSelector('modalAddressSelectorContainer');
-                await window.cartAddressSelector.init();
-                console.log('✅ List address selector initialized in modal');
+        let addressReady = null;
+
+        function ensureAddressSelector() {
+            if (window.cartAddressSelector) return Promise.resolve();
+            if (!addressReady) {
+                addressReady = (async () => {
+                    const selector = new ListAddressSelector('modalAddressSelectorContainer');
+                    await selector.init();
+                    window.cartAddressSelector = selector;
+                })().catch((error) => {
+                    addressReady = null;
+                    throw error;
+                });
             }
-            
-            // Setup modal controls
-            setupAddressModal();
-        });
+            return addressReady;
+        }
+
+        setupAddressModal();
     </script>
     
     <!-- Address Selection Modal -->
