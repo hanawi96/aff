@@ -255,6 +255,8 @@ function _bestSellerRows(items) {
         const discountTag = discount > 0 ? `<span class="rp-discount">-${discount}%</span>` : '';
         const sold = Number(p.purchases) || 0;
         const soldTag = sold > 0 ? `<span class="rp-sold">Đã bán ${sold}</span>` : '';
+        const rating = Number(p.rating) > 0 ? Number(p.rating) : 5;
+        const ratingTag = `<span class="rp-rating" aria-label="Đánh giá ${rating.toFixed(1)}"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" /></svg><span>${rating.toFixed(1)}</span></span>`;
         return `
             <div class="rp-item" role="button" tabindex="0" data-rp-id="${p.id}" aria-label="Xem ${_escAttr(name)}">
                 <div class="rp-thumb">
@@ -268,7 +270,7 @@ function _bestSellerRows(items) {
                         <span class="rp-price">${price}</span>
                         ${original}
                     </div>
-                    ${soldTag}
+                    <div class="rp-meta">${soldTag}${ratingTag}</div>
                 </div>
                 <button type="button" class="rp-add" data-rp-add="${p.id}" title="Thêm vào giỏ" aria-label="Thêm ${_escAttr(name)} vào giỏ">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
