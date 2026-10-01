@@ -1315,7 +1315,7 @@ if (document.readyState === 'loading') {
 // ============================================
 
 function setupBenefitsImageClick() {
-    const benefitImages = document.querySelectorAll('.benefit-card-img');
+    const benefitImages = document.querySelectorAll('.benefit-card-img, .fake-warn-img, .real-vong-img');
 
     benefitImages.forEach(img => {
         img.style.cursor = 'pointer';
