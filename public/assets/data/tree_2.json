@@ -7916,670 +7916,670 @@
     "slug": "dong-nai",
     "type": "province",
     "isCentral": false,
-    "fullName": "Thành phố Đồng Nai",
+    "fullName": "Tỉnh Đồng Nai",
     "wards": [
       {
         "code": "19223",
         "name": "An Lộc",
-        "fullName": "Phường An Lộc, Thành phố Đồng Nai",
+        "fullName": "Phường An Lộc, Tỉnh Đồng Nai",
         "slug": "an-loc",
         "type": "phuong"
       },
       {
         "code": "7959",
         "name": "An Phước",
-        "fullName": "Xã An Phước, Thành phố Đồng Nai",
+        "fullName": "Xã An Phước, Tỉnh Đồng Nai",
         "slug": "an-phuoc",
         "type": "xa"
       },
       {
         "code": "8215",
         "name": "An Viễn",
-        "fullName": "Xã An Viễn, Thành phố Đồng Nai",
+        "fullName": "Xã An Viễn, Tỉnh Đồng Nai",
         "slug": "an-vien",
         "type": "xa"
       },
       {
         "code": "10519",
         "name": "Bảo Vinh",
-        "fullName": "Phường Bảo Vinh, Thành phố Đồng Nai",
+        "fullName": "Phường Bảo Vinh, Tỉnh Đồng Nai",
         "slug": "bao-vinh",
         "type": "phuong"
       },
       {
         "code": "8983",
         "name": "Bàu Hàm",
-        "fullName": "Xã Bàu Hàm, Thành phố Đồng Nai",
+        "fullName": "Xã Bàu Hàm, Tỉnh Đồng Nai",
         "slug": "bau-ham",
         "type": "xa"
       },
       {
         "code": "17687",
         "name": "Biên Hòa",
-        "fullName": "Phường Biên Hòa, Thành phố Đồng Nai",
+        "fullName": "Phường Biên Hòa, Tỉnh Đồng Nai",
         "slug": "bien-hoa",
         "type": "phuong"
       },
       {
         "code": "7447",
         "name": "Bình An",
-        "fullName": "Xã Bình An, Thành phố Đồng Nai",
+        "fullName": "Xã Bình An, Tỉnh Đồng Nai",
         "slug": "binh-an",
         "type": "xa"
       },
       {
         "code": "18967",
         "name": "Bình Long",
-        "fullName": "Phường Bình Long, Thành phố Đồng Nai",
+        "fullName": "Phường Bình Long, Tỉnh Đồng Nai",
         "slug": "binh-long",
         "type": "phuong"
       },
       {
         "code": "10263",
         "name": "Bình Lộc",
-        "fullName": "Phường Bình Lộc, Thành phố Đồng Nai",
+        "fullName": "Phường Bình Lộc, Tỉnh Đồng Nai",
         "slug": "binh-loc",
         "type": "phuong"
       },
       {
         "code": "8471",
         "name": "Bình Minh",
-        "fullName": "Xã Bình Minh, Thành phố Đồng Nai",
+        "fullName": "Xã Bình Minh, Tỉnh Đồng Nai",
         "slug": "binh-minh",
         "type": "xa"
       },
       {
         "code": "17175",
         "name": "Bình Phước",
-        "fullName": "Phường Bình Phước, Thành phố Đồng Nai",
+        "fullName": "Phường Bình Phước, Tỉnh Đồng Nai",
         "slug": "binh-phuoc",
         "type": "phuong"
       },
       {
         "code": "24087",
         "name": "Bình Tân",
-        "fullName": "Xã Bình Tân, Thành phố Đồng Nai",
+        "fullName": "Xã Bình Tân, Tỉnh Đồng Nai",
         "slug": "binh-tan",
         "type": "xa"
       },
       {
         "code": "15639",
         "name": "Bom Bo",
-        "fullName": "Xã Bom Bo, Thành phố Đồng Nai",
+        "fullName": "Xã Bom Bo, Tỉnh Đồng Nai",
         "slug": "bom-bo",
         "type": "xa"
       },
       {
         "code": "14871",
         "name": "Bù Đăng",
-        "fullName": "Xã Bù Đăng, Thành phố Đồng Nai",
+        "fullName": "Xã Bù Đăng, Tỉnh Đồng Nai",
         "slug": "bu-dang",
         "type": "xa"
       },
       {
         "code": "2071",
         "name": "Bù Gia Mập",
-        "fullName": "Xã Bù Gia Mập, Thành phố Đồng Nai",
+        "fullName": "Xã Bù Gia Mập, Tỉnh Đồng Nai",
         "slug": "bu-gia-map",
         "type": "xa"
       },
       {
         "code": "12055",
         "name": "Cẩm Mỹ",
-        "fullName": "Xã Cẩm Mỹ, Thành phố Đồng Nai",
+        "fullName": "Xã Cẩm Mỹ, Tỉnh Đồng Nai",
         "slug": "cam-my",
         "type": "xa"
       },
       {
         "code": "19735",
         "name": "Chơn Thành",
-        "fullName": "Phường Chơn Thành, Thành phố Đồng Nai",
+        "fullName": "Phường Chơn Thành, Tỉnh Đồng Nai",
         "slug": "chon-thanh",
         "type": "phuong"
       },
       {
         "code": "9495",
         "name": "Dầu Giây",
-        "fullName": "Phường Dầu Giây, Thành phố Đồng Nai",
+        "fullName": "Phường Dầu Giây, Tỉnh Đồng Nai",
         "slug": "dau-giay",
         "type": "phuong"
       },
       {
         "code": "23831",
         "name": "Đa Kia",
-        "fullName": "Xã Đa Kia, Thành phố Đồng Nai",
+        "fullName": "Xã Đa Kia, Tỉnh Đồng Nai",
         "slug": "da-kia",
         "type": "xa"
       },
       {
         "code": "16919",
         "name": "Đại Phước",
-        "fullName": "Xã Đại Phước, Thành phố Đồng Nai",
+        "fullName": "Xã Đại Phước, Tỉnh Đồng Nai",
         "slug": "dai-phuoc",
         "type": "xa"
       },
       {
         "code": "279",
         "name": "Đak Lua",
-        "fullName": "Xã Đak Lua, Thành phố Đồng Nai",
+        "fullName": "Xã Đak Lua, Tỉnh Đồng Nai",
         "slug": "dak-lua",
         "type": "xa"
       },
       {
         "code": "15383",
         "name": "Đak Nhau",
-        "fullName": "Xã Đak Nhau, Thành phố Đồng Nai",
+        "fullName": "Xã Đak Nhau, Tỉnh Đồng Nai",
         "slug": "dak-nhau",
         "type": "xa"
       },
       {
         "code": "1559",
         "name": "Đăk Ơ",
-        "fullName": "Xã Đăk Ơ, Thành phố Đồng Nai",
+        "fullName": "Xã Đăk Ơ, Tỉnh Đồng Nai",
         "slug": "dak-o",
         "type": "xa"
       },
       {
         "code": "3607",
         "name": "Định Quán",
-        "fullName": "Xã Định Quán, Thành phố Đồng Nai",
+        "fullName": "Xã Định Quán, Tỉnh Đồng Nai",
         "slug": "dinh-quan",
         "type": "xa"
       },
       {
         "code": "14103",
         "name": "Đồng Phú",
-        "fullName": "Phường Đồng Phú, Thành phố Đồng Nai",
+        "fullName": "Phường Đồng Phú, Tỉnh Đồng Nai",
         "slug": "dong-phu",
         "type": "phuong"
       },
       {
         "code": "13591",
         "name": "Đồng Tâm",
-        "fullName": "Xã Đồng Tâm, Thành phố Đồng Nai",
+        "fullName": "Xã Đồng Tâm, Tỉnh Đồng Nai",
         "slug": "dong-tam",
         "type": "xa"
       },
       {
         "code": "17431",
         "name": "Đồng Xoài",
-        "fullName": "Phường Đồng Xoài, Thành phố Đồng Nai",
+        "fullName": "Phường Đồng Xoài, Tỉnh Đồng Nai",
         "slug": "dong-xoai",
         "type": "phuong"
       },
       {
         "code": "9751",
         "name": "Gia Kiệm",
-        "fullName": "Xã Gia Kiệm, Thành phố Đồng Nai",
+        "fullName": "Xã Gia Kiệm, Tỉnh Đồng Nai",
         "slug": "gia-kiem",
         "type": "xa"
       },
       {
         "code": "11287",
         "name": "Hàng Gòn",
-        "fullName": "Phường Hàng Gòn, Thành phố Đồng Nai",
+        "fullName": "Phường Hàng Gòn, Tỉnh Đồng Nai",
         "slug": "hang-gon",
         "type": "phuong"
       },
       {
         "code": "16407",
         "name": "Hố Nai",
-        "fullName": "Phường Hố Nai, Thành phố Đồng Nai",
+        "fullName": "Phường Hố Nai, Tỉnh Đồng Nai",
         "slug": "ho-nai",
         "type": "phuong"
       },
       {
         "code": "23319",
         "name": "Hưng Phước",
-        "fullName": "Xã Hưng Phước, Thành phố Đồng Nai",
+        "fullName": "Xã Hưng Phước, Tỉnh Đồng Nai",
         "slug": "hung-phuoc",
         "type": "xa"
       },
       {
         "code": "9239",
         "name": "Hưng Thịnh",
-        "fullName": "Xã Hưng Thịnh, Thành phố Đồng Nai",
+        "fullName": "Xã Hưng Thịnh, Tỉnh Đồng Nai",
         "slug": "hung-thinh",
         "type": "xa"
       },
       {
         "code": "3351",
         "name": "La Ngà",
-        "fullName": "Xã La Ngà, Thành phố Đồng Nai",
+        "fullName": "Xã La Ngà, Tỉnh Đồng Nai",
         "slug": "la-nga",
         "type": "xa"
       },
       {
         "code": "15895",
         "name": "Long Bình",
-        "fullName": "Phường Long Bình, Thành phố Đồng Nai",
+        "fullName": "Phường Long Bình, Tỉnh Đồng Nai",
         "slug": "long-binh",
         "type": "phuong"
       },
       {
         "code": "24343",
         "name": "Long Hà",
-        "fullName": "Xã Long Hà, Thành phố Đồng Nai",
+        "fullName": "Xã Long Hà, Tỉnh Đồng Nai",
         "slug": "long-ha",
         "type": "xa"
       },
       {
         "code": "16663",
         "name": "Long Hưng",
-        "fullName": "Phường Long Hưng, Thành phố Đồng Nai",
+        "fullName": "Phường Long Hưng, Tỉnh Đồng Nai",
         "slug": "long-hung",
         "type": "phuong"
       },
       {
         "code": "11031",
         "name": "Long Khánh",
-        "fullName": "Phường Long Khánh, Thành phố Đồng Nai",
+        "fullName": "Phường Long Khánh, Tỉnh Đồng Nai",
         "slug": "long-khanh",
         "type": "phuong"
       },
       {
         "code": "7191",
         "name": "Long Phước",
-        "fullName": "Xã Long Phước, Thành phố Đồng Nai",
+        "fullName": "Xã Long Phước, Tỉnh Đồng Nai",
         "slug": "long-phuoc",
         "type": "xa"
       },
       {
         "code": "7703",
         "name": "Long Thành",
-        "fullName": "Phường Long Thành, Thành phố Đồng Nai",
+        "fullName": "Phường Long Thành, Tỉnh Đồng Nai",
         "slug": "long-thanh",
         "type": "phuong"
       },
       {
         "code": "21783",
         "name": "Lộc Hưng",
-        "fullName": "Xã Lộc Hưng, Thành phố Đồng Nai",
+        "fullName": "Xã Lộc Hưng, Tỉnh Đồng Nai",
         "slug": "loc-hung",
         "type": "xa"
       },
       {
         "code": "21527",
         "name": "Lộc Ninh",
-        "fullName": "Phường Lộc Ninh, Thành phố Đồng Nai",
+        "fullName": "Phường Lộc Ninh, Tỉnh Đồng Nai",
         "slug": "loc-ninh",
         "type": "phuong"
       },
       {
         "code": "22551",
         "name": "Lộc Quang",
-        "fullName": "Xã Lộc Quang, Thành phố Đồng Nai",
+        "fullName": "Xã Lộc Quang, Tỉnh Đồng Nai",
         "slug": "loc-quang",
         "type": "xa"
       },
       {
         "code": "22039",
         "name": "Lộc Tấn",
-        "fullName": "Xã Lộc Tấn, Thành phố Đồng Nai",
+        "fullName": "Xã Lộc Tấn, Tỉnh Đồng Nai",
         "slug": "loc-tan",
         "type": "xa"
       },
       {
         "code": "21271",
         "name": "Lộc Thành",
-        "fullName": "Xã Lộc Thành, Thành phố Đồng Nai",
+        "fullName": "Xã Lộc Thành, Tỉnh Đồng Nai",
         "slug": "loc-thanh",
         "type": "xa"
       },
       {
         "code": "22295",
         "name": "Lộc Thạnh",
-        "fullName": "Xã Lộc Thạnh, Thành phố Đồng Nai",
+        "fullName": "Xã Lộc Thạnh, Tỉnh Đồng Nai",
         "slug": "loc-thanh",
         "type": "xa"
       },
       {
         "code": "21015",
         "name": "Minh Đức",
-        "fullName": "Xã Minh Đức, Thành phố Đồng Nai",
+        "fullName": "Xã Minh Đức, Tỉnh Đồng Nai",
         "slug": "minh-duc",
         "type": "xa"
       },
       {
         "code": "19479",
         "name": "Minh Hưng",
-        "fullName": "Phường Minh Hưng, Thành phố Đồng Nai",
+        "fullName": "Phường Minh Hưng, Tỉnh Đồng Nai",
         "slug": "minh-hung",
         "type": "phuong"
       },
       {
         "code": "4631",
         "name": "Nam Cát Tiên",
-        "fullName": "Xã Nam Cát Tiên, Thành phố Đồng Nai",
+        "fullName": "Xã Nam Cát Tiên, Tỉnh Đồng Nai",
         "slug": "nam-cat-tien",
         "type": "xa"
       },
       {
         "code": "14615",
         "name": "Nghĩa Trung",
-        "fullName": "Xã Nghĩa Trung, Thành phố Đồng Nai",
+        "fullName": "Xã Nghĩa Trung, Tỉnh Đồng Nai",
         "slug": "nghia-trung",
         "type": "xa"
       },
       {
         "code": "19991",
         "name": "Nha Bích",
-        "fullName": "Xã Nha Bích, Thành phố Đồng Nai",
+        "fullName": "Xã Nha Bích, Tỉnh Đồng Nai",
         "slug": "nha-bich",
         "type": "xa"
       },
       {
         "code": "6423",
         "name": "Nhơn Trạch",
-        "fullName": "Phường Nhơn Trạch, Thành phố Đồng Nai",
+        "fullName": "Phường Nhơn Trạch, Tỉnh Đồng Nai",
         "slug": "nhon-trach",
         "type": "phuong"
       },
       {
         "code": "4119",
         "name": "Phú Hòa",
-        "fullName": "Xã Phú Hòa, Thành phố Đồng Nai",
+        "fullName": "Xã Phú Hòa, Tỉnh Đồng Nai",
         "slug": "phu-hoa",
         "type": "xa"
       },
       {
         "code": "5143",
         "name": "Phú Lâm",
-        "fullName": "Xã Phú Lâm, Thành phố Đồng Nai",
+        "fullName": "Xã Phú Lâm, Tỉnh Đồng Nai",
         "slug": "phu-lam",
         "type": "xa"
       },
       {
         "code": "535",
         "name": "Phú Lý",
-        "fullName": "Xã Phú Lý, Thành phố Đồng Nai",
+        "fullName": "Xã Phú Lý, Tỉnh Đồng Nai",
         "slug": "phu-ly",
         "type": "xa"
       },
       {
         "code": "23575",
         "name": "Phú Nghĩa",
-        "fullName": "Xã Phú Nghĩa, Thành phố Đồng Nai",
+        "fullName": "Xã Phú Nghĩa, Tỉnh Đồng Nai",
         "slug": "phu-nghia",
         "type": "xa"
       },
       {
         "code": "6167",
         "name": "Phú Riềng",
-        "fullName": "Xã Phú Riềng, Thành phố Đồng Nai",
+        "fullName": "Xã Phú Riềng, Tỉnh Đồng Nai",
         "slug": "phu-rieng",
         "type": "xa"
       },
       {
         "code": "13079",
         "name": "Phú Trung",
-        "fullName": "Xã Phú Trung, Thành phố Đồng Nai",
+        "fullName": "Xã Phú Trung, Tỉnh Đồng Nai",
         "slug": "phu-trung",
         "type": "xa"
       },
       {
         "code": "3863",
         "name": "Phú Vinh",
-        "fullName": "Xã Phú Vinh, Thành phố Đồng Nai",
+        "fullName": "Xã Phú Vinh, Tỉnh Đồng Nai",
         "slug": "phu-vinh",
         "type": "xa"
       },
       {
         "code": "6679",
         "name": "Phước An",
-        "fullName": "Xã Phước An, Thành phố Đồng Nai",
+        "fullName": "Xã Phước An, Tỉnh Đồng Nai",
         "slug": "phuoc-an",
         "type": "xa"
       },
       {
         "code": "18455",
         "name": "Phước Bình",
-        "fullName": "Phường Phước Bình, Thành phố Đồng Nai",
+        "fullName": "Phường Phước Bình, Tỉnh Đồng Nai",
         "slug": "phuoc-binh",
         "type": "phuong"
       },
       {
         "code": "18711",
         "name": "Phước Long",
-        "fullName": "Phường Phước Long, Thành phố Đồng Nai",
+        "fullName": "Phường Phước Long, Tỉnh Đồng Nai",
         "slug": "phuoc-long",
         "type": "phuong"
       },
       {
         "code": "14359",
         "name": "Phước Sơn",
-        "fullName": "Xã Phước Sơn, Thành phố Đồng Nai",
+        "fullName": "Xã Phước Sơn, Tỉnh Đồng Nai",
         "slug": "phuoc-son",
         "type": "xa"
       },
       {
         "code": "1047",
         "name": "Phước Tân",
-        "fullName": "Phường Phước Tân, Thành phố Đồng Nai",
+        "fullName": "Phường Phước Tân, Tỉnh Đồng Nai",
         "slug": "phuoc-tan",
         "type": "phuong"
       },
       {
         "code": "6935",
         "name": "Phước Thái",
-        "fullName": "Xã Phước Thái, Thành phố Đồng Nai",
+        "fullName": "Xã Phước Thái, Tỉnh Đồng Nai",
         "slug": "phuoc-thai",
         "type": "xa"
       },
       {
         "code": "12311",
         "name": "Sông Ray",
-        "fullName": "Xã Sông Ray, Thành phố Đồng Nai",
+        "fullName": "Xã Sông Ray, Tỉnh Đồng Nai",
         "slug": "song-ray",
         "type": "xa"
       },
       {
         "code": "4375",
         "name": "Tà Lài",
-        "fullName": "Xã Tà Lài, Thành phố Đồng Nai",
+        "fullName": "Xã Tà Lài, Tỉnh Đồng Nai",
         "slug": "ta-lai",
         "type": "xa"
       },
       {
         "code": "18199",
         "name": "Tam Hiệp",
-        "fullName": "Phường Tam Hiệp, Thành phố Đồng Nai",
+        "fullName": "Phường Tam Hiệp, Tỉnh Đồng Nai",
         "slug": "tam-hiep",
         "type": "phuong"
       },
       {
         "code": "1303",
         "name": "Tam Phước",
-        "fullName": "Phường Tam Phước, Thành phố Đồng Nai",
+        "fullName": "Phường Tam Phước, Tỉnh Đồng Nai",
         "slug": "tam-phuoc",
         "type": "phuong"
       },
       {
         "code": "5655",
         "name": "Tân An",
-        "fullName": "Xã Tân An, Thành phố Đồng Nai",
+        "fullName": "Xã Tân An, Tỉnh Đồng Nai",
         "slug": "tan-an",
         "type": "xa"
       },
       {
         "code": "20503",
         "name": "Tân Hưng",
-        "fullName": "Xã Tân Hưng, Thành phố Đồng Nai",
+        "fullName": "Xã Tân Hưng, Tỉnh Đồng Nai",
         "slug": "tan-hung",
         "type": "xa"
       },
       {
         "code": "20759",
         "name": "Tân Khai",
-        "fullName": "Phường Tân Khai, Thành phố Đồng Nai",
+        "fullName": "Phường Tân Khai, Tỉnh Đồng Nai",
         "slug": "tan-khai",
         "type": "phuong"
       },
       {
         "code": "13847",
         "name": "Tân Lợi",
-        "fullName": "Xã Tân Lợi, Thành phố Đồng Nai",
+        "fullName": "Xã Tân Lợi, Tỉnh Đồng Nai",
         "slug": "tan-loi",
         "type": "xa"
       },
       {
         "code": "4887",
         "name": "Tân Phú",
-        "fullName": "Phường Tân Phú, Thành phố Đồng Nai",
+        "fullName": "Phường Tân Phú, Tỉnh Đồng Nai",
         "slug": "tan-phu",
         "type": "phuong"
       },
       {
         "code": "20247",
         "name": "Tân Quan",
-        "fullName": "Xã Tân Quan, Thành phố Đồng Nai",
+        "fullName": "Xã Tân Quan, Tỉnh Đồng Nai",
         "slug": "tan-quan",
         "type": "xa"
       },
       {
         "code": "22807",
         "name": "Tân Tiến",
-        "fullName": "Xã Tân Tiến, Thành phố Đồng Nai",
+        "fullName": "Xã Tân Tiến, Tỉnh Đồng Nai",
         "slug": "tan-tien",
         "type": "xa"
       },
       {
         "code": "5911",
         "name": "Tân Triều",
-        "fullName": "Phường Tân Triều, Thành phố Đồng Nai",
+        "fullName": "Phường Tân Triều, Tỉnh Đồng Nai",
         "slug": "tan-trieu",
         "type": "phuong"
       },
       {
         "code": "2327",
         "name": "Thanh Sơn",
-        "fullName": "Xã Thanh Sơn, Thành phố Đồng Nai",
+        "fullName": "Xã Thanh Sơn, Tỉnh Đồng Nai",
         "slug": "thanh-son",
         "type": "xa"
       },
       {
         "code": "23063",
         "name": "Thiện Hưng",
-        "fullName": "Xã Thiện Hưng, Thành phố Đồng Nai",
+        "fullName": "Xã Thiện Hưng, Tỉnh Đồng Nai",
         "slug": "thien-hung",
         "type": "xa"
       },
       {
         "code": "15127",
         "name": "Thọ Sơn",
-        "fullName": "Xã Thọ Sơn, Thành phố Đồng Nai",
+        "fullName": "Xã Thọ Sơn, Tỉnh Đồng Nai",
         "slug": "tho-son",
         "type": "xa"
       },
       {
         "code": "10007",
         "name": "Thống Nhất",
-        "fullName": "Xã Thống Nhất, Thành phố Đồng Nai",
+        "fullName": "Xã Thống Nhất, Tỉnh Đồng Nai",
         "slug": "thong-nhat",
         "type": "xa"
       },
       {
         "code": "13335",
         "name": "Thuận Lợi",
-        "fullName": "Xã Thuận Lợi, Thành phố Đồng Nai",
+        "fullName": "Xã Thuận Lợi, Tỉnh Đồng Nai",
         "slug": "thuan-loi",
         "type": "xa"
       },
       {
         "code": "8727",
         "name": "Trảng Bom",
-        "fullName": "Phường Trảng Bom, Thành phố Đồng Nai",
+        "fullName": "Phường Trảng Bom, Tỉnh Đồng Nai",
         "slug": "trang-bom",
         "type": "phuong"
       },
       {
         "code": "16151",
         "name": "Trảng Dài",
-        "fullName": "Phường Trảng Dài, Thành phố Đồng Nai",
+        "fullName": "Phường Trảng Dài, Tỉnh Đồng Nai",
         "slug": "trang-dai",
         "type": "phuong"
       },
       {
         "code": "17943",
         "name": "Trấn Biên",
-        "fullName": "Phường Trấn Biên, Thành phố Đồng Nai",
+        "fullName": "Phường Trấn Biên, Tỉnh Đồng Nai",
         "slug": "tran-bien",
         "type": "phuong"
       },
       {
         "code": "5399",
         "name": "Trị An",
-        "fullName": "Phường Trị An, Thành phố Đồng Nai",
+        "fullName": "Phường Trị An, Tỉnh Đồng Nai",
         "slug": "tri-an",
         "type": "phuong"
       },
       {
         "code": "3095",
         "name": "Xuân Bắc",
-        "fullName": "Xã Xuân Bắc, Thành phố Đồng Nai",
+        "fullName": "Xã Xuân Bắc, Tỉnh Đồng Nai",
         "slug": "xuan-bac",
         "type": "xa"
       },
       {
         "code": "12567",
         "name": "Xuân Định",
-        "fullName": "Xã Xuân Định, Thành phố Đồng Nai",
+        "fullName": "Xã Xuân Định, Tỉnh Đồng Nai",
         "slug": "xuan-dinh",
         "type": "xa"
       },
       {
         "code": "1815",
         "name": "Xuân Đông",
-        "fullName": "Xã Xuân Đông, Thành phố Đồng Nai",
+        "fullName": "Xã Xuân Đông, Tỉnh Đồng Nai",
         "slug": "xuan-dong",
         "type": "xa"
       },
       {
         "code": "11799",
         "name": "Xuân Đường",
-        "fullName": "Xã Xuân Đường, Thành phố Đồng Nai",
+        "fullName": "Xã Xuân Đường, Tỉnh Đồng Nai",
         "slug": "xuan-duong",
         "type": "xa"
       },
       {
         "code": "791",
         "name": "Xuân Hòa",
-        "fullName": "Xã Xuân Hòa, Thành phố Đồng Nai",
+        "fullName": "Xã Xuân Hòa, Tỉnh Đồng Nai",
         "slug": "xuan-hoa",
         "type": "xa"
       },
       {
         "code": "10775",
         "name": "Xuân Lập",
-        "fullName": "Phường Xuân Lập, Thành phố Đồng Nai",
+        "fullName": "Phường Xuân Lập, Tỉnh Đồng Nai",
         "slug": "xuan-lap",
         "type": "phuong"
       },
       {
         "code": "2583",
         "name": "Xuân Lộc",
-        "fullName": "Phường Xuân Lộc, Thành phố Đồng Nai",
+        "fullName": "Phường Xuân Lộc, Tỉnh Đồng Nai",
         "slug": "xuan-loc",
         "type": "phuong"
       },
       {
         "code": "12823",
         "name": "Xuân Phú",
-        "fullName": "Xã Xuân Phú, Thành phố Đồng Nai",
+        "fullName": "Xã Xuân Phú, Tỉnh Đồng Nai",
         "slug": "xuan-phu",
         "type": "xa"
       },
       {
         "code": "11543",
         "name": "Xuân Quế",
-        "fullName": "Xã Xuân Quế, Thành phố Đồng Nai",
+        "fullName": "Xã Xuân Quế, Tỉnh Đồng Nai",
         "slug": "xuan-que",
         "type": "xa"
       },
       {
         "code": "2839",
         "name": "Xuân Thành",
-        "fullName": "Xã Xuân Thành, Thành phố Đồng Nai",
+        "fullName": "Xã Xuân Thành, Tỉnh Đồng Nai",
         "slug": "xuan-thanh",
         "type": "xa"
       }
