@@ -43,9 +43,14 @@ function resizedR2Url(imageUrl, width, quality) {
     return `https://shopvd.store/cdn-cgi/image/width=${width},quality=${quality},format=auto/${url}`;
 }
 
-/** Ảnh thẻ sản phẩm trên trang chủ: rộng 480px. */
+/** Ảnh nhỏ trong hàng gợi ý, flash sale: rộng 480px. */
 export function productThumbUrl(imageUrl) {
     return resizedR2Url(imageUrl, 480, 75);
+}
+
+/** Ảnh thẻ Khu vườn: 1 cột trên điện thoại, 3 cột trên máy tính, cần bản 960px. */
+export function productCardUrl(imageUrl) {
+    return resizedR2Url(imageUrl, 960, 80);
 }
 
 /** Ảnh đang hiện trong modal chi tiết: rộng 960px. */

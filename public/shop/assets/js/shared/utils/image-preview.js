@@ -4,7 +4,7 @@
 // Includes: Product Detail Modal with URL sync & share
 // ============================================
 
-import { CONFIG, productThumbUrl, productDetailUrl, productZoomUrl } from '../constants/config.js?v=4';
+import { CONFIG, productThumbUrl, productCardUrl, productDetailUrl, productZoomUrl } from '../constants/config.js?v=5';
 import { MODAL_CONSTANTS } from '../constants/modal-constants.js';
 import { eventManager } from './event-manager.js';
 
@@ -377,7 +377,7 @@ function _buildImageCarousel(product) {
     const fullProductUrl = product.image_url || CONFIG.DEFAULT_IMAGE;
     const images = [
         {
-            url: productThumbUrl(fullProductUrl),
+            url: productCardUrl(fullProductUrl),
             detailUrl: productDetailUrl(fullProductUrl),
             fullUrl: productZoomUrl(fullProductUrl),
             alt: product.name || 'Sản phẩm',

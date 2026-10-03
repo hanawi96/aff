@@ -2,9 +2,9 @@
 // HOME PAGE CONTROLLER
 // ============================================
 
-import { apiService } from '../shared/services/api.service.js?v=4';
+import { apiService } from '../shared/services/api.service.js?v=5';
 import { cartService } from '../shared/services/cart.service.js';
-import { ProductGrid, ProductActions } from '../features/products/index.js?v=8';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=10';
 import { renderCategories, CategoryActions } from '../features/categories/index.js?v=2';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=2';
 import { QuickCheckout } from '../features/checkout/index.js?v=2025c';
@@ -244,7 +244,7 @@ export class HomePage {
      * Priority: Products only (main browsing content)
      * - Cache còn TTL: đọc sync từ memory (không await) → paint nhanh nhất.
      * - TTL hết nhưng session còn mảng SP: stale-first paint, không chờ mạng; làm mới nền sau showCriticalContent.
-     * - Lần đầu / không có session: trang 1 (16 SP) → phần còn lại nối ở background.
+     * - Lần đầu / không có session: trang 1 (18 SP) → phần còn lại nối ở background.
      */
     async loadCriticalContent() {
         this.ensureShopPerfHud();
@@ -280,7 +280,7 @@ export class HomePage {
             return;
         }
 
-        const PAGE_SIZE = 16;
+        const PAGE_SIZE = 18;
         const first = await apiService.getProductsPage(1, PAGE_SIZE);
         this.allProducts = first.products;
         this.products = first.products;
@@ -514,8 +514,8 @@ export class HomePage {
         
         // Product Grid
         this.productGrid = new ProductGrid('productsGrid', {
-            initialCount: 16,  // Hiển thị 16 sản phẩm ban đầu (4 hàng x 4 cột)
-            itemsPerPage: 8    // Mỗi lần "Xem thêm" load thêm 8 sản phẩm
+            initialCount: 18,  // 18 sản phẩm mỗi trang (3 cột x 6 hàng trên máy tính)
+            itemsPerPage: 18   // Mỗi lần "Xem thêm" hiện thêm 18 sản phẩm
         });
         console.log('✅ HomePage: ProductGrid initialized');
 

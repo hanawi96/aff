@@ -53,7 +53,7 @@ export class ProductGrid {
         this.products = []; // Deprecated - chỉ để tương thích
         this.allProducts = []; // NGUỒN DỮ LIỆU CHÍNH - Tất cả sản phẩm
         this.filteredProducts = []; // Sản phẩm sau khi filter
-        this.initialCount = options.initialCount || 16;    // Số sản phẩm hiển thị ban đầu
+        this.initialCount = options.initialCount || 18;    // Số sản phẩm hiển thị ban đầu
         this.itemsPerPage = options.itemsPerPage || 8;     // Số sản phẩm load thêm mỗi lần
         this.displayedCount = this.initialCount;           // Bắt đầu với initialCount
         this.currentFilter = 'best-selling'; // Mặc định hiển thị "Bán chạy"
@@ -66,7 +66,7 @@ export class ProductGrid {
      * Set all products (NGUỒN DỮ LIỆU CHÍNH)
      * Đây là method chính để set dữ liệu
      * @param {object} [options]
-     * @param {boolean} [options.preserveExpandedView] - Khi API nối thêm SP ở nền: giữ số ô đang mở (Xem thêm), không reset về 16.
+     * @param {boolean} [options.preserveExpandedView] - Khi API nối thêm SP ở nền: giữ số ô đang mở (Xem thêm), không reset về 18.
      */
     setAllProducts(products, options = {}) {
         const preserveExpanded = options.preserveExpandedView === true;

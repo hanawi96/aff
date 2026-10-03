@@ -1257,11 +1257,9 @@ body {
 }
 
 .filter-chip:hover {
-    background: linear-gradient(135deg, #f4a261, #e76f51);
-    color: white;
+    background: #fff7f1;
+    color: #c45c26;
     border-color: #f4a261;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.25);
 }
 
 .filter-chip.active {

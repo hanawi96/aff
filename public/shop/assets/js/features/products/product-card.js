@@ -4,7 +4,7 @@
 
 import { formatPrice, generateStars, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
-import { CONFIG, productThumbUrl } from '../../shared/constants/config.js?v=2';
+import { CONFIG, productCardUrl } from '../../shared/constants/config.js?v=5';
 
 /**
  * Create product card HTML
@@ -16,7 +16,7 @@ export function createProductCard(product) {
     const rating = product.rating || 4.5;
     const purchases = product.purchases || 0;
     const imageUrl = product.image_url || CONFIG.DEFAULT_IMAGE;
-    const thumbUrl = productThumbUrl(imageUrl);
+    const thumbUrl = productCardUrl(imageUrl);
     const savedAmount = product.original_price && product.original_price > product.price
         ? product.original_price - product.price
         : 0;

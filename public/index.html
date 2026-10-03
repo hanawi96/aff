@@ -31,8 +31,8 @@
         <link rel="stylesheet" href="shop/assets/css/form-validation.css">
         <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css">
     </noscript>
-    <link rel="stylesheet" href="shop/styles.css?v=38">
-    <link rel="stylesheet" href="shop/assets/css/home.css?v=2">
+    <link rel="stylesheet" href="shop/styles.css?v=39">
+    <link rel="stylesheet" href="shop/assets/css/home.css?v=3">
     <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css?v=4">
     <link rel="stylesheet" href="shop/cart.css?v=30">
 </head>
@@ -700,25 +700,7 @@
 
             <!-- Products Grid -->
             <!-- Skeleton Loading (lưới danh mục chính — shimmer + stagger trong home.css) -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6 shop-skeleton-grid" id="productsSkeleton" role="status" aria-busy="true" aria-label="Đang tải danh sách sản phẩm">
-                <div class="skeleton-product-card skeleton-loading">
-                    <div class="skeleton-product-image"></div>
-                    <div class="skeleton-product-info">
-                        <div class="skeleton skeleton-product-title"></div>
-                        <div class="skeleton skeleton-product-meta"></div>
-                        <div class="skeleton skeleton-product-price"></div>
-                        <div class="skeleton skeleton-product-button"></div>
-                    </div>
-                </div>
-                <div class="skeleton-product-card skeleton-loading">
-                    <div class="skeleton-product-image"></div>
-                    <div class="skeleton-product-info">
-                        <div class="skeleton skeleton-product-title"></div>
-                        <div class="skeleton skeleton-product-meta"></div>
-                        <div class="skeleton skeleton-product-price"></div>
-                        <div class="skeleton skeleton-product-button"></div>
-                    </div>
-                </div>
+            <div class="grid shop-skeleton-grid" id="productsSkeleton" role="status" aria-busy="true" aria-label="Đang tải danh sách sản phẩm">
                 <div class="skeleton-product-card skeleton-loading">
                     <div class="skeleton-product-image"></div>
                     <div class="skeleton-product-info">
@@ -776,7 +758,7 @@
             </div>
             
             <!-- Real Products (hidden initially) -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4 lg:gap-6 hidden scroll-mt-20 md:scroll-mt-24" id="productsGrid">
+            <div class="grid hidden scroll-mt-20 md:scroll-mt-24" id="productsGrid">
                 <!-- Products will be loaded here -->
             </div>
             
@@ -2202,7 +2184,7 @@
         </div>
     </div>
     
-    <script type="module" src="shop/assets/js/app.js?v=51"></script>
+    <script type="module" src="shop/assets/js/app.js?v=53"></script>
     <script defer src="shop/assets/js/faq-modal.js"></script>
     <script defer src="shop/assets/js/feedback-carousel.js"></script>
 </body>

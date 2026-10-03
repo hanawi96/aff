@@ -173,9 +173,9 @@ class ApiService {
      * Fallback: nếu API trả 400 (Worker cũ chưa có action getProductsPage) hoặc lỗi mạng —
      * dùng getAllProducts + cắt trang phía client (ORDER BY name giống server).
      */
-    async getProductsPage(page = 1, limit = 16) {
+    async getProductsPage(page = 1, limit = 18) {
         const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
-        const limitNum = Math.min(Math.max(1, parseInt(String(limit), 10) || 16), 100);
+        const limitNum = Math.min(Math.max(1, parseInt(String(limit), 10) || 18), 100);
 
         const fallbackFromFullCatalog = async () => {
             console.warn(
