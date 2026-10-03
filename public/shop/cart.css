@@ -3699,6 +3699,11 @@ body {
 }
 
 /* Carousel Counter */
+.carousel-counter,
+.image-carousel-container:hover .carousel-counter {
+    display: none !important;
+}
+
 .carousel-counter {
     position: absolute;
     top: 25px;
@@ -3770,8 +3775,9 @@ body {
     animation: slideInLeft 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.carousel-process-badge,
 .carousel-process-badge.show {
-    display: flex;
+    display: none !important;
 }
 
 .carousel-process-badge svg {
@@ -8236,4 +8242,260 @@ body {
 
 @media (max-width: 480px) {
     .price-discount-badge { font-size: 0.68rem; padding: 0.06rem 0.36rem; }
+}
+
+/* ============================================
+   Product detail sheet — ảnh tràn, nút đóng tròn, tên kiểu tạp chí
+   ============================================ */
+.image-preview-modal {
+    background: rgba(42, 24, 30, 0.28);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    padding: 24px;
+}
+.image-preview-content {
+    max-width: 480px;
+    background: #faf6f2;
+    border-radius: 22px;
+    box-shadow: 0 18px 50px rgba(62, 36, 46, 0.18);
+    overflow: hidden;
+    min-height: 0;
+}
+.image-preview-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 10px;
+    z-index: 30;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 14px 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    pointer-events: none;
+}
+.image-preview-header-title {
+    display: none;
+}
+.image-preview-close,
+.preview-share-btn {
+    pointer-events: auto;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #fff;
+    color: #5c3a48;
+    box-shadow: 0 2px 10px rgba(62, 36, 46, 0.16);
+}
+.image-preview-close svg,
+.preview-share-btn svg {
+    width: 16px;
+    height: 16px;
+}
+.image-preview-close:hover,
+.preview-share-btn:hover {
+    background: #fff;
+    color: #5c3a48;
+}
+.image-preview-scroll-area {
+    background: #faf6f2;
+}
+.image-carousel-container {
+    margin: 0;
+    border-radius: 0;
+    background: #efe6dc;
+}
+.image-preview-content .image-carousel-slide img,
+.image-carousel-slide img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    max-height: none;
+    object-fit: cover;
+    object-position: center;
+    padding: 0;
+    border-radius: 0;
+    background: #efe6dc;
+}
+.carousel-dots {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 12px;
+    padding: 0;
+    background: none;
+    z-index: 5;
+}
+.carousel-dot {
+    width: 7px;
+    height: 7px;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 1px 2px rgba(62, 36, 46, 0.25);
+}
+.carousel-dot.active {
+    background: #fff;
+    width: 18px;
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(62, 36, 46, 0.28);
+}
+.carousel-counter {
+    top: auto;
+    right: auto;
+    left: 14px;
+    bottom: 12px;
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.88);
+    color: #5c3a48;
+}
+.carousel-zoom-hint {
+    left: 14px;
+    right: auto;
+    bottom: 44px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    color: #5c3a48;
+    animation: none;
+}
+.carousel-zoom-hint svg {
+    width: 16px;
+    height: 16px;
+    stroke: #5c3a48;
+}
+.pd-intro {
+    padding: 22px 22px 0;
+    background: #faf6f2;
+}
+.pd-kicker {
+    margin: 0;
+    color: #c45c26;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+}
+.pd-intro .image-preview-title {
+    display: block;
+    margin: 6px 0 0;
+    color: #3f342c;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: 0;
+}
+.product-pricing-section {
+    background: #fff;
+    border: none;
+    padding: 14px 18px;
+}
+.product-pricing-section .pricing-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.product-pricing-section .price-main {
+    gap: 2px;
+    min-width: 0;
+}
+.product-pricing-section .price-current {
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: #e76f51;
+    line-height: 1.1;
+    text-shadow: none;
+}
+.product-pricing-section .price-original {
+    color: #9aa3a0;
+    font-size: 0.95rem;
+}
+.product-pricing-section .price-discount-badge {
+    background: #fde8ea;
+    color: #f43f5e;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.08rem 0.42rem;
+}
+.product-detail-section .pd-meta {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+}
+.product-detail-section .pd-rating {
+    background: #fff4e8;
+    padding: 0.28rem 0.62rem;
+    border-radius: 999px;
+}
+.product-detail-section .pd-rating-score {
+    color: #c45c26;
+    font-weight: 700;
+}
+.product-detail-section .pd-sold {
+    color: #9ca3af;
+    white-space: nowrap;
+}
+.image-preview-info {
+    background: transparent;
+    border: none;
+    padding: 8px 22px 24px;
+}
+.image-preview-actions {
+    background: #faf6f2;
+    border-top: 1px solid #f0e4da;
+    border-radius: 0;
+    padding: 12px 16px 16px;
+}
+.preview-btn-cart:hover,
+.preview-btn-buy:hover,
+.preview-btn-cart:active,
+.preview-btn-buy:active {
+    transform: none;
+}
+
+@media (max-width: 768px) {
+    .image-preview-modal {
+        padding: 10px;
+        align-items: stretch;
+    }
+    .image-preview-content {
+        width: 100%;
+        max-width: none;
+        height: calc(100dvh - 20px);
+        max-height: calc(100dvh - 20px);
+        min-height: 0;
+        margin: 0;
+        border-radius: 20px;
+    }
+    .image-preview-header {
+        padding: max(12px, env(safe-area-inset-top)) 12px 0;
+    }
+    .image-carousel-container .carousel-arrow {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+    .pd-intro .image-preview-title {
+        font-size: 1.2rem;
+    }
+    .image-preview-actions {
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+}
+
+@media (min-width: 769px) {
+    .image-preview-content {
+        max-height: calc(100vh - 48px);
+        max-height: calc(100dvh - 48px);
+    }
 }

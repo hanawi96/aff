@@ -6,7 +6,6 @@
 
 import { CONFIG, productThumbUrl, productDetailUrl, productZoomUrl } from '../constants/config.js?v=4';
 import { MODAL_CONSTANTS } from '../constants/modal-constants.js';
-import { materialsCache } from './materials-cache.js';
 import { eventManager } from './event-manager.js';
 
 // Debounce utility for performance
@@ -156,7 +155,6 @@ async function _openProductDetailModal(product, priceData) {
     const modal = document.getElementById('imagePreviewModal');
     const title = document.getElementById('imagePreviewTitle');
     const headerTitle = document.getElementById('imagePreviewHeaderTitle');
-    const materialsContainer = document.getElementById('imagePreviewMaterials');
     const productDetailSection = document.getElementById('productDetailSection');
 
     if (!modal) return;
@@ -202,14 +200,7 @@ async function _openProductDetailModal(product, priceData) {
     // 8. Add share button to header
     _setupShareButton(product);
 
-    // 9. Load materials async
-    if (product.id) {
-        await _loadProductMaterials(product.id, materialsContainer);
-    } else {
-        materialsContainer.innerHTML = '';
-    }
-
-    // 10. Gợi ý bán chạy toàn shop và bán chạy trong danh mục của SP đang xem
+    // 9. Gợi ý bán chạy toàn shop và bán chạy trong danh mục của SP đang xem
     _loadBestSellers(product, document.getElementById('relatedProducts'));
 }
 
@@ -759,7 +750,13 @@ function _updateProductDetailSection(product) {
         : null;
     const isOutOfStock = stockQty !== null && Number.isFinite(stockQty) && stockQty <= 0;
 
-    // Rating + đã bán (bỏ hẳn hiển thị danh mục theo yêu cầu)
+    const kicker = document.getElementById('productCollectionLabel');
+    if (kicker) {
+        const categoryName = _primaryCategory(product).name.trim();
+        kicker.textContent = (categoryName || 'Vòng dâu tằm by Ánh').toLocaleUpperCase('vi-VN');
+    }
+
+    // Rating + đã bán
     const rating = (product.rating && product.rating > 0) ? product.rating : 5.0;
     const purchases = product.purchases || 0;
     const starSvg = `<svg class="pd-meta-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" /></svg>`;
@@ -1168,121 +1165,6 @@ function _setupPreviewButtons(productId) {
     eventManager.addWithController('imagePreviewEsc', document, 'keydown', (e) => {
         if (e.key === 'Escape') window.closeImagePreview();
     });
-}
-
-// ============================================
-// MATERIALS
-// ============================================
-
-async function _loadProductMaterials(productId, container) {
-    try {
-        const cached = materialsCache.get(productId);
-        if (cached) {
-            _renderMaterials(cached, container);
-            return;
-        }
-
-        _showMaterialsLoading(container);
-
-        const response = await fetch(`${CONFIG.API_BASE_URL}/?action=getProductMaterials&product_id=${productId}`);
-        if (!response.ok) throw new Error('Failed to load materials');
-
-        const data = await response.json();
-
-        if (data.success && data.materials?.length > 0) {
-            materialsCache.set(productId, data.materials);
-            _renderMaterials(data.materials, container);
-        } else {
-            container.innerHTML = '';
-            _displayStringTypeInfo(false, false);
-        }
-    } catch (error) {
-        console.error('Error loading materials:', error);
-        container.innerHTML = '';
-        _displayStringTypeInfo(false, false);
-    }
-}
-
-function _showMaterialsLoading(container) {
-    container.innerHTML = `
-        <div class="materials-header">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/></svg>
-            <span>Thành phần nguyên liệu</span>
-        </div>
-        <div style="text-align: center; padding: 1rem; color: #95a5a6;"><span>Đang tải...</span></div>
-    `;
-}
-
-function _renderMaterials(materials, container) {
-    const visibleMaterials = materials.filter(material => {
-        const normalizedName = material.material_name.toLowerCase().replace(/\s+/g, '_');
-        return !MODAL_CONSTANTS.HIDDEN_MATERIALS.includes(normalizedName) &&
-               !MODAL_CONSTANTS.HIDDEN_MATERIALS.includes(material.material_name.toLowerCase());
-    });
-
-    const hasRedString = materials.some(m =>
-        m.material_name === MODAL_CONSTANTS.MATERIAL_TYPES.RED_STRING ||
-        m.material_name === MODAL_CONSTANTS.MATERIAL_TYPES.RAINBOW_STRING
-    );
-    const hasRopeString = materials.some(m => m.material_name === MODAL_CONSTANTS.MATERIAL_TYPES.ROPE_STRING);
-
-    _displayStringTypeInfo(hasRedString, hasRopeString);
-
-    if (visibleMaterials.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
-
-    const fragment = document.createDocumentFragment();
-
-    const header = document.createElement('div');
-    header.className = 'materials-header';
-    header.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"/></svg>
-        <span>Thành phần nguyên liệu</span>
-    `;
-    fragment.appendChild(header);
-
-    const list = document.createElement('div');
-    list.className = 'materials-list';
-
-    visibleMaterials.forEach(material => {
-        const tag = document.createElement('div');
-        tag.className = 'material-tag';
-        const displayName = material.display_name || material.material_name.replace(/_/g, ' ');
-        const quantity = material.quantity;
-        const unit = material.unit || '';
-        tag.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2"/></svg>
-            <span class="material-name">${displayName}</span>
-            ${quantity ? `<span class="material-quantity">(${quantity} ${unit})</span>` : ''}
-        `;
-        list.appendChild(tag);
-    });
-
-    fragment.appendChild(list);
-
-    // Lưu ý về số lượng nguyên liệu
-    const note = document.createElement('p');
-    note.className = 'materials-note';
-    note.innerHTML = '<span class="materials-note-label">Lưu ý:</span> Số lượng nguyên liệu đôi khi sẽ có thay đổi, khác biệt với trong ảnh tùy theo cân nặng bé';
-    fragment.appendChild(note);
-
-    container.innerHTML = '';
-    container.appendChild(fragment);
-}
-
-function _displayStringTypeInfo(hasRedString, hasRopeString) {
-    const container = document.getElementById('productStringInfo');
-    if (!container) return;
-
-    if (hasRopeString && !hasRedString) {
-        container.className = 'product-string-info rope-string';
-        container.style.display = 'list-item';
-        container.textContent = 'Dây vòng làm bằng dây cước gân co giãn loại 1, rất bền chắc, khó đứt, không thấm nước và gọn gàng, không lo vướng.';
-    } else {
-        container.style.display = 'none';
-    }
 }
 
 // ============================================

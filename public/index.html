@@ -34,7 +34,7 @@
     <link rel="stylesheet" href="shop/styles.css?v=36">
     <link rel="stylesheet" href="shop/assets/css/home.css?v=2">
     <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css?v=2">
-    <link rel="stylesheet" href="shop/cart.css?v=24">
+    <link rel="stylesheet" href="shop/cart.css?v=30">
 </head>
 <body class="bg-warm">
     <!-- Header - Handmade Style -->
@@ -2053,11 +2053,6 @@
                         </svg>
                     </button>
                     
-                    <!-- Image Counter Badge -->
-                    <div class="carousel-counter" id="carouselCounter">
-                        <span id="carouselCurrentIdx">1</span> / <span id="carouselTotalCount">7</span>
-                    </div>
-                    
                     <!-- Zoom Hint (shows on first image - product) -->
                     <div class="image-zoom-hint carousel-zoom-hint">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -2066,13 +2061,11 @@
                         <span>Chạm để phóng to</span>
                     </div>
                     
-                    <!-- Process Badge (shows on process images) -->
-                    <div class="carousel-process-badge" id="carouselProcessBadge">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M15.92 3.15c.18.14.22.42.09.6l-7.14 9.79a.47.47 0 0 1-.59.11c-.35-.23-.8-.4-1.34-.48a3.27 3.27 0 0 1-.88-.29 3.12 3.12 0 0 1-.74-.56 3.1 3.1 0 0 1-.55-.75 3.27 3.27 0 0 1-.29-.88c-.08-.54-.25-.99-.48-1.34a.47.47 0 0 1 .11-.59l9.79-7.14c.18-.13.46-.09.6.09l.07.08Zm-8.38 12.12a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
-                        </svg>
-                        <span id="carouselProcessLabel">Quy trình thủ công</span>
-                    </div>
+                </div>
+
+                <div class="pd-intro">
+                    <p class="pd-kicker" id="productCollectionLabel"></p>
+                    <h2 class="image-preview-title" id="imagePreviewTitle"></h2>
                 </div>
                 
                 <!-- Product Pricing Section -->
@@ -2093,8 +2086,6 @@
                 </div>
                 
                 <div class="image-preview-info">
-                    <div class="image-preview-title" id="imagePreviewTitle"></div>
-
                     <!-- Product story — danh sách gạch đầu dòng đơn giản, dễ đọc cho mẹ bỉm -->
                     <div class="product-story">
                         <section class="product-commitments" aria-label="Cam kết của shop">
@@ -2174,9 +2165,6 @@
                             <li class="product-string-info" id="productStringInfo" style="display: none;"></li>
                         </ul>
 
-                        <!-- Materials (dynamic) -->
-                        <div class="image-preview-materials" id="imagePreviewMaterials"></div>
-
                         <p class="product-story-contact">
                             Nếu mẹ muốn làm hoặc mix vòng theo yêu cầu riêng, nhắn Zalo cho shop nhé:
                             <a href="https://zalo.me/0972483892" target="_blank" rel="noopener noreferrer" class="zalo-link">0972.483.892</a>
@@ -2222,7 +2210,7 @@
         </div>
     </div>
     
-    <script type="module" src="shop/assets/js/app.js?v=49"></script>
+    <script type="module" src="shop/assets/js/app.js?v=51"></script>
     <script defer src="shop/assets/js/faq-modal.js"></script>
     <script defer src="shop/assets/js/feedback-carousel.js"></script>
 </body>
