@@ -2634,8 +2634,9 @@ body {
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5209,6 +5210,7 @@ body {
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .success-modal-content {
@@ -5433,6 +5435,7 @@ body {
     padding: 1rem;
     animation: fadeIn 0.2s ease;
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .discount-modal-content {
@@ -7398,6 +7401,7 @@ body {
     padding: 24px;
     animation: fadeIn 0.15s ease;
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .address-modal.hidden {
@@ -8199,13 +8203,15 @@ body {
    Product detail sheet — ảnh tràn, nút đóng tròn, tên kiểu tạp chí
    ============================================ */
 .image-preview-modal {
-    background: rgba(42, 24, 30, 0.28);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     padding: 24px;
+    overflow: hidden;
 }
 .image-preview-content {
     max-width: 480px;
+    max-height: 100%;
     background: #faf6f2;
     border-radius: 22px;
     box-shadow: 0 18px 50px rgba(62, 36, 46, 0.18);
@@ -8253,6 +8259,7 @@ body {
 }
 .image-preview-scroll-area {
     background: #faf6f2;
+    min-height: 0;
 }
 .image-carousel-container {
     margin: 0;
@@ -8419,8 +8426,8 @@ body {
     .image-preview-content {
         width: 100%;
         max-width: none;
-        height: calc(100dvh - 20px);
-        max-height: calc(100dvh - 20px);
+        height: 100%;
+        max-height: 100%;
         min-height: 0;
         margin: 0;
         border-radius: 20px;

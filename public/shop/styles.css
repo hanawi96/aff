@@ -2629,6 +2629,7 @@ body {
     padding: 24px;
     animation: fadeIn 0.15s ease;
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .quick-checkout-content {
@@ -5031,6 +5032,7 @@ body {
     padding: 1rem;
     animation: fadeIn 0.2s ease;
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .discount-modal-content {
@@ -6522,6 +6524,7 @@ body {
     bottom: 0;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -6638,6 +6641,7 @@ body {
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .success-modal-content {

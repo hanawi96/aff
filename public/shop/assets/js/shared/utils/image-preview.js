@@ -184,7 +184,7 @@ async function _openProductDetailModal(product, priceData) {
     // 5. Hiện modal ngay. Ảnh thẻ đã có sẵn; bản 1200px được đổi vào sau khi tải xong.
     modal.classList.add('active');
     modal.dataset.productId = product.id;
-    document.body.style.overflow = 'hidden'; // Prevent background scroll
+    _lockPageScroll(modal);
 
     // Ẩn mục gợi ý cũ (tránh nhấp nháy nội dung SP trước khi build lại)
     const relatedEl = document.getElementById('relatedProducts');
@@ -782,6 +782,24 @@ function _calculateDiscount(originalPrice, currentPrice) {
 // CLOSE & URL SYNC
 // ============================================
 
+// Giữ chỗ thanh cuộn của trang để khung modal không bị đẩy khi khóa cuộn.
+function _lockPageScroll(modal) {
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+    if (modal && scrollbarWidth > 0) {
+        modal.style.paddingRight = '';
+        const padRight = getComputedStyle(modal).paddingRight || '0px';
+        modal.style.paddingRight = `calc(${padRight} + ${scrollbarWidth}px)`;
+    }
+    document.body.style.overflow = 'hidden';
+}
+
+function _unlockPageScroll(modal) {
+    if (modal) modal.style.paddingRight = '';
+    const quickBuy = document.getElementById('quickCheckoutModal');
+    if (quickBuy && !quickBuy.classList.contains('hidden')) return;
+    document.body.style.overflow = '';
+}
+
 /**
  * Close image preview modal with URL cleanup.
  */
@@ -789,7 +807,7 @@ window.closeImagePreview = function(fromPopstate = false) {
     const modal = document.getElementById('imagePreviewModal');
     if (modal) {
         modal.classList.remove('active');
-        document.body.style.overflow = '';
+        _unlockPageScroll(modal);
     }
 
     // Cleanup all event listeners
