@@ -7338,7 +7338,7 @@ body {
     width: 100%;
     aspect-ratio: 3 / 4;
     object-fit: cover;
-    object-position: center top;
+    object-position: center 28%;
     display: block;
     border-radius: 140px 140px 36px 36px;
     background: #f6efe8;
