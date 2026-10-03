@@ -4,7 +4,7 @@
 
 import { formatPrice, generateStars, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
-import { CONFIG, productCardUrl } from '../../shared/constants/config.js?v=5';
+import { CONFIG, productCardUrl, productCardSourceUrl } from '../../shared/constants/config.js?v=6';
 
 /**
  * Create product card HTML
@@ -17,6 +17,11 @@ export function createProductCard(product) {
     const purchases = product.purchases || 0;
     const imageUrl = product.image_url || CONFIG.DEFAULT_IMAGE;
     const thumbUrl = productCardUrl(imageUrl);
+    const sharpUrl = productCardSourceUrl(imageUrl);
+    // Điện thoại 1 cột chọn ảnh gốc (~1024px). Ô 2–3 cột vẫn dùng bản 960px.
+    const srcsetAttr = sharpUrl && sharpUrl !== thumbUrl
+        ? ` srcset="${escapeHtml(thumbUrl)} 960w, ${escapeHtml(sharpUrl)} 1024w" sizes="(min-width: 1024px) 370px, (min-width: 768px) 46vw, 100vw"`
+        : '';
     const savedAmount = product.original_price && product.original_price > product.price
         ? product.original_price - product.price
         : 0;
@@ -78,7 +83,7 @@ export function createProductCard(product) {
         <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${product.id}">
             <div class="product-image-wrapper">
                 <div class="product-image-container">
-                    <img src="${escapeHtml(thumbUrl)}" 
+                    <img src="${escapeHtml(thumbUrl)}"${srcsetAttr}
                          alt="${escapeHtml(product.name)}" 
                          class="product-image"
                          loading="lazy"

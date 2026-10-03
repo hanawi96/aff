@@ -48,9 +48,17 @@ export function productThumbUrl(imageUrl) {
     return resizedR2Url(imageUrl, 480, 75);
 }
 
-/** Ảnh thẻ Khu vườn: 1 cột trên điện thoại, 3 cột trên máy tính, cần bản 960px. */
+/** Ảnh thẻ khi ô nhỏ (máy tính 3 cột, máy tính bảng 2 cột): rộng 960px. */
 export function productCardUrl(imageUrl) {
     return resizedR2Url(imageUrl, 960, 80);
+}
+
+/**
+ * Ảnh gốc cho ô thẻ gần đầy chiều ngang điện thoại.
+ * File sản phẩm khoảng 1024px. Không xin bản rộng hơn, vì CDN sẽ phóng to và ảnh vẫn mờ.
+ */
+export function productCardSourceUrl(imageUrl) {
+    return String(imageUrl || '').trim();
 }
 
 /** Ảnh đang hiện trong modal chi tiết: rộng 960px. */
