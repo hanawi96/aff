@@ -460,6 +460,7 @@ async function _markInvoiceAsDownloaded(invoiceId) {
     });
     const data = await response.json();
     if (!data.success) throw new Error(data.error || 'Không thể cập nhật trạng thái');
+    if (typeof window.refreshInvoiceDueBadge === 'function') window.refreshInvoiceDueBadge(true);
     return data; // { success, updatedCount, orderIds }
 }
 

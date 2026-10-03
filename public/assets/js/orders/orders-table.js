@@ -418,6 +418,7 @@ async function confirmToggleInvoiceStatus() {
         }
 
         showToast(data.message || (newIsExported ? 'Đã đánh dấu đã xuất HĐĐT' : 'Đã bỏ đánh dấu'), 'success');
+        if (typeof window.refreshInvoiceDueBadge === 'function') window.refreshInvoiceDueBadge(true);
         closeToggleInvoiceModal();
 
         // Reset button state để toggle tiếp theo hoạt động

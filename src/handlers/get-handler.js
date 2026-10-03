@@ -30,7 +30,8 @@ import {
     searchOrders,
     getUnshippedOrders,
     getOrdersHistoryPage,
-    getDueInvoiceOrders
+    getDueInvoiceOrders,
+    getDueInvoiceCount
 } from '../services/orders/order-queries.js';
 
 import {
@@ -231,6 +232,14 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'getUnshippedOrders':
             // LUỒNG 1: toàn bộ đơn chưa gửi hàng (không phân trang)
             return await getUnshippedOrders(env, corsHeaders);
+
+        case 'getDueInvoiceCount': {
+            const cFromCount = url.searchParams.get('createdFromMs');
+            return await getDueInvoiceCount({
+                remindDays: url.searchParams.get('remindDays'),
+                createdFromMs: cFromCount !== null && cFromCount !== '' ? Number(cFromCount) : undefined
+            }, env, corsHeaders);
+        }
 
         case 'getDueInvoiceOrders': {
             // Toàn bộ đơn đến hạn xuất HĐĐT (chọn xuyên trang ở trang Hóa đơn điện tử)

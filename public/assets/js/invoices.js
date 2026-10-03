@@ -35,6 +35,10 @@ const invState = {
 let _invSearchDebounce = null;
 
 // ---- Helpers ----
+function _invRefreshDueBadge() {
+    if (typeof window.refreshInvoiceDueBadge === 'function') window.refreshInvoiceDueBadge(true);
+}
+
 function invFormatCurrency(n) {
     const v = Number(n) || 0;
     return v.toLocaleString('vi-VN') + 'đ';
@@ -687,6 +691,7 @@ async function invToggle(orderId, currentExported) {
             o.last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
         }
         showToast(data.message || (newIsExported ? 'Đã đánh dấu đã xuất HĐĐT' : 'Đã bỏ đánh dấu'), 'success');
+        _invRefreshDueBadge();
 
         // Nếu đang lọc theo trạng thái HĐĐT → đơn có thể không còn khớp, tải lại trang.
         if (invInvoiceFilter !== 'all') {
@@ -734,6 +739,7 @@ async function invCancelExport(orderId) {
             o.last_invoice_export_file_name = data.last_invoice_export_file_name ?? null;
         }
         showToast(data.message || 'Đã hủy xuất HĐĐT', 'success');
+        _invRefreshDueBadge();
 
         // Nếu đang lọc theo trạng thái HĐĐT → đơn có thể không còn khớp, tải lại trang.
         if (invInvoiceFilter !== 'all') {
@@ -806,6 +812,7 @@ async function bulkCancelInvoicesPage() {
         showToast(`Hủy xong ${done} đơn, thất bại ${fail} đơn`, 'warning', 5000);
     }
 
+    _invRefreshDueBadge();
     // Tải lại trang hiện tại để đồng bộ (đặc biệt khi đang lọc theo trạng thái HĐĐT).
     _invFetchPage(invState.cursorStack[invState.cursorStack.length - 1] || null, invState.pageIndex || 1);
 }
@@ -929,6 +936,7 @@ async function invDownloadExport(exportId) {
         const data = await res.json();
         if (data.success) {
             showToast(`✅ Đã tải file · đánh dấu ${data.updatedCount || 0} đơn đã xuất HĐĐT`, 'success', 4000);
+            _invRefreshDueBadge();
         }
     } catch (err) {
         console.error('[Invoices] markExportDownloaded error:', err);

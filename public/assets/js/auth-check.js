@@ -138,4 +138,79 @@
         // Redirect to login
         window.location.href = getLoginPath();
     };
+
+    // Số đơn đã đủ 10 ngày kể từ ngày gửi mà chưa xuất HĐĐT.
+    // Cache 60 giây để đổi trang admin không gọi lại API. force=true bỏ cache
+    // và gộp nhiều lần gọi liên tiếp (xuất hàng loạt) thành một request.
+    const INV_DUE_BADGE_KEY = 'inv_due_count_v1';
+    const INV_DUE_BADGE_TTL = 60000;
+    let _invDueBadgeTimer = null;
+
+    function paintInvoiceDueBadge(count) {
+        const link = document.querySelector('a[href="invoices.html"]');
+        if (!link) return;
+        const n = Number(count) || 0;
+        const label = link.querySelector('span');
+        let badge = link.querySelector('[data-inv-due-badge]');
+        if (n <= 0) {
+            if (badge) badge.remove();
+            link.style.paddingRight = '';
+            if (label) label.style.whiteSpace = '';
+            return;
+        }
+        if (getComputedStyle(link).position === 'static') link.style.position = 'relative';
+        link.style.paddingRight = '2.35rem';
+        if (label) label.style.whiteSpace = 'nowrap';
+        if (!document.getElementById('inv-due-badge-style')) {
+            const style = document.createElement('style');
+            style.id = 'inv-due-badge-style';
+            style.textContent = '@keyframes invDueNavPulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}50%{box-shadow:0 0 0 4px rgba(16,185,129,0)}}';
+            document.head.appendChild(style);
+        }
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.setAttribute('data-inv-due-badge', '1');
+            badge.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;min-width:1.25rem;height:1.25rem;padding:0 5px;border-radius:999px;background:#10b981;color:#fff;font-size:11px;font-weight:700;line-height:1;animation:invDueNavPulse 1.8s ease-in-out infinite;';
+            link.appendChild(badge);
+        }
+        badge.textContent = n > 999 ? '999+' : String(n);
+        badge.title = n + ' hóa đơn đã đến hạn xuất';
+    }
+
+    function loadInvoiceDueBadge(force) {
+        if (!document.querySelector('a[href="invoices.html"]')) return;
+        if (!force) {
+            try {
+                const cached = JSON.parse(sessionStorage.getItem(INV_DUE_BADGE_KEY) || 'null');
+                if (cached && Number.isFinite(Number(cached.count)) && Date.now() - Number(cached.at) < INV_DUE_BADGE_TTL) {
+                    paintInvoiceDueBadge(cached.count);
+                    return;
+                }
+            } catch (e) { /* cache hỏng thì đếm lại */ }
+        }
+        fetch(`${API_URL}?action=getDueInvoiceCount&timestamp=${Date.now()}`)
+            .then((res) => res.json())
+            .then((data) => {
+                if (!data || data.success !== true || !Number.isFinite(Number(data.count))) return;
+                const count = Number(data.count);
+                try {
+                    sessionStorage.setItem(INV_DUE_BADGE_KEY, JSON.stringify({ count, at: Date.now() }));
+                } catch (e) { /* trình duyệt chặn storage */ }
+                paintInvoiceDueBadge(count);
+            })
+            .catch(() => {});
+    }
+
+    function refreshInvoiceDueBadge(force) {
+        if (!document.querySelector('a[href="invoices.html"]')) return;
+        if (force) {
+            clearTimeout(_invDueBadgeTimer);
+            _invDueBadgeTimer = setTimeout(() => loadInvoiceDueBadge(true), 400);
+            return;
+        }
+        loadInvoiceDueBadge(false);
+    }
+
+    window.refreshInvoiceDueBadge = refreshInvoiceDueBadge;
+    refreshInvoiceDueBadge(false);
 })();

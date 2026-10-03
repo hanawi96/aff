@@ -258,6 +258,62 @@ export async function getUnshippedOrders(env, corsHeaders) {
     }
 }
 
+// Đồng bộ với public/assets/js/invoices.js (INV_REMIND_DAYS, INV_CREATED_FROM_MS).
+const INVOICE_DUE_REMIND_DAYS = 10;
+const INVOICE_DUE_CREATED_FROM_MS = new Date('2026-09-05T00:00:00+07:00').getTime();
+
+/**
+ * Điều kiện đơn đã đến hạn xuất HĐĐT.
+ * applyDefaultCreatedFrom: badge đếm luôn chặn đơn đặt trước 05/09/2026.
+ * Danh sách "Chọn đơn cần xuất" chỉ áp mốc này khi client truyền createdFromMs.
+ */
+function buildDueInvoiceFilter(params, { applyDefaultCreatedFrom = false } = {}) {
+    const _rd = parseInt(params?.remindDays, 10);
+    const remindDays = Number.isFinite(_rd) && _rd >= 0 ? _rd : INVOICE_DUE_REMIND_DAYS;
+    let createdFromMs = null;
+    if (params?.createdFromMs != null && params.createdFromMs !== '' && Number.isFinite(Number(params.createdFromMs))) {
+        createdFromMs = Number(params.createdFromMs);
+    } else if (applyDefaultCreatedFrom) {
+        createdFromMs = INVOICE_DUE_CREATED_FROM_MS;
+    }
+    const dueThreshold = Date.now() - remindDays * 86400000;
+    const where = [
+        `LOWER(TRIM(orders.status)) = 'shipped'`,
+        `COALESCE(orders.invoice_exported_at, 0) = 0`,
+        `COALESCE(orders.manual_invoice_exported, 0) = 0`,
+        `orders.shipped_at_unix IS NOT NULL`,
+        `orders.shipped_at_unix > 0`,
+        `orders.shipped_at_unix <= ?`
+    ];
+    const binds = [dueThreshold];
+    if (createdFromMs != null) {
+        where.push(`orders.created_at_unix >= ?`);
+        binds.push(createdFromMs);
+    }
+    return { where, binds, remindDays };
+}
+
+/**
+ * Đếm đơn đã đến hạn xuất HĐĐT — chỉ một số, dùng cho badge sidebar.
+ * Cùng điều kiện với getDueInvoiceOrders, cộng mốc đặt từ 05/09/2026.
+ */
+export async function getDueInvoiceCount(params, env, corsHeaders) {
+    const startTime = Date.now();
+    try {
+        const { where, binds, remindDays } = buildDueInvoiceFilter(params, { applyDefaultCreatedFrom: true });
+        const row = await env.DB.prepare(
+            `SELECT COUNT(*) AS count FROM orders WHERE ${where.join(' AND ')}`
+        ).bind(...binds).first();
+        const count = Number(row?.count || 0);
+        const queryTime = Date.now() - startTime;
+        console.log(`✅ [getDueInvoiceCount] ${count} đơn đến hạn (remindDays=${remindDays}, ${queryTime}ms)`);
+        return jsonResponse({ success: true, count, queryTime }, 200, corsHeaders);
+    } catch (error) {
+        console.error('❌ [getDueInvoiceCount] Lỗi:', error);
+        return jsonResponse({ success: false, error: error.message }, 500, corsHeaders);
+    }
+}
+
 /**
  * Lấy TOÀN BỘ đơn ĐẾN HẠN XUẤT HĐĐT — dùng cho nút "Chọn đơn cần xuất" (chọn xuyên trang).
  * Điều kiện:
@@ -272,28 +328,8 @@ export async function getUnshippedOrders(env, corsHeaders) {
 export async function getDueInvoiceOrders(params, env, corsHeaders) {
     const startTime = Date.now();
     try {
-        const _rd = parseInt(params?.remindDays, 10);
-        const remindDays = Number.isFinite(_rd) && _rd >= 0 ? _rd : 10;
-        const createdFromMs = params?.createdFromMs != null && Number.isFinite(Number(params.createdFromMs))
-            ? Number(params.createdFromMs) : null;
+        const { where, binds, remindDays } = buildDueInvoiceFilter(params);
         const maxLimit = Math.min(Math.max(parseInt(params?.maxLimit, 10) || 1000, 1), 2000);
-
-        // Mốc: đơn có shipped_at_unix <= (now - remindDays ngày) → đã đủ hạn.
-        const dueThreshold = Date.now() - remindDays * 86400000;
-
-        const where = [
-            `LOWER(TRIM(orders.status)) = 'shipped'`,
-            `COALESCE(orders.invoice_exported_at, 0) = 0`,
-            `COALESCE(orders.manual_invoice_exported, 0) = 0`,
-            `orders.shipped_at_unix IS NOT NULL`,
-            `orders.shipped_at_unix > 0`,
-            `orders.shipped_at_unix <= ?`
-        ];
-        const binds = [dueThreshold];
-        if (createdFromMs != null) {
-            where.push(`orders.created_at_unix >= ?`);
-            binds.push(createdFromMs);
-        }
 
         const sql = `${ORDER_FULL_SELECT}
             WHERE ${where.join(' AND ')}

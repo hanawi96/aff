@@ -1174,6 +1174,9 @@ async function confirmBulkToggleInvoiceStatus() {
             if (skipped.length > 0) message += ` · Bỏ qua ${skipped.length} đơn đã xuất hệ thống`;
             showToast(message, 'warning', 5000, TOAST_ID);
         }
+        if (successCount > 0 && typeof window.refreshInvoiceDueBadge === 'function') {
+            window.refreshInvoiceDueBadge(true);
+        }
         
         // Clear selection
         clearSelection();
