@@ -510,22 +510,31 @@ function normalizeOrderItemSizeClient(value) {
 }
 
 /**
- * SPX 文案：由 size/weight 得到展示用 Size 标签（含 cm 手围、kg 体重；空则「Chưa có」）
- * @param {string|number|null|undefined} sizeOrWeight - 优先 size，其次 weight
- * @returns {string} 如 "5kg"、"14cm" 或 "Chưa có"
+ * Nhãn Size cho cột sản phẩm SPX (Excel và Copy SPX).
+ * Giữ khoảng cân "6-8kg". Không gộp chữ số thành "68kg".
+ * @param {string|number|null|undefined} sizeOrWeight
+ * @returns {string} ví dụ "6-8kg", "5kg", "14cm", hoặc "Chưa có"
  */
 function getSPXSizeLabel(sizeOrWeight) {
     if (sizeOrWeight === null || sizeOrWeight === undefined) return 'Chưa có';
     const raw = String(sizeOrWeight).trim();
     if (raw === '') return 'Chưa có';
 
-    const sizeStr = raw.toLowerCase();
-    if (sizeStr.includes('cm')) {
-        const cmValue = sizeStr.replace(/[^0-9.]/g, '');
+    const compact = raw.toLowerCase().replace(/\s+/g, '');
+    if (compact === 'chưacó' || compact === 'chuaco') return 'Chưa có';
+
+    const range = compact.match(/^(\d+(?:\.\d+)?)[-–—−](\d+(?:\.\d+)?)(kg|g|cm|mm)?$/);
+    if (range) {
+        const unit = range[3] || 'kg';
+        return `${range[1]}-${range[2]}${unit}`;
+    }
+
+    if (compact.includes('cm')) {
+        const cmValue = compact.replace(/[^0-9.]/g, '');
         if (cmValue) return `${cmValue}cm`;
         return 'Chưa có';
     }
-    const kgValue = sizeStr.replace(/[^0-9.]/g, '');
+    const kgValue = compact.replace(/[^0-9.]/g, '');
     if (kgValue) return `${kgValue}kg`;
     return 'Chưa có';
 }
