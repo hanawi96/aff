@@ -1,7 +1,7 @@
 // ============================================
 // IMAGE PREVIEW UTILITY - OPTIMIZED
 // High-performance modal with caching and proper cleanup
-// Includes: Product Detail Modal with URL sync & share
+// Includes: Product Detail Modal with URL sync
 // ============================================
 
 import { CONFIG, productThumbUrl, productCardUrl, productDetailUrl, productZoomUrl } from '../constants/config.js?v=5';
@@ -197,10 +197,7 @@ async function _openProductDetailModal(product, priceData) {
     // 7. Setup action buttons
     _setupPreviewButtons(product.id);
 
-    // 8. Add share button to header
-    _setupShareButton(product);
-
-    // 9. Gợi ý bán chạy toàn shop và bán chạy trong danh mục của SP đang xem
+    // 8. Gợi ý bán chạy toàn shop và bán chạy trong danh mục của SP đang xem
     _loadBestSellers(product, document.getElementById('relatedProducts'));
 }
 
@@ -782,120 +779,6 @@ function _calculateDiscount(originalPrice, currentPrice) {
 }
 
 // ============================================
-// SHARE FUNCTIONALITY
-// ============================================
-
-/**
- * Setup share button in modal header.
- */
-function _setupShareButton(product) {
-    const modal = document.getElementById('imagePreviewModal');
-    if (!modal) return;
-
-    // Find or create share button
-    let shareBtn = modal.querySelector('.preview-share-btn');
-    if (!shareBtn) {
-        const closeBtn = modal.querySelector('.image-preview-close');
-        if (closeBtn && closeBtn.parentNode) {
-            shareBtn = document.createElement('button');
-            shareBtn.className = 'preview-share-btn';
-            shareBtn.title = 'Chia sẻ sản phẩm';
-            shareBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
-                </svg>
-            `;
-            closeBtn.parentNode.insertBefore(shareBtn, closeBtn);
-        }
-    }
-
-    if (shareBtn) {
-        // Remove old listener
-        eventManager.remove('shareButton');
-
-        eventManager.add('shareButton', shareBtn, 'click', (e) => {
-            e.stopPropagation();
-            _shareProduct(product);
-        });
-    }
-}
-
-/**
- * Share product via Web Share API or clipboard.
- */
-async function _shareProduct(product) {
-    const shareUrl = _buildProductUrl(product.id);
-    const shareData = {
-        title: product.name,
-        text: `${product.name} - Chỉ ${_formatPrice(product.price)} tại Vòng dâu tằm by Ánh`,
-        url: shareUrl
-    };
-
-    try {
-        // Try native share first (mobile)
-        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-            await navigator.share(shareData);
-            return;
-        }
-    } catch (err) {
-        // Fall through to clipboard copy
-    }
-
-    // Fallback: Copy to clipboard
-    try {
-        await navigator.clipboard.writeText(window.location.origin + shareUrl);
-        _showShareToast('Đã copy link sản phẩm!');
-    } catch (err) {
-        // Final fallback: select text
-        const textArea = document.createElement('textarea');
-        textArea.value = window.location.origin + shareUrl;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        _showShareToast('Đã copy link sản phẩm!');
-    }
-}
-
-/**
- * Show toast for share action.
- */
-let _shareToastTimer = null;
-function _showShareToast(message) {
-    // Remove existing toast
-    const existing = document.getElementById('shareToast');
-    if (existing) existing.remove();
-    clearTimeout(_shareToastTimer);
-
-    const toast = document.createElement('div');
-    toast.id = 'shareToast';
-    toast.style.cssText = [
-        'position:fixed',
-        'top:50%',
-        'left:50%',
-        'transform:translate(-50%,-50%)',
-        'background:#1f2937',
-        'color:#fff',
-        'padding:12px 24px',
-        'border-radius:8px',
-        'font-size:14px',
-        'font-weight:500',
-        'z-index:100000',
-        'box-shadow:0 4px 20px rgba(0,0,0,.3)',
-        'animation:shareToastIn 0.3s ease'
-    ].join(';');
-    toast.textContent = message;
-    document.body.appendChild(toast);
-
-    _shareToastTimer = setTimeout(() => {
-        toast.style.animation = 'shareToastOut 0.3s ease forwards';
-        setTimeout(() => toast.remove(), 300);
-    }, 2000);
-}
-
-// ============================================
 // CLOSE & URL SYNC
 // ============================================
 
@@ -913,7 +796,6 @@ window.closeImagePreview = function(fromPopstate = false) {
     eventManager.remove('imagePreview');
     eventManager.remove('previewButtons');
     eventManager.remove('fullscreenClick');
-    eventManager.remove('shareButton');
     eventManager.remove('imageCarousel');
     eventManager.remove('quyTrinhClick');
     eventManager.remove('benefitsClick');
