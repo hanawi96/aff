@@ -1307,6 +1307,17 @@ body {
 
 #loadMoreBtn {
     margin: 0 auto;
+    border: none;
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: #fff;
+    box-shadow: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+#loadMoreBtn:hover {
+    color: #fff;
+    filter: brightness(0.97);
 }
 
 /* Features */
@@ -6832,7 +6843,7 @@ body {
     margin: 0.15rem 0 0;
     text-align: center;
     color: #8a7564;
-    font-size: 0.84rem;
+    font-size: 1rem;
     line-height: 1.4;
 }
 

@@ -31,9 +31,9 @@
         <link rel="stylesheet" href="shop/assets/css/form-validation.css">
         <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css">
     </noscript>
-    <link rel="stylesheet" href="shop/styles.css?v=36">
+    <link rel="stylesheet" href="shop/styles.css?v=37">
     <link rel="stylesheet" href="shop/assets/css/home.css?v=2">
-    <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css?v=2">
+    <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css?v=4">
     <link rel="stylesheet" href="shop/cart.css?v=30">
 </head>
 <body class="bg-warm">
@@ -525,7 +525,7 @@
                         <figure>
                             <img class="fake-warn-img" src="https://shopvd.store/cdn-cgi/image/width=640,quality=75,format=auto/https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/vong-gia/2.jpg" data-full="https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/vong-gia/2.jpg" alt="Vòng dâu tằm giả dây đỏ, hạt đồng màu" width="640" height="640" loading="lazy" decoding="async" onerror="if(!this.dataset.fullTried){this.dataset.fullTried='1';this.src=this.dataset.full}">
                         </figure>
-                        <p class="fake-warn-photo-note">Vòng đang bán vài nghìn trên mạng</p>
+                        <p class="fake-warn-photo-note">Vòng dâu tằm giả</p>
                     </div>
                     <div class="fake-warn-copy">
                         <p class="fake-warn-kicker">Mẹ nên biết</p>
@@ -812,7 +812,7 @@
 
             <!-- Load More Button - Handmade Style -->
             <div class="text-center mt-12" id="loadMoreContainer">
-                <button class="inline-flex items-center gap-2 bg-white hover:bg-primary text-primary hover:text-white border-2 border-primary px-8 py-4 rounded-full font-semibold transition shadow-lg hover:shadow-xl transform hover:scale-105" id="loadMoreBtn" style="display: none;">
+                <button class="inline-flex items-center gap-2 px-8 py-4 rounded-full font-semibold" id="loadMoreBtn" style="display: none;">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.25rem; height: 1.25rem;"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z" clip-rule="evenodd" /></svg>
                     <span>Xem thêm sản phẩm</span>
                 </button>
@@ -823,24 +823,19 @@
 </section>
 
     <!-- Feedback Section - Ảnh feedback từ khách hàng -->
-    <section class="py-16 md:py-20 bg-gradient-to-br from-warm via-white to-accent/5" id="reviews">
-        <div class="container mx-auto px-4">
-            <!-- Section Header - Handmade Style -->
-            <div class="text-center mb-12">
-                <!-- Title -->
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
+    <section class="reviews-section" id="reviews">
+        <div class="reviews-inner">
+            <div class="reviews-head">
+                <h2 class="reviews-title">
                     Niềm tin từ<br>
-                    <span class="font-handwritten text-primary text-4xl md:text-5xl">hàng ngàn mẹ bỉm</span>
+                    <span class="font-handwritten">hàng ngàn mẹ bỉm</span>
                 </h2>
-                <!-- Handmade divider with heart -->
-                <div class="flex items-center justify-center gap-2 my-6">
-                    <div class="w-24 h-0.5 bg-gradient-to-r from-transparent to-primary/30"></div>
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-primary" style="width: 0.875rem; height: 0.875rem;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-                    <div class="w-24 h-0.5 bg-gradient-to-l from-transparent to-primary/30"></div>
+                <div class="reviews-rule" aria-hidden="true">
+                    <span></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
+                    <span></span>
                 </div>
-                
-                <!-- Description -->
-                <p class="text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                <p class="reviews-lead">
                     Những phản hồi chân thành từ các mẹ đã tin dùng sản phẩm của em ạ !!!
                 </p>
             </div>
@@ -912,23 +907,22 @@
                 <div class="feedback-dots" id="feedbackDots"></div>
             </div>
 
-            <!-- Trust Stats -->
-            <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div class="text-center">
-                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">30.000+</div>
-                    <p class="text-gray-600 font-medium">Mẹ tin dùng</p>
+            <div class="reviews-stats">
+                <div>
+                    <strong>30.000+</strong>
+                    <span>Mẹ tin dùng</span>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">99%</div>
-                    <p class="text-gray-600 font-medium">Mức độ hài lòng</p>
+                <div>
+                    <strong>99%</strong>
+                    <span>Mức độ hài lòng</span>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">100%</div>
-                    <p class="text-gray-600 font-medium">Thủ công</p>
+                <div>
+                    <strong>100%</strong>
+                    <span>Thủ công</span>
                 </div>
-                <div class="text-center">
-                    <div class="text-3xl md:text-4xl font-bold text-primary mb-2">2+</div>
-                    <p class="text-gray-600 font-medium">Năm kinh nghiệm</p>
+                <div>
+                    <strong>2+</strong>
+                    <span>Năm kinh nghiệm</span>
                 </div>
             </div>
         </div>
@@ -2161,8 +2155,6 @@
                             <li>Sản phẩm được làm thủ công.</li>
                             <li>Số hạt dâu được căn vào số hạt đẹp, tính theo Sinh - Lão - Bệnh - Tử, các mẹ nhận vòng là đeo được luôn cho bé.</li>
                             <li>Kích thước vòng làm theo cân nặng riêng của từng bé, từ 0 - 15kg. Bé trên 15kg giá sẽ cao hơn một chút do cần thêm nguyên liệu.</li>
-                            <!-- Thông tin dây (dynamic) — thêm 1 gạch đầu dòng nếu có -->
-                            <li class="product-string-info" id="productStringInfo" style="display: none;"></li>
                         </ul>
 
                         <p class="product-story-contact">
