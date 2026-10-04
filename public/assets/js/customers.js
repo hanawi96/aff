@@ -1,9 +1,18 @@
 // Customers Management JavaScript
+// The table shows `pageState.size` rows (default 20). The first request loads two
+// pages (40). Opening a later page paints from that buffer and silently fetches
+// one more page so the next click is already local.
 let allCustomers = [];
 let filteredCustomers = [];
 let customerNotes = {}; // { phone: { content, updated_at, has_content } }
 let sortState = { column: null, direction: 'asc' };
 let pageState = { current: 1, size: 20 };
+let listTotal = 0;
+let listReady = false;
+let listGeneration = 0;
+let activeListKey = '';
+let customerStats = null;
+let loadChain = Promise.resolve();
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
@@ -63,26 +72,53 @@ function debounce(func, wait) {
     };
 }
 
-// Load all customers
+function listParams() {
+    const q = document.getElementById('searchInput')?.value.trim() || '';
+    const segment = document.getElementById('segmentFilter')?.value || 'all';
+    const sort = sortState.column || 'total_spent';
+    const dir = sortState.column ? sortState.direction : 'desc';
+    return { q, segment, sort, dir };
+}
+
+function currentListKey() {
+    const p = listParams();
+    return `${p.q}\n${p.segment}\n${p.sort}\n${p.dir}`;
+}
+
+function resetCustomerBuffer() {
+    listGeneration += 1;
+    allCustomers = [];
+    filteredCustomers = [];
+    listTotal = 0;
+    listReady = false;
+    activeListKey = '';
+    pageState.current = 1;
+}
+
+async function fetchCustomerPage({ offset, limit, includeStats, params }) {
+    const p = params || listParams();
+    const url = new URL(CONFIG.API_URL);
+    url.searchParams.set('action', 'getAllCustomers');
+    url.searchParams.set('limit', String(limit));
+    url.searchParams.set('offset', String(offset));
+    url.searchParams.set('sort', p.sort);
+    url.searchParams.set('dir', p.dir);
+    if (p.q) url.searchParams.set('q', p.q);
+    if (p.segment && p.segment !== 'all') url.searchParams.set('segment', p.segment);
+    if (includeStats) url.searchParams.set('stats', '1');
+    url.searchParams.set('timestamp', String(Date.now()));
+
+    const response = await fetch(url.toString());
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to load customers');
+    return data;
+}
+
+// Load the first two pages. Later pages append one page at a time.
 async function loadCustomers() {
+    resetCustomerBuffer();
     try {
-        showLoading();
-
-        const response = await fetch(`${CONFIG.API_URL}?action=getAllCustomers&timestamp=${Date.now()}`);
-        const data = await response.json();
-
-        if (data.success) {
-            allCustomers = data.customers || [];
-            filteredCustomers = [...allCustomers];
-            console.log('📊 Total customers loaded:', allCustomers.length);
-            updateStats();
-            if (sortState.column) { applySort(); updateSortIcons(); }
-            renderCustomers();
-            hideLoading();
-            loadCustomerNotes();
-        } else {
-            throw new Error(data.error || 'Failed to load customers');
-        }
+        await showCustomerPage();
     } catch (error) {
         console.error('❌ Error loading customers:', error);
         hideLoading();
@@ -90,37 +126,116 @@ async function loadCustomers() {
     }
 }
 
-// Load customer notes for all customers (batch)
-async function loadCustomerNotes() {
+function ensureCustomersLoaded(throughExclusive) {
+    const gen = listGeneration;
+    const key = currentListKey();
+    const run = loadChain.then(() => ensureCustomersLoadedBody(throughExclusive, gen, key));
+    loadChain = run.then(() => {}, () => {});
+    return run;
+}
+
+async function ensureCustomersLoadedBody(throughExclusive, gen, key) {
+    if (gen !== listGeneration) return;
+
+    if (activeListKey !== key) {
+        allCustomers = [];
+        filteredCustomers = [];
+        listTotal = 0;
+        listReady = false;
+        activeListKey = key;
+    }
+
+    const needed = listReady ? Math.min(throughExclusive, listTotal) : throughExclusive;
+    if (listReady && allCustomers.length >= needed) return;
+
+    const offset = allCustomers.length;
+    let limit = throughExclusive - offset;
+    if (limit <= 0) return;
+    if (listReady) {
+        limit = Math.min(limit, Math.max(listTotal - offset, 0));
+        if (limit <= 0) return;
+    }
+
+    const data = await fetchCustomerPage({
+        offset,
+        limit,
+        includeStats: offset === 0 || !customerStats,
+        params: listParams(),
+    });
+    if (gen !== listGeneration || currentListKey() !== key) return;
+    if (offset !== allCustomers.length) return;
+
+    const rows = data.customers || [];
+    allCustomers = allCustomers.concat(rows);
+    filteredCustomers = allCustomers;
+    listTotal = Number(data.total) || 0;
+    listReady = true;
+    if (data.stats) {
+        customerStats = data.stats;
+        updateStats();
+    }
+    console.log('📊 Customers buffered:', allCustomers.length, '/', listTotal);
+    await loadCustomerNotes(rows.map((c) => c.phone));
+}
+
+// Notes for the phones just loaded. Missing phones are cached as empty so they are not requested again.
+async function loadCustomerNotes(phones) {
+    const missing = [...new Set((phones || []).filter((phone) => phone && customerNotes[phone] === undefined))];
+    if (missing.length === 0) return;
+
     try {
-        const phones = allCustomers.map(c => c.phone).filter(Boolean);
-        if (phones.length === 0) return;
-
-        const response = await fetch(
-            `${CONFIG.API_URL}?action=getCustomerNotesBatch&phones=${encodeURIComponent(JSON.stringify(phones))}&timestamp=${Date.now()}`
-        );
-        const data = await response.json();
-
-        if (data.success && data.notes) {
-            customerNotes = data.notes;
-            // Refresh current page rows to show note indicators
-            renderCustomers();
+        for (let i = 0; i < missing.length; i += 80) {
+            const slice = missing.slice(i, i + 80);
+            const response = await fetch(
+                `${CONFIG.API_URL}?action=getCustomerNotesBatch&phones=${encodeURIComponent(JSON.stringify(slice))}&timestamp=${Date.now()}`
+            );
+            const data = await response.json();
+            if (data.success && data.notes) {
+                Object.assign(customerNotes, data.notes);
+            }
+            slice.forEach((phone) => {
+                if (!customerNotes[phone]) {
+                    customerNotes[phone] = { content: '', has_content: false };
+                }
+            });
         }
     } catch (error) {
         console.error('❌ Error loading customer notes:', error);
     }
 }
 
-// Export filtered customers to CSV — instant, no API call, uses data already loaded
-function exportCustomersCSV() {
-    if (filteredCustomers.length === 0) {
+// Export the current search, segment, and sort. This is the one path that reads the full match list.
+async function exportCustomersCSV() {
+    const params = listParams();
+    let rows = [];
+    try {
+        showToast('Đang chuẩn bị file...', 'info');
+        let offset = 0;
+        let total = Infinity;
+        while (offset < total) {
+            const data = await fetchCustomerPage({ offset, limit: 500, includeStats: false, params });
+            const chunk = data.customers || [];
+            total = Number(data.total) || 0;
+            rows = rows.concat(chunk);
+            offset += chunk.length;
+            if (chunk.length === 0) break;
+        }
+    } catch (error) {
+        console.error('Error exporting customers:', error);
+        showToast('Không thể xuất danh sách', 'error');
+        return;
+    }
+
+    if (rows.length === 0) {
         showToast('Không có dữ liệu để xuất', 'error');
         return;
     }
 
+    await loadCustomerNotes(rows.map((c) => c.phone));
+
     const headers = ['STT', 'Họ và tên', 'Số điện thoại', 'Địa chỉ', 'Phân khúc', 'Số đơn hàng', 'Tổng chi tiêu', 'TB / đơn', 'Đơn gần nhất', 'Khách từ', 'CTV giới thiệu', 'Ghi chú'];
 
-    const rows = filteredCustomers.map((c, i) => [
+    const csvRows = rows.map((c, i) => [
         i + 1,
         c.name || '',
         c.phone || '',
@@ -139,7 +254,7 @@ function exportCustomersCSV() {
     const BOM = '\uFEFF';
     const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.map(cell => {
+        ...csvRows.map(row => row.map(cell => {
             const str = String(cell);
             // Escape double quotes and wrap if contains comma, newline, or quote
             return (str.includes(',') || str.includes('\n') || str.includes('"'))
@@ -161,58 +276,33 @@ function exportCustomersCSV() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    showToast(`Đã xuất ${filteredCustomers.length} khách hàng`, 'success');
+    showToast(`Đã xuất ${rows.length} khách hàng`, 'success');
 }
 
-// Search customers
+// Search customers — same window as the default list, not the full match set
 async function searchCustomers() {
-    const searchTerm = document.getElementById('searchInput')?.value || '';
-
-    if (!searchTerm.trim()) {
-        filteredCustomers = [...allCustomers];
-        pageState.current = 1;
-        if (sortState.column) { applySort(); updateSortIcons(); }
-        renderCustomers();
-        return;
-    }
-
+    resetCustomerBuffer();
     try {
-        const response = await fetch(`${CONFIG.API_URL}?action=searchCustomers&q=${encodeURIComponent(searchTerm)}&timestamp=${Date.now()}`);
-        const data = await response.json();
-
-        if (data.success) {
-            filteredCustomers = data.customers || [];
-            pageState.current = 1;
-            if (sortState.column) { applySort(); updateSortIcons(); }
-            renderCustomers();
-        }
+        await showCustomerPage();
     } catch (error) {
         console.error('Error searching customers:', error);
+        hideLoading();
+        showError('Không thể tìm khách hàng');
     }
 }
 
-// Filter by segment
+// Filter by segment on the server so later pages stay inside that segment
 function filterBySegment() {
-    const segment = document.getElementById('segmentFilter')?.value || 'all';
-
-    if (segment === 'all') {
-        filteredCustomers = [...allCustomers];
-    } else {
-        filteredCustomers = allCustomers.filter(customer => customer.segment === segment);
-    }
-
-    pageState.current = 1;
-
-    if (sortState.column) {
-        applySort();
-    } else {
-        renderCustomers();
-    }
+    resetCustomerBuffer();
+    showCustomerPage().catch((error) => {
+        console.error('Error filtering customers:', error);
+        hideLoading();
+        showError('Không thể lọc khách hàng');
+    });
 }
 
-// Sort customers by column
+// Sort customers by column. The loaded window is dropped because order comes from the server.
 function sortCustomers(column) {
-    // Toggle direction if same column, else reset to 'asc'
     if (sortState.column === column) {
         sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
     } else {
@@ -220,37 +310,12 @@ function sortCustomers(column) {
         sortState.direction = column === 'name' || column === 'phone' || column === 'segment' || column === 'address' ? 'asc' : 'desc';
     }
 
-    applySort();
     updateSortIcons();
-    renderCustomers();
-}
-
-function applySort() {
-    const { column, direction } = sortState;
-    const dir = direction === 'asc' ? 1 : -1;
-
-    filteredCustomers.sort((a, b) => {
-        let valA = a[column];
-        let valB = b[column];
-
-        // Handle null/undefined
-        if (valA == null) valA = '';
-        if (valB == null) valB = '';
-
-        // Date columns — parse to timestamp for comparison
-        if (column === 'last_order_date' || column === 'first_order_date') {
-            valA = valA ? new Date(valA).getTime() : 0;
-            valB = valB ? new Date(valB).getTime() : 0;
-            return (valA - valB) * dir;
-        }
-
-        // Number columns
-        if (column === 'total_orders' || column === 'total_spent' || column === 'avg_order_value') {
-            return (Number(valA) - Number(valB)) * dir;
-        }
-
-        // String columns (case-insensitive)
-        return String(valA).localeCompare(String(valB), 'vi') * dir;
+    resetCustomerBuffer();
+    showCustomerPage().catch((error) => {
+        console.error('Error sorting customers:', error);
+        hideLoading();
+        showError('Không thể sắp xếp khách hàng');
     });
 }
 
@@ -294,9 +359,9 @@ function renderPaginationBar(totalItems, totalPages) {
     if (selectEl) {
         selectEl.value = size;
         selectEl.onchange = () => {
-            pageState.size = Number(selectEl.value);
+            pageState.size = Number(selectEl.value) || 20;
             pageState.current = 1;
-            renderCustomersFiltered(filteredCustomers);
+            showCustomerPage();
         };
     }
 
@@ -305,11 +370,21 @@ function renderPaginationBar(totalItems, totalPages) {
     const nextBtn = existing.querySelector('#nextPageBtn');
     if (prevBtn) {
         prevBtn.disabled = current <= 1;
-        prevBtn.onclick = () => { pageState.current--; scrollToTable(); renderCustomersFiltered(filteredCustomers); };
+        prevBtn.onclick = () => {
+            if (pageState.current <= 1) return;
+            pageState.current--;
+            scrollToTable();
+            showCustomerPage();
+        };
     }
     if (nextBtn) {
         nextBtn.disabled = current >= totalPages;
-        nextBtn.onclick = () => { pageState.current++; scrollToTable(); renderCustomersFiltered(filteredCustomers); };
+        nextBtn.onclick = () => {
+            if (pageState.current >= totalPages) return;
+            pageState.current++;
+            scrollToTable();
+            showCustomerPage();
+        };
     }
 
     // Page numbers
@@ -349,57 +424,95 @@ function pageBtn(num, current) {
 }
 
 function goToPage(num) {
+    const totalPages = Math.max(1, Math.ceil((listTotal || 0) / pageState.size));
+    if (num < 1 || (listReady && num > totalPages)) return;
     pageState.current = num;
     scrollToTable();
-    renderCustomersFiltered(filteredCustomers);
+    showCustomerPage();
 }
 
 function scrollToTable() {
     document.getElementById('tableContent')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Update statistics
+// Update statistics from the server summary, not from the rows loaded so far
 function updateStats() {
-    // Total customers
-    document.getElementById('totalCustomers').textContent = allCustomers.length;
-    
-    // New customers (first order within 30 days)
-    const newCustomers = allCustomers.filter(c => c.days_since_first_order <= 30);
-    document.getElementById('newCustomers').textContent = newCustomers.length;
-    
-    // Total revenue
-    const totalRevenue = allCustomers.reduce((sum, c) => sum + (c.total_spent || 0), 0);
-    document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
-    
-    // Average order value
-    const totalOrders = allCustomers.reduce((sum, c) => sum + (c.total_orders || 0), 0);
+    if (!customerStats) return;
+    const totalOrders = customerStats.totalOrders || 0;
+    const totalRevenue = customerStats.totalRevenue || 0;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    document.getElementById('totalCustomers').textContent = customerStats.totalCustomers;
+    document.getElementById('newCustomers').textContent = customerStats.newCustomers;
+    document.getElementById('totalRevenue').textContent = formatCurrency(totalRevenue);
     document.getElementById('avgOrderValue').textContent = formatCurrency(avgOrderValue);
 }
 
 // Render customers table
 function renderCustomers() {
-    renderCustomersFiltered(filteredCustomers);
+    showCustomerPage();
 }
 
-function renderCustomersFiltered(customers) {
+let customerPageToken = 0;
+
+// Page 1 loads two pages. Each later page paints what is already buffered, then
+// fetches the following page without the table skeleton.
+async function showCustomerPage() {
+    const token = ++customerPageToken;
+    const size = pageState.size;
+    const pageEnd = pageState.current * size;
+    const bufferEnd = (pageState.current + 1) * size;
+    const key = currentListKey();
+    const canPaint = listReady
+        && activeListKey === key
+        && allCustomers.length >= Math.min(pageEnd, listTotal);
+
+    try {
+        if (!canPaint) {
+            showLoading();
+            // First visit of a query loads the current page and the next one together.
+            // A later page that is not buffered yet loads only through the rows on screen.
+            const target = listReady && activeListKey === key ? pageEnd : bufferEnd;
+            await ensureCustomersLoaded(target);
+            if (token !== customerPageToken) return;
+        }
+
+        paintCustomers();
+        if (token !== customerPageToken) return;
+
+        // The next page is fetched quietly so the following click does not wait.
+        if (listReady && allCustomers.length < Math.min(bufferEnd, listTotal)) {
+            ensureCustomersLoaded(bufferEnd).catch((error) => {
+                console.error('❌ Error prefetching customers:', error);
+            });
+        }
+    } catch (error) {
+        if (token !== customerPageToken) return;
+        console.error('❌ Error loading customers:', error);
+        hideLoading();
+        showError('Không thể tải danh sách khách hàng');
+    }
+}
+
+function paintCustomers() {
     const tbody = document.getElementById('customersTableBody');
+    if (!tbody || !listReady) return;
 
-    if (!tbody) return;
-
-    if (customers.length === 0) {
+    if (listTotal === 0) {
         showEmptyState();
         return;
     }
 
-    const totalPages = Math.ceil(customers.length / pageState.size);
-    if (pageState.current > totalPages) pageState.current = totalPages || 1;
+    const totalPages = Math.max(1, Math.ceil(listTotal / pageState.size));
+    if (pageState.current > totalPages) pageState.current = totalPages;
+    if (pageState.current < 1) pageState.current = 1;
 
     const start = (pageState.current - 1) * pageState.size;
-    const pageData = customers.slice(start, start + pageState.size);
+    const pageData = allCustomers.slice(start, start + pageState.size);
+    if (pageData.length === 0) return;
 
     tbody.innerHTML = pageData.map((customer, i) => createCustomerRow(customer, start + i + 1)).join('');
-    renderPaginationBar(customers.length, totalPages);
+    renderPaginationBar(listTotal, totalPages);
     showTable();
 }
 

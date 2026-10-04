@@ -464,7 +464,15 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             return await getCategory(categoryId, env, corsHeaders);
 
         case 'getAllCustomers':
-            return await getAllCustomers(env, corsHeaders);
+            return await getAllCustomers(env, corsHeaders, {
+                limit: url.searchParams.get('limit'),
+                offset: url.searchParams.get('offset'),
+                sort: url.searchParams.get('sort'),
+                dir: url.searchParams.get('dir'),
+                segment: url.searchParams.get('segment'),
+                q: url.searchParams.get('q'),
+                stats: url.searchParams.get('stats'),
+            });
 
         case 'getAllDiscounts':
             return await getAllDiscounts(env, corsHeaders);

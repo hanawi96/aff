@@ -1,68 +1,189 @@
 import { jsonResponse } from '../../utils/response.js';
 
-// Get all customers (virtual - aggregated from orders)
-export async function getAllCustomers(env, corsHeaders) {
+const CUSTOMER_SEGMENTS = new Set(['VIP', 'Regular', 'New', 'At Risk', 'Churned']);
+const CUSTOMER_SORT_SQL = {
+    name: 'name COLLATE NOCASE',
+    phone: 'phone',
+    segment: 'segment',
+    total_orders: 'total_orders',
+    total_spent: 'total_spent',
+    last_order_date: 'last_order_date',
+};
+
+function timestampMs(ts) {
+    if (ts == null || ts === '') return null;
+    if (typeof ts === 'number' && Number.isFinite(ts)) return ts;
+    const n = Number(ts);
+    if (Number.isFinite(n) && String(ts).trim() !== '') return n;
+    const ms = new Date(ts).getTime();
+    return Number.isFinite(ms) ? ms : null;
+}
+
+function enrichCustomer(customer, now) {
+    const lastMs = timestampMs(customer.last_order_date);
+    const firstMs = timestampMs(customer.first_order_date);
+    const daysSinceLastOrder = lastMs == null ? null : Math.floor((now - lastMs) / 86400000);
+    const daysSinceFirstOrder = firstMs == null ? null : Math.floor((now - firstMs) / 86400000);
+
+    let segment = 'New';
+    const totalOrders = Number(customer.total_orders) || 0;
+    if (totalOrders >= 5) {
+        segment = 'VIP';
+    } else if (totalOrders >= 2) {
+        segment = 'Regular';
+    }
+
+    if (daysSinceLastOrder > 90) {
+        segment = 'Churned';
+    } else if (daysSinceLastOrder > 60) {
+        segment = 'At Risk';
+    }
+
+    const totalSpent = Number(customer.total_spent) || 0;
+    return {
+        ...customer,
+        total_orders: totalOrders,
+        total_spent: totalSpent,
+        avg_order_value: totalOrders ? totalSpent / totalOrders : 0,
+        days_since_last_order: daysSinceLastOrder,
+        days_since_first_order: daysSinceFirstOrder,
+        segment,
+    };
+}
+
+// Customers are aggregated from orders. Pass limit/offset to page the list.
+// Without limit, the full grouped list is returned (export and older callers).
+export async function getAllCustomers(env, corsHeaders, options = {}) {
     try {
-        const { results: customers } = await env.DB.prepare(`
-            SELECT 
-                customer_phone as phone,
-                MAX(customer_name) as name,
-                MAX(address) as address,
-                MAX(province_id) as province_id,
-                MAX(province_name) as province_name,
-                COUNT(*) as total_orders,
-                SUM(total_amount) as total_spent,
-                MAX(created_at_unix) as last_order_date,
-                MIN(created_at_unix) as first_order_date,
-                GROUP_CONCAT(DISTINCT referral_code) as ctv_codes
-            FROM orders
-            WHERE customer_phone IS NOT NULL AND customer_phone != ''
-            GROUP BY customer_phone
-            ORDER BY total_spent DESC
-        `).all();
+        const now = Date.now();
+        const q = String(options.q || '').trim();
+        const segment = CUSTOMER_SEGMENTS.has(options.segment) ? options.segment : 'all';
+        const sortKey = CUSTOMER_SORT_SQL[options.sort] ? options.sort : 'total_spent';
+        const dir = String(options.dir || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+        const includeStats = options.stats === '1' || options.stats === 'true' || options.stats === true;
 
-        // Calculate additional metrics for each customer
-        const enrichedCustomers = customers.map(customer => {
-            const daysSinceLastOrder = customer.last_order_date
-                ? Math.floor((Date.now() - new Date(customer.last_order_date).getTime()) / (1000 * 60 * 60 * 24))
-                : null;
+        const limitParam = options.limit;
+        const hasLimit = limitParam !== undefined && limitParam !== null && String(limitParam) !== '';
+        let limit = null;
+        if (hasLimit) {
+            limit = parseInt(limitParam, 10);
+            if (!Number.isFinite(limit) || limit < 1) limit = 40;
+            if (limit > 10000) limit = 10000;
+        }
+        const offset = Math.max(parseInt(options.offset, 10) || 0, 0);
 
-            const daysSinceFirstOrder = customer.first_order_date
-                ? Math.floor((Date.now() - new Date(customer.first_order_date).getTime()) / (1000 * 60 * 60 * 24))
-                : null;
+        const searchClause = q
+            ? `AND (customer_name LIKE ? OR customer_phone LIKE ?)`
+            : '';
+        const searchBinds = q ? [`%${q}%`, `%${q}%`] : [];
+        const orderSql = sortKey === 'phone'
+            ? `phone ${dir}`
+            : `${CUSTOMER_SORT_SQL[sortKey]} ${dir}, phone ASC`;
 
-            // Classify customer
-            let segment = 'New';
-            if (customer.total_orders >= 5) {
-                segment = 'VIP';
-            } else if (customer.total_orders >= 2) {
-                segment = 'Regular';
-            }
+        const groupedSql = `
+            WITH grouped AS (
+                SELECT
+                    customer_phone AS phone,
+                    MAX(customer_name) AS name,
+                    MAX(address) AS address,
+                    MAX(province_id) AS province_id,
+                    MAX(province_name) AS province_name,
+                    COUNT(*) AS total_orders,
+                    SUM(total_amount) AS total_spent,
+                    MAX(created_at_unix) AS last_order_date,
+                    MIN(created_at_unix) AS first_order_date,
+                    GROUP_CONCAT(DISTINCT referral_code) AS ctv_codes
+                FROM orders
+                WHERE customer_phone IS NOT NULL AND customer_phone != ''
+                ${searchClause}
+                GROUP BY customer_phone
+            ),
+            labeled AS (
+                SELECT
+                    grouped.*,
+                    CASE
+                        WHEN last_order_date IS NOT NULL AND CAST((? - last_order_date) / 86400000.0 AS INTEGER) > 90 THEN 'Churned'
+                        WHEN last_order_date IS NOT NULL AND CAST((? - last_order_date) / 86400000.0 AS INTEGER) > 60 THEN 'At Risk'
+                        WHEN total_orders >= 5 THEN 'VIP'
+                        WHEN total_orders >= 2 THEN 'Regular'
+                        ELSE 'New'
+                    END AS segment
+                FROM grouped
+            )
+        `;
 
-            // Check if at risk or churned
-            if (daysSinceLastOrder > 90) {
-                segment = 'Churned';
-            } else if (daysSinceLastOrder > 60) {
-                segment = 'At Risk';
-            }
+        const whereSql = `WHERE (? = 'all' OR segment = ?)`;
+        const filterBinds = [...searchBinds, now, now, segment === 'all' ? 'all' : segment, segment];
 
-            return {
-                ...customer,
-                avg_order_value: customer.total_spent / customer.total_orders,
-                days_since_last_order: daysSinceLastOrder,
-                days_since_first_order: daysSinceFirstOrder,
-                segment: segment
-            };
-        });
+        const pageSql = `
+            ${groupedSql}
+            SELECT * FROM labeled
+            ${whereSql}
+            ORDER BY ${orderSql}
+            ${hasLimit ? 'LIMIT ? OFFSET ?' : ''}
+        `;
+        const countSql = `
+            ${groupedSql}
+            SELECT COUNT(*) AS total FROM labeled
+            ${whereSql}
+        `;
+        const pageBinds = hasLimit ? [...filterBinds, limit, offset] : filterBinds;
 
-        console.log('📊 getAllCustomers: Total customers =', enrichedCustomers.length);
-        
-        return jsonResponse({
+        const statsSql = `
+            SELECT
+                COUNT(*) AS total_customers,
+                COALESCE(SUM(spent), 0) AS total_revenue,
+                COALESCE(SUM(orders_n), 0) AS total_orders,
+                COALESCE(SUM(CASE
+                    WHEN first_order IS NOT NULL AND CAST((? - first_order) / 86400000.0 AS INTEGER) <= 30 THEN 1
+                    ELSE 0
+                END), 0) AS new_customers
+            FROM (
+                SELECT
+                    SUM(total_amount) AS spent,
+                    COUNT(*) AS orders_n,
+                    MIN(created_at_unix) AS first_order
+                FROM orders
+                WHERE customer_phone IS NOT NULL AND customer_phone != ''
+                GROUP BY customer_phone
+            )
+        `;
+
+        const pagePromise = env.DB.prepare(pageSql).bind(...pageBinds).all();
+        const countPromise = env.DB.prepare(countSql).bind(...filterBinds).first();
+        const statsPromise = includeStats
+            ? env.DB.prepare(statsSql).bind(now).first()
+            : Promise.resolve(null);
+
+        const [pageResult, countResult, statsResult] = await Promise.all([
+            pagePromise,
+            countPromise,
+            statsPromise,
+        ]);
+
+        const enrichedCustomers = (pageResult.results || []).map((customer) => enrichCustomer(customer, now));
+        const total = Number(countResult?.total) || 0;
+
+        const body = {
             success: true,
             customers: enrichedCustomers,
-            total: enrichedCustomers.length
-        }, 200, corsHeaders);
+            total,
+        };
 
+        if (includeStats && statsResult) {
+            const totalOrders = Number(statsResult.total_orders) || 0;
+            const totalRevenue = Number(statsResult.total_revenue) || 0;
+            body.stats = {
+                totalCustomers: Number(statsResult.total_customers) || 0,
+                newCustomers: Number(statsResult.new_customers) || 0,
+                totalRevenue,
+                totalOrders,
+            };
+        }
+
+        console.log('📊 getAllCustomers:', { total, returned: enrichedCustomers.length, offset, limit });
+
+        return jsonResponse(body, 200, corsHeaders);
     } catch (error) {
         console.error('Error getting customers:', error);
         return jsonResponse({
@@ -238,32 +359,7 @@ export async function searchCustomers(query, env, corsHeaders) {
             ORDER BY total_spent DESC
         `).bind(searchTerm, searchTerm).all();
 
-        // Enrich customer data
-        const enrichedCustomers = customers.map(customer => {
-            const daysSinceLastOrder = customer.last_order_date
-                ? Math.floor((Date.now() - new Date(customer.last_order_date).getTime()) / (1000 * 60 * 60 * 24))
-                : null;
-
-            let segment = 'New';
-            if (customer.total_orders >= 5) {
-                segment = 'VIP';
-            } else if (customer.total_orders >= 2) {
-                segment = 'Regular';
-            }
-
-            if (daysSinceLastOrder > 90) {
-                segment = 'Churned';
-            } else if (daysSinceLastOrder > 60) {
-                segment = 'At Risk';
-            }
-
-            return {
-                ...customer,
-                avg_order_value: customer.total_spent / customer.total_orders,
-                days_since_last_order: daysSinceLastOrder,
-                segment: segment
-            };
-        });
+        const enrichedCustomers = customers.map((customer) => enrichCustomer(customer, Date.now()));
 
         return jsonResponse({
             success: true,
