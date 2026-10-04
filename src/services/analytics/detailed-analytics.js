@@ -119,39 +119,68 @@ export async function getDetailedAnalytics(data, env, corsHeaders) {
             totalRevenue
         );
 
-        // Get detailed cost breakdown from packaging_details using SQLite JSON functions
-        // This is MUCH faster than parsing JSON in JavaScript loop
-        const packagingBreakdown = await env.DB.prepare(`
-            SELECT 
-                COALESCE(SUM(
-                    CAST(json_extract(packaging_details, '$.per_product.red_string') AS REAL) * 
-                    CAST(json_extract(packaging_details, '$.total_products') AS INTEGER)
-                ), 0) as red_string,
-                COALESCE(SUM(
-                    CAST(json_extract(packaging_details, '$.per_product.labor_cost') AS REAL) * 
-                    CAST(json_extract(packaging_details, '$.total_products') AS INTEGER)
-                ), 0) as labor_cost,
-                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.bag_zip') AS REAL)), 0) as bag_zip,
-                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.bag_red') AS REAL)), 0) as bag_red,
-                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.box_shipping') AS REAL)), 0) as box_shipping,
-                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.thank_card') AS REAL)), 0) as thank_card,
-                COALESCE(SUM(CAST(json_extract(packaging_details, '$.per_order.paper_print') AS REAL)), 0) as paper_print
-            FROM orders
-            WHERE created_at_unix >= ?${endClause} AND packaging_details IS NOT NULL
-        `).bind(...bindStart).first();
+        // Mỗi khoản đóng gói lấy từ snapshot đơn (per_order / per_product).
+        // Giá mới lưu {cost, name}; đơn cũ có thể lưu số trần. Bỏ đơn packaging_cost = 0
+        // (đơn gửi bù vẫn giữ snapshot nhưng không tính chi phí).
+        const lineAmountSql = `
+            CASE
+                WHEN json_type(j.value) = 'object' THEN COALESCE(CAST(json_extract(j.value, '$.cost') AS REAL), 0)
+                ELSE COALESCE(CAST(j.value AS REAL), 0)
+            END`;
+        const lineNameSql = `
+            CASE
+                WHEN json_type(j.value) = 'object' THEN json_extract(j.value, '$.name')
+                ELSE NULL
+            END`;
+        const packagingWhere = `
+            json_valid(packaging_details)
+            AND created_at_unix >= ?${endClause}
+            AND COALESCE(packaging_cost, 0) > 0`;
+        const { results: packagingLineRows } = await env.DB.prepare(`
+            SELECT item_key, MAX(item_name) AS item_name, SUM(amount) AS amount
+            FROM (
+                SELECT j.key AS item_key, ${lineNameSql} AS item_name, ${lineAmountSql} AS amount
+                FROM orders, json_each(orders.packaging_details, '$.per_order') j
+                WHERE ${packagingWhere}
+                  AND json_type(packaging_details, '$.per_order') = 'object'
+                UNION ALL
+                SELECT j.key AS item_key, ${lineNameSql} AS item_name,
+                    (${lineAmountSql}) * COALESCE(CAST(json_extract(orders.packaging_details, '$.total_products') AS INTEGER), 1) AS amount
+                FROM orders, json_each(orders.packaging_details, '$.per_product') j
+                WHERE ${packagingWhere}
+                  AND json_type(packaging_details, '$.per_product') = 'object'
+            )
+            GROUP BY item_key
+            HAVING amount > 0
+            ORDER BY amount DESC
+        `).bind(...bindStart, ...bindStart).all();
+
+        const packagingLines = (packagingLineRows || []).map((row) => ({
+            key: row.item_key,
+            name: row.item_name || null,
+            amount: row.amount || 0
+        }));
+        const packagingByKey = {};
+        packagingLines.forEach((line) => {
+            packagingByKey[line.key] = line.amount;
+        });
 
         const costBreakdown = {
             product_cost: overview.product_cost || 0,
             shipping_cost: overview.total_shipping_cost || 0,
             commission: overview.total_commission || 0,
             tax: overview.total_tax || 0,
-            red_string: packagingBreakdown?.red_string || 0,
-            labor_cost: packagingBreakdown?.labor_cost || 0,
-            bag_zip: packagingBreakdown?.bag_zip || 0,
-            bag_red: packagingBreakdown?.bag_red || 0,
-            box_shipping: packagingBreakdown?.box_shipping || 0,
-            thank_card: packagingBreakdown?.thank_card || 0,
-            paper_print: packagingBreakdown?.paper_print || 0
+            packaging_lines: packagingLines,
+            bag_zip: packagingByKey.bag_zip || 0,
+            bag_red: packagingByKey.bag_red || 0,
+            hop_carton: packagingByKey.hop_carton || 0,
+            box_shipping: packagingByKey.box_shipping || 0,
+            bang_dinh: packagingByKey.bang_dinh || 0,
+            red_string: packagingByKey.red_string || 0,
+            thank_card: packagingByKey.thank_card || 0,
+            paper_print: packagingByKey.paper_print || 0,
+            hoa_don_dien_tu: packagingByKey.hoa_don_dien_tu || 0,
+            labor_cost: packagingByKey.labor_cost || 0
         };
 
         // Debug: Check if any orders have commission

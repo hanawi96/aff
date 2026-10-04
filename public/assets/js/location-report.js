@@ -517,7 +517,6 @@ function renderLocationTable() {
     }
 
     const sortedData = getSortedLocationTableRows();
-    const rankById = new Map(sortedData.map((loc, i) => [String(loc.id), i + 1]));
     const totalRevenue = sortedData.reduce((sum, loc) => sum + (loc.revenue || 0), 0);
 
     const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
@@ -546,7 +545,7 @@ function renderLocationTable() {
     const pageRows = filtered.slice(start, start + LOCATION_TABLE_PAGE_SIZE);
 
     tbody.innerHTML = pageRows.map((location, i) => {
-        const rank = rankById.get(String(location.id)) ?? start + i + 1;
+        const rank = start + i + 1;
         const rankDisplay = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
         const revenuePercent = totalRevenue > 0 ? (location.revenue / totalRevenue * 100) : 0;
         const growth = location.growth || 0;

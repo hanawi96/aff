@@ -519,12 +519,7 @@ function updateSummaryStats(overview, costs) {
     document.getElementById('commissionPercent').textContent = `${commissionPercent.toFixed(1)}% doanh thu`;
 
     // Tính từ costBreakdown — đồng nhất với bảng "Chi phí chi tiết"
-    const summaryTotalCost = costs ? (
-        (costs.product_cost || 0) + (costs.shipping_cost || 0) + (costs.commission || 0) +
-        (costs.tax || 0) + (costs.bag_zip || 0) + (costs.bag_red || 0) +
-        (costs.box_shipping || 0) + (costs.red_string || 0) + (costs.thank_card || 0) +
-        (costs.paper_print || 0) + (costs.labor_cost || 0)
-    ) : overview.total_cost;
+    const summaryTotalCost = costs ? sumDisplayedCostItems(costs) : overview.total_cost;
     const summaryAvgCost = overview.total_orders > 0 ? summaryTotalCost / overview.total_orders : 0;
     document.getElementById('totalAllCosts').textContent = formatCurrency(summaryTotalCost);
     document.getElementById('costBreakdown').textContent = `TB: ${formatCurrency(summaryAvgCost)}/đơn`;
@@ -538,10 +533,6 @@ function updateSummaryStats(overview, costs) {
     // Update profit ratio
     document.getElementById('profitRatio').textContent = `${overview.profit_margin.toFixed(1)}%`;
 }
-
-// Chart instance
-let pieChart = null;
-let customerSourceChart = null;
 
 const PR_SOURCE_COLORS = {
     facebook: '#3B82F6',
@@ -564,8 +555,8 @@ function renderCustomerSources(sources) {
     if (!tbody) return;
 
     if (!Array.isArray(sources) || sources.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-2 py-8 text-center text-sm text-slate-400 italic">Chưa có đơn trong kỳ này</td></tr>';
-        renderCustomerSourceChart([]);
+        tbody.innerHTML = '<tr><td colspan="7" class="px-3 py-8 text-center text-sm text-slate-400 italic">Chưa có đơn trong kỳ này</td></tr>';
+        renderSourceShareBar([]);
         return;
     }
 
@@ -586,65 +577,83 @@ function renderCustomerSources(sources) {
         </tr>`;
     }).join('');
 
-    renderCustomerSourceChart(sources);
+    renderSourceShareBar(sources);
 }
 
-function renderCustomerSourceChart(sources) {
-    const canvas = document.getElementById('prCustomerSourceChart');
-    const wrap = document.getElementById('prCustomerSourceChartWrap');
-    const emptyEl = document.getElementById('prCustomerSourceChartEmpty');
-    if (!canvas) return;
+function renderSourceShareBar(sources) {
+    const wrap = document.getElementById('prSourceShare');
+    const bar = document.getElementById('prSourceShareBar');
+    const legend = document.getElementById('prSourceShareLegend');
+    if (!wrap || !bar || !legend) return;
 
     const active = (sources || []).filter((s) => (s.revenue || 0) > 0);
-
     if (active.length === 0) {
-        if (customerSourceChart) {
-            customerSourceChart.destroy();
-            customerSourceChart = null;
-        }
-        if (wrap) wrap.classList.add('hidden');
-        if (emptyEl) emptyEl.classList.remove('hidden');
+        wrap.classList.add('hidden');
+        bar.innerHTML = '';
+        legend.innerHTML = '';
         return;
     }
 
-    if (wrap) wrap.classList.remove('hidden');
-    if (emptyEl) emptyEl.classList.add('hidden');
+    wrap.classList.remove('hidden');
+    bar.innerHTML = active.map((s) => {
+        const color = PR_SOURCE_COLORS[s.source] || PR_SOURCE_COLORS.unknown;
+        const share = Math.max(Number(s.revenue_share) || 0, 0);
+        const label = `${s.label} · ${share.toFixed(1)}% · ${formatCurrency(s.revenue)}`;
+        return `<div class="h-full min-w-[2px]" style="width:${share}%; background:${color}" title="${escapeHtml(label)}"></div>`;
+    }).join('');
+    legend.innerHTML = active.map((s) => {
+        const color = PR_SOURCE_COLORS[s.source] || PR_SOURCE_COLORS.unknown;
+        const share = Number(s.revenue_share) || 0;
+        return `<span class="inline-flex items-center gap-1.5 text-xs text-slate-600">
+            <span class="h-2 w-2 rounded-full" style="background:${color}"></span>
+            ${escapeHtml(s.label)}
+            <span class="font-semibold tabular-nums text-slate-800">${share.toFixed(1)}%</span>
+        </span>`;
+    }).join('');
+}
 
-    if (customerSourceChart) customerSourceChart.destroy();
+const PACKAGING_LINE_META = {
+    bag_zip: { icon: '📦', label: 'Túi zip', color: '#8B5CF6' },
+    bag_red: { icon: '🎁', label: 'Túi đỏ', color: '#EC4899' },
+    hop_carton: { icon: '📦', label: 'Hộp carton', color: '#6366F1' },
+    box_shipping: { icon: '📦', label: 'Hộp', color: '#6366F1' },
+    bang_dinh: { icon: '🧵', label: 'Băng dính', color: '#F43F5E' },
+    red_string: { icon: '🧵', label: 'Dây đỏ', color: '#F43F5E' },
+    thank_card: { icon: '💌', label: 'Thiệp cảm ơn', color: '#14B8A6' },
+    paper_print: { icon: '📄', label: 'Giấy in', color: '#6B7280' },
+    hoa_don_dien_tu: { icon: '🧾', label: 'Hóa đơn điện tử', color: '#0EA5E9' },
+    labor_cost: { icon: '👷', label: 'Tiền công', color: '#F59E0B', labor: true }
+};
 
-    customerSourceChart = new Chart(canvas, {
-        type: 'doughnut',
-        data: {
-            labels: active.map((s) => s.label),
-            datasets: [{
-                data: active.map((s) => s.revenue),
-                backgroundColor: active.map((s) => PR_SOURCE_COLORS[s.source] || PR_SOURCE_COLORS.unknown),
-                borderWidth: 3,
-                borderColor: '#fff',
-                hoverOffset: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1.5,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { boxWidth: 10, padding: 8, font: { size: 11 }, usePointStyle: true }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => {
-                            const s = active[ctx.dataIndex];
-                            return `${formatCurrency(ctx.raw)} · ${(s.revenue_share || 0).toFixed(1)}% · ${formatNumber(s.order_count)} đơn`;
-                        }
-                    }
-                }
-            },
-            animation: { duration: 400 }
-        }
-    });
+/** Các khoản đóng gói đã lưu trên đơn. API mới trả packaging_lines; bản cũ chỉ có vài khóa cố định. */
+function packagingLineItems(costs) {
+    if (!costs) return [];
+    const raw = Array.isArray(costs.packaging_lines) ? costs.packaging_lines : null;
+    const source = raw || Object.keys(PACKAGING_LINE_META).map((key) => ({
+        key,
+        name: PACKAGING_LINE_META[key].label,
+        amount: costs[key] || 0
+    }));
+    return source
+        .map((line) => {
+            const meta = PACKAGING_LINE_META[line.key] || {};
+            const value = Number(line.amount) || 0;
+            return {
+                key: line.key,
+                icon: meta.icon || '📦',
+                name: line.name || meta.label || line.key,
+                color: meta.color || '#8B5CF6',
+                labor: !!(meta.labor || line.key === 'labor_cost'),
+                value,
+                alwaysShow: false
+            };
+        })
+        .filter((line) => line.value > 0);
+}
+
+function sumDisplayedCostItems(costs) {
+    const main = (costs.product_cost || 0) + (costs.shipping_cost || 0) + (costs.commission || 0) + (costs.tax || 0);
+    return main + packagingLineItems(costs).reduce((sum, line) => sum + line.value, 0);
 }
 
 // Render cost breakdown table + charts
@@ -655,37 +664,17 @@ function renderCostBreakdownTable(costs, overview) {
         return;
     }
 
-    // Lưu overview vào window để dùng trong renderCostCharts
-    window.currentOverview = overview;
-
-    // Tính tổng chi phí từ costs object (không dựa vào overview.total_cost)
-    const totalCost = (costs.product_cost || 0) +
-        (costs.shipping_cost || 0) +
-        (costs.commission || 0) +
-        (costs.tax || 0) +
-        (costs.bag_zip || 0) +
-        (costs.bag_red || 0) +
-        (costs.box_shipping || 0) +
-        (costs.red_string || 0) +
-        (costs.thank_card || 0) +
-        (costs.paper_print || 0) +
-        (costs.labor_cost || 0);
+    const totalCost = sumDisplayedCostItems(costs);
 
     const totalOrders = overview.total_orders || 1;
 
-    // Cost items config - Always show main costs even if 0
+    // Giá vốn, vận chuyển, hoa hồng luôn hiện. Đóng gói hiện từng khoản có tiền.
     const items = [
-        { key: 'product_cost', label: '💎 Giá vốn', color: '#3B82F6', group: 'main', alwaysShow: true },
-        { key: 'shipping_cost', label: '🚚 Vận chuyển', color: '#F97316', group: 'main', alwaysShow: true },
-        { key: 'commission', label: '💰 Hoa hồng CTV', color: '#EAB308', group: 'main', alwaysShow: true },
-        { key: 'tax', label: '📊 Thuế', color: '#EF4444', group: 'main', alwaysShow: false },
-        { key: 'bag_zip', label: '📦 Túi zip', color: '#8B5CF6', group: 'packaging', alwaysShow: false },
-        { key: 'bag_red', label: '🎁 Túi đỏ', color: '#EC4899', group: 'packaging', alwaysShow: false },
-        { key: 'box_shipping', label: '📦 Hộp', color: '#6366F1', group: 'packaging', alwaysShow: false },
-        { key: 'red_string', label: '🧵 Dây đỏ', color: '#F43F5E', group: 'packaging', alwaysShow: false },
-        { key: 'thank_card', label: '💌 Thiệp', color: '#14B8A6', group: 'packaging', alwaysShow: false },
-        { key: 'paper_print', label: '📄 Giấy in', color: '#6B7280', group: 'packaging', alwaysShow: false },
-        { key: 'labor_cost', label: '👷 Tiền công', color: '#F59E0B', group: 'packaging', alwaysShow: false }
+        { key: 'product_cost', icon: '💎', name: 'Giá vốn', color: '#3B82F6', value: costs.product_cost || 0, alwaysShow: true },
+        { key: 'shipping_cost', icon: '🚚', name: 'Vận chuyển', color: '#F97316', value: costs.shipping_cost || 0, alwaysShow: true },
+        { key: 'commission', icon: '💰', name: 'Hoa hồng CTV', color: '#EAB308', value: costs.commission || 0, alwaysShow: true },
+        { key: 'tax', icon: '📊', name: 'Thuế', color: '#EF4444', value: costs.tax || 0, alwaysShow: false },
+        ...packagingLineItems(costs)
     ];
 
     // Get total revenue for % calculation
@@ -693,142 +682,44 @@ function renderCostBreakdownTable(costs, overview) {
 
     // Filter & sort items - calculate both percentages
     // Always show main costs (product_cost, shipping_cost, commission) even if 0
-    const activeItems = items.filter(i => i.alwaysShow || (costs[i.key] || 0) > 0)
+    const activeItems = items.filter(i => i.alwaysShow || i.value > 0)
         .map(i => ({
             ...i,
-            value: costs[i.key] || 0,
-            percentOfCost: totalCost > 0 ? ((costs[i.key] || 0) / totalCost * 100) : 0,
-            percentOfRevenue: totalRevenue > 0 ? ((costs[i.key] || 0) / totalRevenue * 100) : 0
+            percentOfCost: totalCost > 0 ? (i.value / totalCost * 100) : 0,
+            percentOfRevenue: totalRevenue > 0 ? (i.value / totalRevenue * 100) : 0
         }))
         .sort((a, b) => b.value - a.value);
 
     // Render table with 2 percentage columns
-    tbody.innerHTML = activeItems.map(item => `
-        <tr class="hover:bg-gray-50 transition-colors ${item.percentOfCost > 50 ? 'bg-red-50' : ''}">
-            <td class="px-3 py-3">
-                <div class="flex items-center gap-2">
-                    <span class="text-lg">${item.label.split(' ')[0]}</span>
-                    <span class="text-sm font-medium text-gray-700">${item.label.substring(3)}</span>
-                    ${item.percentOfCost > 50 ? '<span class="ml-1 px-1.5 py-0.5 text-xs font-semibold text-red-600 bg-red-100 rounded">!</span>' : ''}
+    tbody.innerHTML = activeItems.map(item => {
+        const width = Math.max(0, Math.min(item.percentOfCost, 100));
+        return `
+        <tr class="transition-colors hover:bg-slate-50/80">
+            <td class="px-3 py-2.5">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-5 shrink-0 text-center text-base leading-none">${item.icon}</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-medium text-slate-800">${escapeHtml(item.name)}</div>
+                        <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                            <div class="h-full rounded-full" style="width:${width}%; background:${item.color}"></div>
+                        </div>
+                    </div>
                 </div>
             </td>
-            <td class="px-3 py-3 text-right text-sm font-bold text-gray-900">${formatCurrency(item.value)}</td>
-            <td class="px-3 py-3 text-right text-sm font-semibold text-gray-600">${item.percentOfCost.toFixed(1)}%</td>
-            <td class="px-3 py-3 text-right text-sm font-medium text-blue-600">${item.percentOfRevenue.toFixed(1)}%</td>
-            <td class="px-3 py-3 text-right text-sm text-gray-500">${formatCurrency(item.value / totalOrders)}</td>
-        </tr>
-    `).join('') + `
-        <tr class="bg-gray-50 font-bold border-t-2 border-gray-300">
-            <td class="px-3 py-3 text-sm text-gray-700">TỔNG CHI PHÍ</td>
-            <td class="px-3 py-3 text-right text-base text-gray-900">${formatCurrency(totalCost)}</td>
-            <td class="px-3 py-3 text-right text-sm text-gray-600">100%</td>
-            <td class="px-3 py-3 text-right text-sm text-blue-600">${totalRevenue > 0 ? (totalCost / totalRevenue * 100).toFixed(1) : '0.0'}%</td>
-            <td class="px-3 py-3 text-right text-sm text-gray-500">${formatCurrency(totalCost / totalOrders)}</td>
+            <td class="px-3 py-2.5 text-right text-sm font-semibold tabular-nums text-slate-900">${formatCurrency(item.value)}</td>
+            <td class="px-3 py-2.5 text-right text-sm font-medium tabular-nums text-slate-600">${item.percentOfCost.toFixed(1)}%</td>
+            <td class="px-3 py-2.5 text-right text-sm tabular-nums text-indigo-600">${item.percentOfRevenue.toFixed(1)}%</td>
+            <td class="px-3 py-2.5 text-right text-sm tabular-nums text-slate-500">${formatCurrency(item.value / totalOrders)}</td>
+        </tr>`;
+    }).join('') + `
+        <tr class="border-t border-slate-200 bg-slate-50/80">
+            <td class="px-3 py-3 text-sm font-semibold text-slate-700">Tổng chi phí</td>
+            <td class="px-3 py-3 text-right text-sm font-bold tabular-nums text-slate-900">${formatCurrency(totalCost)}</td>
+            <td class="px-3 py-3 text-right text-sm font-semibold tabular-nums text-slate-600">100%</td>
+            <td class="px-3 py-3 text-right text-sm font-medium tabular-nums text-indigo-600">${totalRevenue > 0 ? (totalCost / totalRevenue * 100).toFixed(1) : '0.0'}%</td>
+            <td class="px-3 py-3 text-right text-sm tabular-nums text-slate-500">${formatCurrency(totalCost / totalOrders)}</td>
         </tr>
     `;
-
-    // Render charts
-    renderCostCharts(costs);
-}
-
-// Render pie chart - 6 loại chi phí + Lợi nhuận ròng
-function renderCostCharts(costs) {
-    // Tính tổng vật liệu đóng gói (KHÔNG bao gồm tiền công)
-    const packagingMaterialsTotal = (costs.bag_zip || 0) + (costs.bag_red || 0) +
-        (costs.box_shipping || 0) + (costs.red_string || 0) +
-        (costs.thank_card || 0) + (costs.paper_print || 0);
-
-    // Tiền công đóng gói (tách riêng)
-    const laborCost = costs.labor_cost || 0;
-
-    // Lấy tổng doanh thu từ overview
-    const totalRevenue = window.currentOverview?.total_revenue || 0;
-
-    // Tính tổng chi phí
-    const totalCost = (costs.product_cost || 0) +
-        (costs.shipping_cost || 0) +
-        packagingMaterialsTotal +
-        laborCost +
-        (costs.commission || 0) +
-        (costs.tax || 0);
-
-    // Tính lợi nhuận ròng
-    const netProfit = totalRevenue - totalCost;
-
-    // 6 loại chi phí + Lợi nhuận
-    const pieData = [
-        { label: '💎 Giá vốn sản phẩm', value: costs.product_cost || 0, color: '#3B82F6' },
-        { label: '🚚 Vận chuyển', value: costs.shipping_cost || 0, color: '#F97316' },
-        { label: '📦 Vật liệu đóng gói', value: packagingMaterialsTotal, color: '#8B5CF6' },
-        { label: '👷 Tiền công đóng gói', value: laborCost, color: '#F59E0B' },
-        { label: '💰 Hoa hồng CTV', value: costs.commission || 0, color: '#EAB308' },
-        { label: '📊 Thuế', value: costs.tax || 0, color: '#EF4444' },
-        { label: '✨ Lợi nhuận ròng', value: netProfit > 0 ? netProfit : 0, color: '#10B981' }
-    ].filter(d => d.value > 0);
-
-    // Pie Chart
-    const pieCtx = document.getElementById('costPieChart');
-    if (!pieCtx) return;
-    if (pieChart) pieChart.destroy();
-
-    pieChart = new Chart(pieCtx, {
-        type: 'doughnut',
-        data: {
-            labels: pieData.map(d => d.label),
-            datasets: [{
-                data: pieData.map(d => d.value),
-                backgroundColor: pieData.map(d => d.color),
-                borderWidth: 3,
-                borderColor: '#fff',
-                hoverBorderWidth: 4,
-                hoverOffset: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 1.5,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        boxWidth: 12,
-                        padding: 8,
-                        font: { size: 11, weight: '500' },
-                        usePointStyle: true,
-                        pointStyle: 'circle'
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                    padding: 14,
-                    titleFont: { size: 14, weight: 'bold' },
-                    bodyFont: { size: 13 },
-                    bodySpacing: 6,
-                    callbacks: {
-                        title: ctx => ctx[0].label,
-                        label: ctx => {
-                            const percent = totalRevenue > 0 ? ((ctx.raw / totalRevenue) * 100).toFixed(1) : '0.0';
-                            return `Số tiền: ${formatCurrency(ctx.raw)}`;
-                        },
-                        afterLabel: ctx => {
-                            const percent = totalRevenue > 0 ? ((ctx.raw / totalRevenue) * 100).toFixed(1) : '0.0';
-                            return `Tỷ lệ: ${percent}% doanh thu`;
-                        },
-                        footer: () => {
-                            return `\nTổng doanh thu: ${formatCurrency(totalRevenue)}`;
-                        }
-                    }
-                }
-            },
-            animation: {
-                animateRotate: true,
-                animateScale: true,
-                duration: 800,
-                easing: 'easeInOutQuart'
-            }
-        }
-    });
 }
 
 // Render top products table (phân trang client-side, cache sort)

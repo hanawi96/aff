@@ -742,89 +742,60 @@
         </div>
 
         <!-- Nguồn khách hàng -->
-        <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
-                <div class="border-b border-slate-200/80 px-5 py-4">
+        <div class="mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+            <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
                     <h2 class="text-base font-semibold text-slate-900">Nguồn khách hàng</h2>
-                    <p class="mt-1 text-xs text-slate-500">Doanh thu, đơn hàng và lợi nhuận theo kênh</p>
+                    <p class="mt-0.5 text-xs text-slate-500">Doanh thu, đơn và lợi nhuận theo kênh</p>
                 </div>
-                <div class="overflow-x-auto p-5 pt-3">
-                    <table class="w-full min-w-[32rem]">
-                        <thead>
-                            <tr class="border-b border-slate-200">
-                                <th class="px-2 py-2 text-left text-xs font-semibold uppercase text-slate-600">Nguồn</th>
-                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">Đơn</th>
-                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">Doanh thu</th>
-                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">% DT</th>
-                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">Lợi nhuận</th>
-                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">Tỷ suất</th>
-                                <th class="px-2 py-2 text-right text-xs font-semibold uppercase text-slate-600">TB/đơn</th>
-                            </tr>
-                        </thead>
-                        <tbody id="prCustomerSourcesTable" class="divide-y divide-slate-100">
-                            <tr><td colspan="7" class="px-2 py-8 text-center"><div class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-indigo-500"></div></td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <div id="prSourceShareLegend" class="flex flex-wrap gap-x-4 gap-y-1"></div>
             </div>
-
-            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
-                <div class="border-b border-slate-200/80 px-5 py-4">
-                    <h2 class="text-base font-semibold text-slate-900">Tỷ trọng doanh thu</h2>
-                    <p class="mt-1 text-xs text-slate-500">Phân bổ theo nguồn khách</p>
-                </div>
-                <div class="p-5">
-                    <div id="prCustomerSourceChartWrap" class="flex items-center justify-center rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-200/60" style="min-height: 260px;">
-                        <canvas id="prCustomerSourceChart"></canvas>
-                    </div>
-                    <p id="prCustomerSourceChartEmpty" class="hidden mt-3 text-center text-xs text-slate-400 italic">Chưa có dữ liệu trong kỳ này</p>
-                </div>
+            <div id="prSourceShare" class="hidden px-5 pt-3">
+                <div id="prSourceShareBar" class="flex h-2 overflow-hidden rounded-full bg-slate-100"></div>
+            </div>
+            <div class="overflow-x-auto px-2 pb-2 pt-1 sm:px-3">
+                <table class="w-full min-w-[40rem]">
+                    <thead>
+                        <tr class="border-b border-slate-100">
+                            <th class="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">Nguồn</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">Đơn</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">Doanh thu</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">% DT</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">Lợi nhuận</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">Tỷ suất</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">TB/đơn</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prCustomerSourcesTable" class="divide-y divide-slate-100">
+                        <tr><td colspan="7" class="px-3 py-8 text-center"><div class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-indigo-500"></div></td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- Cost Analysis Section - 2 Separate Boxes -->
-        <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <!-- Box 1: Cost Breakdown Table -->
-            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
-                <div class="border-b border-slate-200/80 px-5 py-4">
-                    <h2 class="text-base font-semibold text-slate-900">Chi phí chi tiết</h2>
-                    <p class="mt-1 text-xs text-slate-500">Phân tích từng khoản chi</p>
-                </div>
-                <div class="p-5">
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="border-b border-slate-200">
-                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase text-slate-600">Loại</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase text-slate-600">Số tiền</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase text-slate-600">% Chi phí</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase text-slate-600">% DT</th>
-                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase text-slate-600">TB/Đơn</th>
-                                </tr>
-                            </thead>
-                            <tbody id="costBreakdownTable" class="divide-y divide-slate-100">
-                                <tr><td colspan="5" class="px-3 py-8 text-center"><div class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-indigo-500"></div></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <!-- Chi phí chi tiết -->
+        <div class="mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
+            <div class="border-b border-slate-100 px-5 py-4">
+                <h2 class="text-base font-semibold text-slate-900">Chi phí chi tiết</h2>
+                <p class="mt-0.5 text-xs text-slate-500">Thanh ngang là phần trăm của tổng chi phí</p>
             </div>
-
-            <!-- Box 2: Pie Chart -->
-            <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-900/5">
-                <div class="border-b border-slate-200/80 px-5 py-4">
-                    <h2 class="text-base font-semibold text-slate-900">Biểu đồ cơ cấu</h2>
-                    <p class="mt-1 text-xs text-slate-500">Chi phí và lợi nhuận</p>
-                </div>
-                <div class="p-5">
-                    <div class="flex items-center justify-center rounded-xl bg-slate-50/80 p-3 ring-1 ring-slate-200/60" style="min-height: 260px;">
-                        <canvas id="costPieChart"></canvas>
-                    </div>
-                    <div class="mt-3 text-center text-xs text-slate-500">
-                        💡 "Vật liệu đóng gói" gồm: túi, hộp, dây, thiệp, giấy
-                    </div>
-                </div>
+            <div class="overflow-x-auto px-2 pb-1 sm:px-3">
+                <table class="w-full min-w-[40rem]">
+                    <thead>
+                        <tr class="border-b border-slate-100">
+                            <th class="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400">Loại</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">Số tiền</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">% Chi phí</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">% DT</th>
+                            <th class="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-slate-400">TB/đơn</th>
+                        </tr>
+                    </thead>
+                    <tbody id="costBreakdownTable" class="divide-y divide-slate-50">
+                        <tr><td colspan="5" class="px-3 py-8 text-center"><div class="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-indigo-500"></div></td></tr>
+                    </tbody>
+                </table>
             </div>
+            <p class="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-400">Đóng gói tách theo đơn: túi đỏ, túi zip, hộp carton, băng dính, thiệp, giấy in, hóa đơn điện tử.</p>
         </div>
 
         <!-- Top Products -->
@@ -987,7 +958,7 @@
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/toast-manager.js"></script>
     <script src="../assets/js/timezone-utils.js"></script>
-    <script src="../assets/js/profit-report.js"></script>
+    <script src="../assets/js/profit-report.js?v=4"></script>
     <script src="../assets/js/auth-check.js"></script>
 </body>
 
