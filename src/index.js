@@ -11,6 +11,7 @@ import { handleTelegramWebhook } from './services/notifications/telegram-command
 import { sendDailyReport } from './services/notifications/daily-report.js';
 import { snapshotYesterdayAdSpend } from './services/settings/ad-spend.js';
 import { syncPancakeUnsavedOrders } from './services/orders/pancake-unsaved-sync.js';
+import { runScheduledDriveBackup } from './services/backup/drive-backup.js';
 
 async function handleRequest(request, env, ctx) {
     const DB = initTurso(env);
@@ -110,6 +111,17 @@ export default {
                 await snapshotYesterdayAdSpend(env);
             } catch (err) {
                 console.error('💥 [CRON] Ad spend snapshot failed:', err);
+            }
+            return;
+        }
+
+        // 02:00 VN (19:00 UTC) — backup SQL lên R2 và Google Drive
+        if (event.cron === '0 19 * * *') {
+            try {
+                const result = await runScheduledDriveBackup(env);
+                console.log('💾 [CRON] Database backup:', result);
+            } catch (err) {
+                console.error('💥 [CRON] Database backup failed:', err);
             }
             return;
         }

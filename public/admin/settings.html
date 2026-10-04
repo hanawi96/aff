@@ -444,12 +444,12 @@
                             <div id="dropZone" 
                                 class="group relative mb-4 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-8 transition-all hover:border-rose-400 hover:bg-rose-50/30"
                                 onclick="document.getElementById('backupFileInput').click()">
-                                <input type="file" id="backupFileInput" accept=".sql,.sql.gz" class="hidden" onchange="handleFileSelect(event)">
+                                <input type="file" id="backupFileInput" accept=".sql,text/plain" class="hidden" onchange="handleFileSelect(event)">
                                 <svg class="mb-3 h-12 w-12 text-slate-400 transition-colors group-hover:text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                                 </svg>
                                 <p class="mb-1 text-sm font-semibold text-slate-700">Kéo thả file hoặc click để chọn</p>
-                                <p class="text-xs text-slate-500">File SQL hoặc SQL.GZ</p>
+                                <p class="text-xs text-slate-500">File .sql</p>
                                 <div id="selectedFileName" class="mt-3 hidden rounded-lg bg-rose-100 px-3 py-2 text-xs font-medium text-rose-800"></div>
                             </div>
 
@@ -461,9 +461,9 @@
                                     <div class="flex-1 text-xs text-rose-800">
                                         <p class="mb-1 font-bold">Cảnh báo quan trọng:</p>
                                         <ul class="space-y-1 pl-4">
-                                            <li class="list-disc">Dữ liệu hiện tại sẽ bị ghi đè</li>
-                                            <li class="list-disc">Không thể hoàn tác sau khi restore</li>
-                                            <li class="list-disc">Backup tự động sẽ tạo trước khi restore</li>
+                                            <li class="list-disc">Các bảng trong file sẽ bị ghi đè</li>
+                                            <li class="list-disc">Hệ thống lưu một bản backup lên cloud trước khi khôi phục</li>
+                                            <li class="list-disc">Nếu khôi phục lỗi, dữ liệu được hoàn tác</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -551,7 +551,7 @@
 
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/toast-manager.js"></script>
-    <script src="../assets/js/settings.js"></script>
+    <script src="../assets/js/settings.js?v=2"></script>
     <script src="../assets/js/auth-check.js"></script>
 </body>
 </html>

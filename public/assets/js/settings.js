@@ -668,9 +668,28 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Load backup metadata (table count, row count, estimated size)
+function backupAuthHeaders(extra) {
+    const headers = new Headers(extra || {});
+    headers.set('Authorization', `Bearer ${localStorage.getItem('session_token') || ''}`);
+    return headers;
+}
+
+async function backupFetch(url, options = {}) {
+    const response = await fetch(url, {
+        ...options,
+        headers: backupAuthHeaders(options.headers),
+    });
+    if (response.status === 401) {
+        const error = new Error('Phiên đăng nhập không hợp lệ hoặc đã hết hạn');
+        error.status = 401;
+        throw error;
+    }
+    return response;
+}
+
 async function loadBackupMetadata() {
     try {
-        const response = await fetch(`${CONFIG.API_URL}?action=getBackupMetadata&timestamp=${Date.now()}`);
+        const response = await backupFetch(`${CONFIG.API_URL}?action=getBackupMetadata&timestamp=${Date.now()}`);
         const data = await response.json();
         
         if (data.success && data.metadata) {
@@ -693,7 +712,7 @@ async function loadBackupMetadata() {
  */
 async function loadBackupHistory() {
     try {
-        const response = await fetch(`${CONFIG.API_URL}?action=getBackupHistory&timestamp=${Date.now()}`);
+        const response = await backupFetch(`${CONFIG.API_URL}?action=getBackupHistory&timestamp=${Date.now()}`);
         const data = await response.json();
         
         if (data.success) {
@@ -703,7 +722,7 @@ async function loadBackupHistory() {
         }
     } catch (error) {
         console.error('Error loading backup history:', error);
-        showBackupHistoryError();
+        showBackupHistoryError(error.message);
     }
 }
 
@@ -871,7 +890,7 @@ async function downloadBackupFromCloud(event, backupId, filename) {
             <span>Đang tải...</span>
         `;
         
-        const response = await fetch(`${CONFIG.API_URL}?action=downloadBackup&id=${backupId}`);
+        const response = await backupFetch(`${CONFIG.API_URL}?action=downloadBackup&id=${backupId}`);
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -937,7 +956,11 @@ async function deleteBackupFromCloud(event, backupId, filename) {
             <span>Đang xóa...</span>
         `;
         
-        const response = await fetch(`${CONFIG.API_URL}?action=deleteBackup&id=${backupId}`);
+        const response = await backupFetch(`${CONFIG.API_URL}?action=deleteBackup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: backupId }),
+        });
         const data = await response.json();
         
         if (!data.success) {
@@ -964,7 +987,7 @@ async function deleteBackupFromCloud(event, backupId, filename) {
 /**
  * Show error state in backup history table
  */
-function showBackupHistoryError() {
+function showBackupHistoryError(message) {
     const tbody = document.getElementById('backupHistoryTable');
     if (!tbody) return;
     
@@ -976,7 +999,7 @@ function showBackupHistoryError() {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                     </svg>
                     <div>
-                        <p class="text-sm font-semibold text-slate-900">Không thể tải lịch sử backup</p>
+                        <p class="text-sm font-semibold text-slate-900">${String(message || 'Không thể tải lịch sử backup').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
                         <button onclick="loadBackupHistory()" class="mt-2 text-sm text-cyan-600 hover:text-cyan-800 font-medium">
                             Thử lại
                         </button>
@@ -989,6 +1012,7 @@ function showBackupHistoryError() {
 
 // Create and download backup
 let selectedFile = null;
+let selectedFileValid = false;
 
 async function createBackup() {
     const btn = document.getElementById('backupBtn');
@@ -998,8 +1022,7 @@ async function createBackup() {
         btn.disabled = true;
         btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Đang tạo backup...</span>';
         
-        // Call API to create backup
-        const response = await fetch(`${CONFIG.API_URL}?action=createBackup&timestamp=${Date.now()}`);
+        const response = await backupFetch(`${CONFIG.API_URL}?action=createBackup&timestamp=${Date.now()}`);
         
         if (!response.ok) {
             let detail = 'Không thể tạo backup';
@@ -1010,16 +1033,14 @@ async function createBackup() {
             throw new Error(detail);
         }
         
-        // Get filename from response headers
         const contentDisposition = response.headers.get('Content-Disposition');
         const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
         const filename = filenameMatch ? filenameMatch[1] : `backup_${Date.now()}.sql`;
-        
-        // Get backup stats from headers
         const tables = response.headers.get('X-Backup-Tables');
         const rows = response.headers.get('X-Backup-Rows');
+        const uploaded = response.headers.get('X-Backup-R2-Uploaded') === 'true';
+        const historySaved = response.headers.get('X-Backup-History') === 'true';
         
-        // Download file
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1029,6 +1050,13 @@ async function createBackup() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+
+        if (uploaded && historySaved) {
+            showToast(`Đã tạo backup: ${tables || 0} bảng, ${rows || 0} dòng. File đã tải về và đã lưu cloud.`, 'success');
+            loadBackupHistory();
+        } else {
+            showToast('File đã tải về máy. Chưa lưu được lên cloud, bản này không có trong lịch sử.', 'warning');
+        }
         
     } catch (error) {
         console.error('Backup error:', error);
@@ -1043,18 +1071,24 @@ async function createBackup() {
 function handleFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    selectedFileValid = false;
+    document.getElementById('restoreBtn').disabled = true;
+
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith('.sql') || lowerName.endsWith('.sql.gz')) {
+        selectedFile = null;
+        showToast('Chỉ nhận file .sql. File nén .sql.gz không được dùng.', 'warning');
+        event.target.value = '';
+        return;
+    }
     
     selectedFile = file;
     
-    // Show selected file name
     const fileNameEl = document.getElementById('selectedFileName');
     fileNameEl.textContent = `📄 ${file.name} (${formatFileSize(file.size)})`;
     fileNameEl.classList.remove('hidden');
     
-    // Enable restore button
-    document.getElementById('restoreBtn').disabled = false;
-    
-    // Validate file
     validateBackupFileClient(file);
 }
 
@@ -1071,47 +1105,57 @@ async function validateBackupFileClient(file) {
         const formData = new FormData();
         formData.append('backup_file', file);
         
-        const response = await fetch(`${CONFIG.API_URL}?action=validateBackup`, {
+        const response = await backupFetch(`${CONFIG.API_URL}?action=validateBackup`, {
             method: 'POST',
             body: formData
         });
         
         const data = await response.json();
         
-        if (data.success && data.valid) {
-            showToast(`✅ File hợp lệ: ${data.info.tables} bảng, ~${data.info.inserts} dòng`, 'success');
-        } else {
+        if (data.success && data.valid && selectedFile === file) {
+            selectedFileValid = true;
+            document.getElementById('restoreBtn').disabled = false;
+            const check = data.info.checksum === 'ok'
+                ? 'Mã kiểm tra khớp.'
+                : 'File cũ, không có mã kiểm tra.';
+            showToast(`File hợp lệ: ${data.info.tables} bảng, ${data.info.rows} dòng. ${check}`, 'success');
+        } else if (selectedFile === file) {
+            selectedFileValid = false;
+            document.getElementById('restoreBtn').disabled = true;
             showToast('⚠️ ' + (data.error || 'File không hợp lệ'), 'warning');
         }
     } catch (error) {
         console.error('Validation error:', error);
+        if (selectedFile === file) {
+            selectedFileValid = false;
+            document.getElementById('restoreBtn').disabled = true;
+            showToast('❌ ' + error.message, 'error');
+        }
     }
 }
 
 // Restore database from backup
 async function restoreBackup() {
-    if (!selectedFile) {
-        showToast('⚠️ Vui lòng chọn file backup', 'warning');
+    if (!selectedFile || !selectedFileValid) {
+        showToast('⚠️ Hãy chọn file .sql đã được kiểm tra hợp lệ', 'warning');
         return;
     }
     
-    // Confirm action
     const confirmed = confirm(
-        '⚠️ CẢNH BÁO QUAN TRỌNG\n\n' +
-        'Thao tác này sẽ:\n' +
-        '• GHI ĐÈ toàn bộ dữ liệu hiện tại\n' +
-        '• KHÔNG THỂ HOÀN TÁC\n' +
-        '• Tạo backup an toàn trước khi restore\n\n' +
+        'CẢNH BÁO\n\n' +
+        'Thao tác này ghi đè các bảng có trong file.\n' +
+        'Hệ thống lưu một bản backup lên cloud trước.\n' +
+        'Nếu bản đó không lưu được thì khôi phục sẽ không chạy.\n' +
+        'Nếu khôi phục lỗi, dữ liệu được hoàn tác về như trước.\n\n' +
         'Bạn có chắc chắn muốn tiếp tục?'
     );
     
     if (!confirmed) return;
     
-    // Double confirmation
     const doubleConfirm = confirm(
-        '🔴 XÁC NHẬN LẦN CUỐI\n\n' +
-        'Dữ liệu hiện tại sẽ mất vĩnh viễn!\n\n' +
-        'Tiếp tục restore?'
+        'XÁC NHẬN LẦN CUỐI\n\n' +
+        'Các bảng trong file sẽ được ghi lại từ đầu.\n\n' +
+        'Tiếp tục khôi phục?'
     );
     
     if (!doubleConfirm) return;
@@ -1128,7 +1172,7 @@ async function restoreBackup() {
         const formData = new FormData();
         formData.append('backup_file', selectedFile);
         
-        const response = await fetch(`${CONFIG.API_URL}?action=restoreBackup`, {
+        const response = await backupFetch(`${CONFIG.API_URL}?action=restoreBackup`, {
             method: 'POST',
             body: formData
         });
@@ -1136,22 +1180,21 @@ async function restoreBackup() {
         const data = await response.json();
         
         if (data.success) {
+            const safetyName = data.details?.safetyBackup?.fileName || '';
             showToast(
-                `✅ Khôi phục thành công!\n` +
-                `• ${data.details.successCount} câu lệnh thực thi\n` +
-                `• ${data.details.tablesRestored} bảng được restore`,
+                `Khôi phục thành công: ${data.details.tables} bảng, ${data.details.rows} dòng. Bản an toàn: ${safetyName}`,
                 'success'
             );
             
-            // Clear selected file
             selectedFile = null;
+            selectedFileValid = false;
             document.getElementById('backupFileInput').value = '';
             document.getElementById('selectedFileName').classList.add('hidden');
             document.getElementById('restoreBtn').disabled = true;
             
-            // Reload metadata
             setTimeout(() => {
                 loadBackupMetadata();
+                loadBackupHistory();
             }, 1000);
             
         } else {
@@ -1211,8 +1254,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const file = files[0];
             
             // Check file extension
-            if (!file.name.endsWith('.sql') && !file.name.endsWith('.sql.gz')) {
-                showToast('⚠️ Chỉ chấp nhận file .sql hoặc .sql.gz', 'warning');
+            const droppedName = file.name.toLowerCase();
+            if (!droppedName.endsWith('.sql') || droppedName.endsWith('.sql.gz')) {
+                showToast('Chỉ nhận file .sql', 'warning');
                 return;
             }
             

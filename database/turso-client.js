@@ -177,6 +177,21 @@ export class TursoAdapter {
   }
 
   /**
+   * Chạy các câu trong một transaction, tắt khóa ngoại trong lúc chạy.
+   * Một câu lỗi thì hoàn tác toàn bộ.
+   * @param {string[]} statements
+   */
+  async migrateSql(statements) {
+    if (!Array.isArray(statements) || statements.length === 0) {
+      throw new Error('Không có câu lệnh để khôi phục');
+    }
+    if (typeof this.client.migrate !== 'function') {
+      throw new Error('Kết nối database không hỗ trợ khôi phục nguyên tử');
+    }
+    return this.client.migrate(statements);
+  }
+
+  /**
    * Execute raw SQL (for migrations, etc.)
    * @param {string} sql
    * @returns {Promise<object>}

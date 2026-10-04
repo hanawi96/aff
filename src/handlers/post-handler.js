@@ -145,6 +145,7 @@ import { updateDefaultAdSpend, updateDailyAdSpend } from '../services/settings/a
 
 // Backup & Restore
 import { restoreFromBackup, validateBackupFile } from '../services/backup/restore-service.js';
+import { deleteBackupFromR2, requireBackupAdmin } from '../services/backup/backup-service.js';
 
 // Analytics
 import { getProfitReport } from '../services/analytics/index.js';
@@ -260,6 +261,16 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             }, 500, corsHeaders);
         }
     }
+
+    // File backup là multipart. Phải đọc trước request.json(), nếu không body bị nuốt và khôi phục không chạy.
+    if (action === 'restoreBackup' || action === 'validateBackup') {
+        const gate = await requireBackupAdmin(request, env, corsHeaders);
+        if (!gate.ok) return gate.response;
+        if (action === 'restoreBackup') {
+            return await restoreFromBackup(request, env, corsHeaders, gate.session.username);
+        }
+        return await validateBackupFile(request, env, corsHeaders);
+    }
     
     // Read JSON body for other actions
     let data;
@@ -305,12 +316,12 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await updateDefaultAdSpend(data, env, corsHeaders);
         case 'updateDailyAdSpend':
             return await updateDailyAdSpend(data, env, corsHeaders);
-        
-        // Backup & Restore
-        case 'restoreBackup':
-            return await restoreFromBackup(request, env, corsHeaders);
-        case 'validateBackup':
-            return await validateBackupFile(request, env, corsHeaders);
+
+        case 'deleteBackup': {
+            const gate = await requireBackupAdmin(request, env, corsHeaders);
+            if (!gate.ok) return gate.response;
+            return await deleteBackupFromR2(data?.id, env, corsHeaders);
+        }
         
         case 'updateOrderNotes':
             return await updateOrderNotes(data, env, corsHeaders);
@@ -712,12 +723,6 @@ export async function handlePost(path, request, env, corsHeaders) {
                     env,
                     corsHeaders
                 );
-
-            // Backup & Restore
-            case 'restoreBackup':
-                return await restoreFromBackup(request, env, corsHeaders);
-            case 'validateBackup':
-                return await validateBackupFile(request, env, corsHeaders);
 
             default:
                 return jsonResponse({

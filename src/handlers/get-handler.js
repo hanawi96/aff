@@ -145,7 +145,7 @@ import {
     getBackupMetadata,
     getBackupHistory,
     downloadBackupFromR2,
-    deleteBackupFromR2
+    requireBackupAdmin,
 } from '../services/backup/backup-service.js';
 
 // Analytics
@@ -775,22 +775,35 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             return await getFlashSalePurchaseStats(purchaseStatsFlashSaleId, env, corsHeaders);
 
         // Backup & Restore
-        case 'createBackup':
-            return await createDatabaseBackup(env, corsHeaders);
+        case 'createBackup': {
+            const gate = await requireBackupAdmin(request, env, corsHeaders);
+            if (!gate.ok) return gate.response;
+            return await createDatabaseBackup(env, corsHeaders, gate.session.username);
+        }
 
-        case 'getBackupMetadata':
+        case 'getBackupMetadata': {
+            const gate = await requireBackupAdmin(request, env, corsHeaders);
+            if (!gate.ok) return gate.response;
             return await getBackupMetadata(env, corsHeaders);
+        }
 
-        case 'getBackupHistory':
+        case 'getBackupHistory': {
+            const gate = await requireBackupAdmin(request, env, corsHeaders);
+            if (!gate.ok) return gate.response;
             return await getBackupHistory(env, corsHeaders);
+        }
 
-        case 'downloadBackup':
-            const backupId = url.searchParams.get('id');
-            return await downloadBackupFromR2(backupId, env, corsHeaders);
+        case 'downloadBackup': {
+            const gate = await requireBackupAdmin(request, env, corsHeaders);
+            if (!gate.ok) return gate.response;
+            return await downloadBackupFromR2(url.searchParams.get('id'), env, corsHeaders);
+        }
 
         case 'deleteBackup':
-            const deleteId = url.searchParams.get('id');
-            return await deleteBackupFromR2(deleteId, env, corsHeaders);
+            return jsonResponse({
+                success: false,
+                error: 'Xóa backup phải gửi bằng POST',
+            }, 405, corsHeaders);
 
         default:
             return jsonResponse({
