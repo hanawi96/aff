@@ -246,6 +246,13 @@ async function loadOrdersData(options = {}) {
     const silent = options?.silent === true;
     const skipRender = options?.skipRender === true;
 
+    // Tải ngầm 50 đơn đã gửi mới nhất, song song với đơn chưa gửi.
+    if (typeof preloadLatestShippedOrders === 'function'
+        && !shippedPreload.ready
+        && !shippedPreload.promise) {
+        void preloadLatestShippedOrders();
+    }
+
     // ---- PHA 1: hiển thị ngay từ cache (nếu có) ----
     let renderedFromCache = false;
     if (!skipCache) {

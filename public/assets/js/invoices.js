@@ -21,8 +21,8 @@ const invSelectedExportIds = new Set(); // file HĐĐT đang chọn trong modal 
 // Dùng để export đúng cả đơn KHÔNG nằm trong trang hiện tại (invOrders).
 const invPickedOrders = new Map();
 const INV_PAGE_SIZE_OPTIONS = [30, 50, 100, 200];
-// Mốc chặn cứng: trang HĐĐT CHỈ hiển thị đơn ĐẶT TỪ 05/09/2026 (00:00 giờ VN) trở đi.
-// Đơn đặt trước mốc này bị bỏ qua hoàn toàn.
+// Mốc 05/09/2026 (00:00 giờ VN). Trang HĐĐT lấy đơn đặt từ mốc này,
+// hoặc đơn đặt trước nhưng gửi hàng từ mốc này. Đơn đặt và gửi đều trước mốc thì bỏ.
 const INV_CREATED_FROM_MS = new Date('2026-09-05T00:00:00+07:00').getTime();
 const invState = {
     loading: false,
@@ -259,7 +259,7 @@ function _invBuildParams(cursor) {
     p.set('dateField', 'shipped');
     // sort ASC theo ngày gửi: đơn gửi CŨ NHẤT (gần/đã đến hạn xuất, còn ít ngày nhất) lên ĐẦU.
     p.set('sortDir', 'asc');
-    // Chặn cứng: chỉ đơn đặt từ 05/09/2026 trở đi.
+    // Mốc 05/09/2026: server nhận đơn đặt từ mốc, hoặc gửi từ mốc.
     p.set('createdFromMs', String(INV_CREATED_FROM_MS));
     p.set('limit', String(invPageSize));
     // Lọc khoảng ngày GỬI HÀNG (server so trên shipped_at_unix theo dateField=shipped)

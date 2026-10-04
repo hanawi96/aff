@@ -263,9 +263,17 @@ const INVOICE_DUE_REMIND_DAYS = 10;
 const INVOICE_DUE_CREATED_FROM_MS = new Date('2026-09-05T00:00:00+07:00').getTime();
 
 /**
+ * Đơn thuộc phạm vi xuất HĐĐT từ mốc 05/09/2026:
+ * đặt từ mốc đó, hoặc gửi từ mốc đó (kể cả đơn đặt trước).
+ */
+function invoiceScopeClause() {
+    return `(orders.created_at_unix >= ? OR COALESCE(orders.shipped_at_unix, 0) >= ?)`;
+}
+
+/**
  * Điều kiện đơn đã đến hạn xuất HĐĐT.
- * applyDefaultCreatedFrom: badge đếm luôn chặn đơn đặt trước 05/09/2026.
- * Danh sách "Chọn đơn cần xuất" chỉ áp mốc này khi client truyền createdFromMs.
+ * applyDefaultCreatedFrom: badge đếm áp mốc 05/09/2026 (ngày đặt hoặc ngày gửi).
+ * Danh sách "Chọn đơn cần xuất" áp mốc này khi client truyền createdFromMs.
  */
 function buildDueInvoiceFilter(params, { applyDefaultCreatedFrom = false } = {}) {
     const _rd = parseInt(params?.remindDays, 10);
@@ -287,15 +295,15 @@ function buildDueInvoiceFilter(params, { applyDefaultCreatedFrom = false } = {})
     ];
     const binds = [dueThreshold];
     if (createdFromMs != null) {
-        where.push(`orders.created_at_unix >= ?`);
-        binds.push(createdFromMs);
+        where.push(invoiceScopeClause());
+        binds.push(createdFromMs, createdFromMs);
     }
     return { where, binds, remindDays };
 }
 
 /**
  * Đếm đơn đã đến hạn xuất HĐĐT — chỉ một số, dùng cho badge sidebar.
- * Cùng điều kiện với getDueInvoiceOrders, cộng mốc đặt từ 05/09/2026.
+ * Cùng điều kiện với getDueInvoiceOrders, cộng mốc 05/09/2026 theo ngày đặt hoặc ngày gửi.
  */
 export async function getDueInvoiceCount(params, env, corsHeaders) {
     const startTime = Date.now();
@@ -320,7 +328,7 @@ export async function getDueInvoiceCount(params, env, corsHeaders) {
  *   - status = 'shipped'
  *   - CHƯA xuất HĐĐT (invoice_exported_at = 0 AND manual_invoice_exported = 0)
  *   - Đã đủ ≥ remindDays ngày kể từ ngày GỬI (shipped_at_unix <= now - remindDays*ngày)
- *   - Đặt từ createdFromMs trở đi (nếu truyền) — đồng bộ mốc chặn của trang HĐĐT
+ *   - Đặt từ createdFromMs, hoặc gửi từ mốc đó (nếu truyền) — đồng bộ trang HĐĐT
  * Trả về FULL shape (dùng luôn để build Excel export), có trần an toàn để tránh tải quá lớn.
  *
  * @param {object} params { remindDays, createdFromMs, maxLimit }
@@ -390,7 +398,7 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
             dateField = 'created',
             dateStartMs = null,
             dateEndMs = null,
-            createdFromMs = null,   // mốc chặn cứng theo NGÀY ĐẶT (created_at_unix >= ?) — dùng cho trang HĐĐT
+            createdFromMs = null,   // mốc HĐĐT: ngày đặt hoặc ngày gửi >= mốc — dùng cho trang HĐĐT
             sortDir = 'desc',
             cursorSort = null,
             cursorId = null,
@@ -444,11 +452,10 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
             where.push(`(COALESCE(orders.invoice_exported_at,0) = 0 AND COALESCE(orders.manual_invoice_exported,0) = 0)`);
         }
 
-        // --- Mốc chặn cứng theo NGÀY ĐẶT (created_at_unix) — luôn áp dụng nếu truyền ---
-        // Dùng cho trang HĐĐT: chỉ hiển thị đơn đặt từ mốc này trở đi, bỏ đơn cũ hơn.
+        // Mốc HĐĐT: đơn đặt từ mốc, hoặc gửi từ mốc (đơn đặt trước nhưng gửi sau vẫn xuất hóa đơn).
         if (createdFromMs != null && Number.isFinite(Number(createdFromMs))) {
-            where.push(`orders.created_at_unix >= ?`);
-            binds.push(Number(createdFromMs));
+            where.push(invoiceScopeClause());
+            binds.push(Number(createdFromMs), Number(createdFromMs));
         }
 
         // --- Khoảng ngày (theo sortCol) ---

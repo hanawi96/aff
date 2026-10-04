@@ -24,6 +24,139 @@ const ordersHistoryState = {
     lastFilterKey: '',      // chữ ký filter hiện tại — đổi thì reset về trang 1
 };
 
+// 50 đơn đã gửi mới nhất, tải ngầm lúc mở trang. Bộ lọc "Đã gửi hàng" mặc định
+// (mới nhất trước, không lọc thêm) vẽ từ đây, không chờ request lúc bấm.
+const SHIPPED_PRELOAD_LIMIT = 50;
+const shippedPreload = {
+    orders: null,
+    hasMore: false,
+    nextCursor: null,
+    ready: false,
+    loadedAt: 0,
+    promise: null,
+};
+
+function _shippedCursor(order) {
+    const sort = Number(order?.shipped_at_unix ?? order?.created_at_unix);
+    const id = Number(order?.id);
+    if (!Number.isFinite(sort) || !Number.isFinite(id)) return null;
+    return { sort, id };
+}
+
+/** Đúng khung hình lúc bấm "Đã gửi hàng": mới nhất trước, mọi lọc khác đang là tất cả. */
+function _isDefaultNewestShippedView() {
+    if ((document.getElementById('statusFilter')?.value || '') !== 'shipped') return false;
+    if ((document.getElementById('searchInput')?.value || '').trim()) return false;
+    if (typeof missingSizeFilterActive !== 'undefined' && missingSizeFilterActive) return false;
+    if (typeof theTenBeFilterActive !== 'undefined' && theTenBeFilterActive) return false;
+    if (typeof hasNotesFilterActive !== 'undefined' && hasNotesFilterActive) return false;
+    if (typeof sendLaterUrgentFilterActive !== 'undefined' && sendLaterUrgentFilterActive) return false;
+    if (typeof amountSortOrder !== 'undefined' && amountSortOrder !== 'none') return false;
+    if ((typeof dateSortOrder !== 'undefined' ? dateSortOrder : 'desc') !== 'desc') return false;
+    const g = (id) => document.getElementById(id)?.value || 'all';
+    return g('paymentFilter') === 'all'
+        && g('customerSourceFilter') === 'all'
+        && g('ctvFilter') === 'all'
+        && g('invoiceStatusFilter') === 'all'
+        && g('dateFilter') === 'all';
+}
+
+function preloadLatestShippedOrders() {
+    if (shippedPreload.promise) return shippedPreload.promise;
+    const run = _loadShippedPreload();
+    shippedPreload.promise = run;
+    run.finally(() => {
+        if (shippedPreload.promise === run) shippedPreload.promise = null;
+    });
+    return run;
+}
+
+async function _loadShippedPreload() {
+    const params = new URLSearchParams();
+    params.set('action', 'getOrdersHistoryPage');
+    params.set('statusFilter', 'shipped');
+    params.set('paymentFilter', 'all');
+    params.set('customerSourceFilter', 'all');
+    params.set('ctvFilter', 'all');
+    params.set('invoiceStatusFilter', 'all');
+    params.set('dateField', 'shipped');
+    params.set('sortDir', 'desc');
+    params.set('limit', String(SHIPPED_PRELOAD_LIMIT));
+    params.set('timestamp', String(Date.now()));
+
+    const res = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+    if (!res.ok) throw new Error('Network response was not ok');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Không tải được đơn đã gửi');
+
+    shippedPreload.orders = data.orders || [];
+    shippedPreload.hasMore = !!data.hasMore;
+    shippedPreload.nextCursor = data.nextCursor || null;
+    shippedPreload.ready = true;
+    shippedPreload.loadedAt = Date.now();
+    console.log(`[History] Đã tải sẵn ${shippedPreload.orders.length} đơn đã gửi mới nhất`);
+}
+
+/** Trang `pageIndex` nếu nằm trọn trong 50 đơn đã tải sẵn. */
+function _preloadSlice(pageIndex) {
+    if (!_isDefaultNewestShippedView() || !shippedPreload.ready) return null;
+    const orders = shippedPreload.orders || [];
+    const size = itemsPerPage;
+    const start = (pageIndex - 1) * size;
+    const end = start + size;
+    if (start < 0 || start >= orders.length) return null;
+
+    if (end <= orders.length) {
+        const page = orders.slice(start, end);
+        const moreInBuffer = end < orders.length;
+        const hasMore = moreInBuffer || shippedPreload.hasMore;
+        const nextCursor = !hasMore
+            ? null
+            : (moreInBuffer ? _shippedCursor(page[page.length - 1]) : shippedPreload.nextCursor);
+        return { page, hasMore, nextCursor };
+    }
+
+    if (shippedPreload.hasMore) return null;
+    return { page: orders.slice(start), hasMore: false, nextCursor: null };
+}
+
+function _applyPreloadPage(pageIndex, preserveSelection) {
+    const slice = _preloadSlice(pageIndex);
+    if (!slice) return false;
+
+    if (!preserveSelection
+        && typeof selectedOrderIds !== 'undefined' && selectedOrderIds.size > 0
+        && typeof clearSelection === 'function') {
+        clearSelection();
+    }
+
+    filteredOrdersData = slice.page;
+    ordersHistoryState.hasMore = !!slice.hasMore;
+    ordersHistoryState.nextCursor = slice.nextCursor || null;
+    ordersHistoryState.pageIndex = pageIndex;
+    ordersHistoryState.loading = false;
+    currentPage = 1;
+
+    if (typeof hideLoading === 'function') hideLoading();
+    setHistoryOverlay(false);
+    if (typeof renderOrdersTable === 'function') renderOrdersTable();
+    if (typeof updateStats === 'function') updateStats();
+    console.log(`[History] Hiện trang ${pageIndex} từ ${SHIPPED_PRELOAD_LIMIT} đơn đã tải sẵn (${slice.page.length} đơn)`);
+    return true;
+}
+
+function _refreshShippedPreloadInBackground() {
+    if (Date.now() - (shippedPreload.loadedAt || 0) < 2000) return;
+    const key = ordersHistoryState.lastFilterKey;
+    preloadLatestShippedOrders().then(() => {
+        if (!ordersHistoryState.active || ordersHistoryState.pageIndex !== 1) return;
+        if (_historyFilterKey() !== key) return;
+        _applyPreloadPage(1, true);
+    }).catch((err) => {
+        console.warn('[History] Không làm mới được 50 đơn đã gửi:', err);
+    });
+}
+
 /**
  * Điều kiện kích hoạt history mode: statusFilter là shipped/all VÀ không có bất kỳ
  * yếu tố nào buộc phải xử lý toàn bộ ở client (tìm kiếm, 3 bộ lọc đặc biệt, sort giá trị).
@@ -223,7 +356,30 @@ function enterHistoryModeFirstPage() {
     ordersHistoryState.cursorStack = [null]; // cursor đầu trang 1 = null
     ordersHistoryState.nextCursor = null;
     ordersHistoryState.hasMore = false;
-    ordersHistoryState.lastFilterKey = _historyFilterKey();
+    const key = _historyFilterKey();
+    ordersHistoryState.lastFilterKey = key;
+
+    const stillThisView = () => ordersHistoryState.active && _historyFilterKey() === key;
+
+    if (_applyPreloadPage(1, false)) {
+        _refreshShippedPreloadInBackground();
+        return;
+    }
+
+    // Preload đang chạy: chờ chính request đó, không gửi thêm một request giống hệt.
+    if (_isDefaultNewestShippedView() && shippedPreload.promise) {
+        setHistoryOverlay(true);
+        shippedPreload.promise.then(() => {
+            setHistoryOverlay(false);
+            if (!stillThisView()) return;
+            if (!_applyPreloadPage(1, false)) void _fetchHistoryPage(null, 1);
+        }).catch(() => {
+            setHistoryOverlay(false);
+            if (stillThisView()) void _fetchHistoryPage(null, 1);
+        });
+        return;
+    }
+
     void _fetchHistoryPage(null, 1);
 }
 
@@ -242,9 +398,11 @@ function exitHistoryMode() {
 function historyNextPage() {
     if (!ordersHistoryState.active || ordersHistoryState.loading) return;
     if (!ordersHistoryState.hasMore || !ordersHistoryState.nextCursor) return;
+    const nextIndex = ordersHistoryState.pageIndex + 1;
     // Lưu cursor đầu trang kế tiếp vào stack để "Trước" quay lại đúng.
     ordersHistoryState.cursorStack.push(ordersHistoryState.nextCursor);
-    void _fetchHistoryPage(ordersHistoryState.nextCursor, ordersHistoryState.pageIndex + 1);
+    if (_applyPreloadPage(nextIndex, false)) return;
+    void _fetchHistoryPage(ordersHistoryState.nextCursor, nextIndex);
 }
 
 /** Trang trước (nút "Trước"). */
@@ -253,8 +411,10 @@ function historyPrevPage() {
     if (ordersHistoryState.pageIndex <= 1) return;
     // Bỏ cursor của trang hiện tại, lấy cursor đầu trang trước.
     ordersHistoryState.cursorStack.pop();
+    const prevIndex = ordersHistoryState.pageIndex - 1;
+    if (_applyPreloadPage(prevIndex, false)) return;
     const prevCursor = ordersHistoryState.cursorStack[ordersHistoryState.cursorStack.length - 1];
-    void _fetchHistoryPage(prevCursor || null, ordersHistoryState.pageIndex - 1);
+    void _fetchHistoryPage(prevCursor || null, prevIndex);
 }
 
 /**
