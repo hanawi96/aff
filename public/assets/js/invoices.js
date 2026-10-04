@@ -251,17 +251,31 @@ function clearInvDateFilter() {
 // ============================================
 // LOAD DATA (cursor pagination, statusFilter=shipped)
 // ============================================
-function _invBuildParams(cursor) {
+// Trang đầu của hai tab Chưa xuất / Đã xuất, tải sẵn lúc mở trang.
+const INV_TAB_PRELOAD = 30;
+const invTabCache = { not_exported: null, exported: null };
+const invTabInflight = { not_exported: null, exported: null };
+let invFetchToken = 0;
+
+function _invDateKey() {
+    return `${invDateStartMs || ''}|${invDateEndMs || ''}`;
+}
+
+function _invIsTabFilter(filter) {
+    return filter === 'not_exported' || filter === 'exported';
+}
+
+function _invBuildParams(cursor, overrides = {}) {
     const p = new URLSearchParams();
     p.set('action', 'getOrdersHistoryPage');
     p.set('statusFilter', 'shipped');
-    p.set('invoiceStatusFilter', invInvoiceFilter);
+    p.set('invoiceStatusFilter', overrides.filter || invInvoiceFilter);
     p.set('dateField', 'shipped');
     // sort ASC theo ngày gửi: đơn gửi CŨ NHẤT (gần/đã đến hạn xuất, còn ít ngày nhất) lên ĐẦU.
     p.set('sortDir', 'asc');
     // Mốc 05/09/2026: server nhận đơn đặt từ mốc, hoặc gửi từ mốc.
     p.set('createdFromMs', String(INV_CREATED_FROM_MS));
-    p.set('limit', String(invPageSize));
+    p.set('limit', String(overrides.limit || invPageSize));
     // Lọc khoảng ngày GỬI HÀNG (server so trên shipped_at_unix theo dateField=shipped)
     if (invDateStartMs != null) p.set('dateStartMs', String(invDateStartMs));
     if (invDateEndMs != null) p.set('dateEndMs', String(invDateEndMs));
@@ -273,8 +287,117 @@ function _invBuildParams(cursor) {
     return p;
 }
 
+function _invFilterSearch(orders) {
+    if (!invSearchTerm) return orders;
+    const t = invSearchTerm.toLowerCase();
+    return orders.filter((o) =>
+        String(o.order_id || '').toLowerCase().includes(t) ||
+        String(o.customer_name || '').toLowerCase().includes(t) ||
+        String(o.customer_phone || '').toLowerCase().includes(t)
+    );
+}
+
+function _invStoreTabCache(filter, data, limit, dateKey) {
+    if (!_invIsTabFilter(filter)) return;
+    invTabCache[filter] = {
+        orders: data.orders || [],
+        hasMore: !!data.hasMore,
+        nextCursor: data.nextCursor || null,
+        totalCount: data.totalCount != null ? Number(data.totalCount) : 0,
+        limit,
+        dateKey,
+    };
+}
+
+function _invTabCacheReady(filter) {
+    if (!_invIsTabFilter(filter)) return false;
+    if (invDateStartMs != null || invDateEndMs != null) return false;
+    const cached = invTabCache[filter];
+    if (!cached || cached.dateKey !== _invDateKey()) return false;
+    if (cached.limit === invPageSize) return true;
+    return !cached.hasMore && cached.orders.length <= invPageSize;
+}
+
+async function _invRequestPage(filter, cursor, limit) {
+    const res = await fetch(`${CONFIG.API_URL}?${_invBuildParams(cursor, { filter, limit }).toString()}`);
+    if (!res.ok) throw new Error('Network response was not ok');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Không tải được đơn hàng');
+    return data;
+}
+
+function _invPreloadTab(filter) {
+    if (!_invIsTabFilter(filter)) return Promise.resolve(null);
+    const dateKey = _invDateKey();
+    const cached = invTabCache[filter];
+    if (cached && cached.dateKey === dateKey && cached.limit === INV_TAB_PRELOAD && invPageSize <= INV_TAB_PRELOAD && dateKey === '|') {
+        return Promise.resolve(cached);
+    }
+    if (invTabInflight[filter]) return invTabInflight[filter];
+    const run = _invRequestPage(filter, null, INV_TAB_PRELOAD).then((data) => {
+        _invStoreTabCache(filter, data, INV_TAB_PRELOAD, dateKey);
+        return invTabCache[filter];
+    });
+    invTabInflight[filter] = run;
+    run.finally(() => {
+        if (invTabInflight[filter] === run) invTabInflight[filter] = null;
+    });
+    return run;
+}
+
+/** Tải sẵn trang đầu của Chưa xuất và Đã xuất. Không chặn nhau. */
+function _invWarmTabs() {
+    if (invDateStartMs != null || invDateEndMs != null) return;
+    void _invPreloadTab('not_exported');
+    void _invPreloadTab('exported');
+}
+
+/** Sau khi đánh dấu/hủy xuất: bỏ cache cũ, tải lại tab còn lại ở nền. */
+function _invNoteTabsStale() {
+    invTabCache.not_exported = null;
+    invTabCache.exported = null;
+    if (invDateStartMs != null || invDateEndMs != null) return;
+    const other = invInvoiceFilter === 'exported'
+        ? 'not_exported'
+        : (invInvoiceFilter === 'not_exported' ? 'exported' : null);
+    if (other) void _invPreloadTab(other);
+    else _invWarmTabs();
+}
+
+function _invPaintOrders(orders, pageIndex, hasMore, nextCursor, totalCount) {
+    invOrders = orders;
+    invState.hasMore = !!hasMore;
+    invState.nextCursor = nextCursor || null;
+    invState.pageIndex = pageIndex;
+    if (totalCount != null) invState.totalCount = Number(totalCount);
+    const visibleIds = new Set(invOrders.map((o) => Number(o.id)));
+    Array.from(invSelectedIds).forEach((id) => {
+        if (!visibleIds.has(id) && !invPickedOrders.has(id)) invSelectedIds.delete(id);
+    });
+    invState.loading = false;
+    invSetBusyToast(false);
+    invRender();
+}
+
+function _invShowTabCache(filter) {
+    if (!_invTabCacheReady(filter)) return false;
+    const cached = invTabCache[filter];
+    invFetchToken += 1;
+    invState.cursorStack = [null];
+    _invPaintOrders(
+        _invFilterSearch(cached.orders.slice(0, invPageSize)),
+        1,
+        cached.hasMore,
+        cached.nextCursor,
+        cached.totalCount
+    );
+    return true;
+}
+
 async function _invFetchPage(cursor, pageIndex) {
-    if (invState.loading) return;
+    const token = ++invFetchToken;
+    const filter = invInvoiceFilter;
+    const dateKey = _invDateKey();
     invState.loading = true;
 
     const hadData = invOrders.length > 0;
@@ -282,42 +405,23 @@ async function _invFetchPage(cursor, pageIndex) {
     else invSetBusyToast(true, 'Đang tải đơn hàng...');
 
     try {
-        const res = await fetch(`${CONFIG.API_URL}?${_invBuildParams(cursor).toString()}`);
-        if (!res.ok) throw new Error('Network response was not ok');
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Không tải được đơn hàng');
-
-        // Server tìm kiếm không có ở endpoint này → lọc theo searchTerm ở client trên trang hiện tại.
-        let orders = data.orders || [];
-        if (invSearchTerm) {
-            const t = invSearchTerm.toLowerCase();
-            orders = orders.filter((o) =>
-                String(o.order_id || '').toLowerCase().includes(t) ||
-                String(o.customer_name || '').toLowerCase().includes(t) ||
-                String(o.customer_phone || '').toLowerCase().includes(t)
-            );
+        const data = await _invRequestPage(filter, cursor, invPageSize);
+        if (token !== invFetchToken || invInvoiceFilter !== filter) return;
+        if (pageIndex === 1 && !cursor && _invIsTabFilter(filter) && invPageSize === INV_TAB_PRELOAD) {
+            _invStoreTabCache(filter, data, invPageSize, dateKey);
         }
-
-        invOrders = orders;
-        invState.hasMore = !!data.hasMore;
-        invState.nextCursor = data.nextCursor || null;
-        invState.pageIndex = pageIndex;
-        // totalCount chỉ có ở trang đầu (không cursor) → cập nhật, các trang sau giữ nguyên.
-        if (data.totalCount != null) invState.totalCount = Number(data.totalCount);
-        // Giữ lựa chọn cho đơn còn hiển thị trên trang mới (đổi số dòng) HOẶC đơn đã chọn
-        // xuyên trang qua "Chọn đơn cần xuất" (nằm trong invPickedOrders). Chỉ bỏ chọn đơn
-        // không thuộc cả hai (vd. tick tay rồi chuyển sang trang khác/đổi filter).
-        const visibleIds = new Set(invOrders.map((o) => Number(o.id)));
-        Array.from(invSelectedIds).forEach((id) => {
-            if (!visibleIds.has(id) && !invPickedOrders.has(id)) invSelectedIds.delete(id);
-        });
-        invState.loading = false;
-        invRender();
+        _invPaintOrders(
+            _invFilterSearch(data.orders || []),
+            pageIndex,
+            data.hasMore,
+            data.nextCursor,
+            data.totalCount != null ? data.totalCount : null
+        );
     } catch (err) {
+        if (token !== invFetchToken) return;
         console.error('[Invoices] Lỗi tải trang:', err);
         showToast('Không tải được danh sách đơn: ' + err.message, 'error');
         invState.loading = false;
-    } finally {
         invSetBusyToast(false);
     }
 }
@@ -327,7 +431,28 @@ function invLoadFirstPage() {
     invState.cursorStack = [null];
     invState.nextCursor = null;
     invState.hasMore = false;
-    _invFetchPage(null, 1);
+
+    const filter = invInvoiceFilter;
+    if (_invShowTabCache(filter)) return;
+
+    const pending = _invIsTabFilter(filter) ? invTabInflight[filter] : null;
+    if (pending && invDateStartMs == null && invDateEndMs == null && invPageSize <= INV_TAB_PRELOAD) {
+        const token = ++invFetchToken;
+        if (invOrders.length === 0) invShowLoading();
+        else invSetBusyToast(true, 'Đang tải đơn hàng...');
+        invState.loading = true;
+        pending.then(() => {
+            if (token !== invFetchToken || invInvoiceFilter !== filter) return;
+            if (!_invShowTabCache(filter)) void _invFetchPage(null, 1);
+        }).catch((err) => {
+            if (token !== invFetchToken) return;
+            console.error('[Invoices] Lỗi tải sẵn tab:', err);
+            void _invFetchPage(null, 1);
+        });
+        return;
+    }
+
+    void _invFetchPage(null, 1);
 }
 
 function invNextPage() {
@@ -692,6 +817,7 @@ async function invToggle(orderId, currentExported) {
         }
         showToast(data.message || (newIsExported ? 'Đã đánh dấu đã xuất HĐĐT' : 'Đã bỏ đánh dấu'), 'success');
         _invRefreshDueBadge();
+        _invNoteTabsStale();
 
         // Nếu đang lọc theo trạng thái HĐĐT → đơn có thể không còn khớp, tải lại trang.
         if (invInvoiceFilter !== 'all') {
@@ -740,6 +866,7 @@ async function invCancelExport(orderId) {
         }
         showToast(data.message || 'Đã hủy xuất HĐĐT', 'success');
         _invRefreshDueBadge();
+        _invNoteTabsStale();
 
         // Nếu đang lọc theo trạng thái HĐĐT → đơn có thể không còn khớp, tải lại trang.
         if (invInvoiceFilter !== 'all') {
@@ -813,6 +940,7 @@ async function bulkCancelInvoicesPage() {
     }
 
     _invRefreshDueBadge();
+    _invNoteTabsStale();
     // Tải lại trang hiện tại để đồng bộ (đặc biệt khi đang lọc theo trạng thái HĐĐT).
     _invFetchPage(invState.cursorStack[invState.cursorStack.length - 1] || null, invState.pageIndex || 1);
 }
@@ -945,6 +1073,7 @@ async function invDownloadExport(exportId) {
 
     // Làm mới danh sách file + bảng đơn (đồng bộ trạng thái mới)
     await _renderInvHistoryList(exportId);
+    _invNoteTabsStale();
     _invFetchPage(invState.cursorStack[invState.cursorStack.length - 1] || null, invState.pageIndex || 1);
 }
 
@@ -1203,5 +1332,6 @@ function _initInvSearch() {
 document.addEventListener('DOMContentLoaded', () => {
     _syncInvFilterButtons();
     _initInvSearch();
+    _invWarmTabs();
     invLoadFirstPage();
 });
