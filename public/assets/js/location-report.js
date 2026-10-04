@@ -12,6 +12,133 @@ let locationTableFilterTimer = null;
 let topChart = null;
 let pieChart = null;
 
+/** Tên hiển thị của 34 tỉnh, thành hiện hành. */
+const PROVINCE_LABEL = {
+    'hà nội': 'Thành phố Hà Nội',
+    'hồ chí minh': 'Thành phố Hồ Chí Minh',
+    'đà nẵng': 'Thành phố Đà Nẵng',
+    'hải phòng': 'Thành phố Hải Phòng',
+    'cần thơ': 'Thành phố Cần Thơ',
+    'huế': 'Thành phố Huế',
+    'an giang': 'Tỉnh An Giang',
+    'bắc ninh': 'Tỉnh Bắc Ninh',
+    'cà mau': 'Tỉnh Cà Mau',
+    'cao bằng': 'Tỉnh Cao Bằng',
+    'đắk lắk': 'Tỉnh Đắk Lắk',
+    'điện biên': 'Tỉnh Điện Biên',
+    'đồng nai': 'Tỉnh Đồng Nai',
+    'đồng tháp': 'Tỉnh Đồng Tháp',
+    'gia lai': 'Tỉnh Gia Lai',
+    'hà tĩnh': 'Tỉnh Hà Tĩnh',
+    'hưng yên': 'Tỉnh Hưng Yên',
+    'khánh hòa': 'Tỉnh Khánh Hòa',
+    'lai châu': 'Tỉnh Lai Châu',
+    'lâm đồng': 'Tỉnh Lâm Đồng',
+    'lạng sơn': 'Tỉnh Lạng Sơn',
+    'lào cai': 'Tỉnh Lào Cai',
+    'nghệ an': 'Tỉnh Nghệ An',
+    'ninh bình': 'Tỉnh Ninh Bình',
+    'phú thọ': 'Tỉnh Phú Thọ',
+    'quảng ngãi': 'Tỉnh Quảng Ngãi',
+    'quảng ninh': 'Tỉnh Quảng Ninh',
+    'quảng trị': 'Tỉnh Quảng Trị',
+    'sơn la': 'Tỉnh Sơn La',
+    'tây ninh': 'Tỉnh Tây Ninh',
+    'thái nguyên': 'Tỉnh Thái Nguyên',
+    'thanh hóa': 'Tỉnh Thanh Hóa',
+    'tuyên quang': 'Tỉnh Tuyên Quang',
+    'vĩnh long': 'Tỉnh Vĩnh Long'
+};
+
+/** Tỉnh cũ sau sáp nhập 1/7/2025 → tỉnh hiện hành. Chỉ dùng khi hiển thị. */
+const MERGED_PROVINCE = {
+    'bình dương': 'hồ chí minh',
+    'bà rịa vũng tàu': 'hồ chí minh',
+    'quảng nam': 'đà nẵng',
+    'hải dương': 'hải phòng',
+    'sóc trăng': 'cần thơ',
+    'hậu giang': 'cần thơ',
+    'thừa thiên huế': 'huế',
+    'kiên giang': 'an giang',
+    'bắc giang': 'bắc ninh',
+    'bạc liêu': 'cà mau',
+    'phú yên': 'đắk lắk',
+    'bình phước': 'đồng nai',
+    'tiền giang': 'đồng tháp',
+    'bình định': 'gia lai',
+    'thái bình': 'hưng yên',
+    'ninh thuận': 'khánh hòa',
+    'đắk nông': 'lâm đồng',
+    'bình thuận': 'lâm đồng',
+    'yên bái': 'lào cai',
+    'hà nam': 'ninh bình',
+    'nam định': 'ninh bình',
+    'vĩnh phúc': 'phú thọ',
+    'hòa bình': 'phú thọ',
+    'kon tum': 'quảng ngãi',
+    'quảng bình': 'quảng trị',
+    'long an': 'tây ninh',
+    'bắc kạn': 'thái nguyên',
+    'hà giang': 'tuyên quang',
+    'bến tre': 'vĩnh long',
+    'trà vinh': 'vĩnh long'
+};
+
+const PROVINCE_ALIAS = {
+    'tphcm': 'hồ chí minh',
+    'tp hcm': 'hồ chí minh',
+    'hcm': 'hồ chí minh',
+    'sài gòn': 'hồ chí minh',
+    'sai gon': 'hồ chí minh',
+    'ho chi minh': 'hồ chí minh',
+    'dak lak': 'đắk lắk',
+    'dac lac': 'đắk lắk',
+    'đăk lăk': 'đắk lắk',
+    'dak nong': 'đắk nông',
+    'đăk nông': 'đắk nông',
+    'bắc cạn': 'bắc kạn',
+    'bac kan': 'bắc kạn',
+    'ba ria vung tau': 'bà rịa vũng tàu',
+    'br vt': 'bà rịa vũng tàu',
+    'brvt': 'bà rịa vũng tàu',
+    'thua thien hue': 'thừa thiên huế',
+    'thuathienhue': 'thừa thiên huế'
+};
+
+function foldProvinceKey(raw) {
+    let s = String(raw || '').trim().toLowerCase().replace(/[-–]/g, ' ').replace(/\s+/g, ' ');
+    s = s.replace(/^(tỉnh|thành phố|thanh pho|tp\.?|t\.p\.?)\s+/, '').trim();
+    // "Hoà" và "Hòa", "Hoá" và "Hóa" là hai cách gõ khác mã chữ.
+    s = s.replace(/oà/g, 'òa').replace(/oá/g, 'óa').replace(/oả/g, 'ỏa').replace(/oã/g, 'õa').replace(/oạ/g, 'ọa');
+    s = s.replace(/uỳ/g, 'ùy').replace(/uý/g, 'úy').replace(/uỷ/g, 'ủy').replace(/uỹ/g, 'ũy').replace(/uỵ/g, 'ụy');
+    return PROVINCE_ALIAS[s] || s;
+}
+
+function canonicalProvince(rawName) {
+    const folded = foldProvinceKey(rawName);
+    if (!folded) return { key: '', label: 'Chưa rõ tỉnh' };
+    const key = MERGED_PROVINCE[folded] || folded;
+    return { key, label: PROVINCE_LABEL[key] || String(rawName || '').trim() || 'Chưa rõ tỉnh' };
+}
+
+function mergeProvinceRows(rows) {
+    const map = new Map();
+    for (const row of rows || []) {
+        const { key, label } = canonicalProvince(row.name);
+        const id = key || `id:${row.id || ''}`;
+        let acc = map.get(id);
+        if (!acc) acc = { id, name: label, orders: 0, revenue: 0, customers: 0 };
+        acc.orders += Number(row.orders) || 0;
+        acc.revenue += Number(row.revenue) || 0;
+        acc.customers += Number(row.customers) || 0;
+        map.set(id, acc);
+    }
+    return [...map.values()].map((row) => ({
+        ...row,
+        avgValue: row.orders > 0 ? row.revenue / row.orders : 0
+    }));
+}
+
 const dataCache = {
     today: { province: null, previous: null },
     week: { province: null, previous: null },
@@ -287,8 +414,8 @@ async function loadLocationData() {
         const data = await response.json();
 
         if (data.success) {
-            allLocationData = data.locations || [];
-            previousPeriodData = data.previousLocations || [];
+            allLocationData = mergeProvinceRows(data.locations || []);
+            previousPeriodData = mergeProvinceRows(data.previousLocations || []);
             window.uniqueCustomersCount = data.uniqueCustomers || 0;
 
             allLocationData = allLocationData.map(loc => {

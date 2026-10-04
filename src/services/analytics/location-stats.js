@@ -66,6 +66,7 @@ export async function getLocationStats(params, env, corsHeaders) {
                 previousQuery = `
                     SELECT 
                         province_id as id,
+                        province_name as name,
                         COUNT(*) as orders,
                         SUM(total_amount) as revenue
                     FROM orders
@@ -75,7 +76,7 @@ export async function getLocationStats(params, env, corsHeaders) {
                         AND province_id != ''
                         AND created_at_unix >= ?
                         AND created_at_unix <= ?
-                    GROUP BY province_id
+                    GROUP BY province_id, province_name
                 `;
             }
         } else if (level === 'district' && provinceId) {
@@ -211,6 +212,7 @@ export async function getLocationStats(params, env, corsHeaders) {
 
         const formattedPreviousLocations = previousLocations.map(loc => ({
             id: loc.id,
+            name: loc.name || '',
             orders: loc.orders || 0,
             revenue: loc.revenue || 0
         }));
