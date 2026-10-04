@@ -466,6 +466,7 @@ async function _markInvoiceAsDownloaded(invoiceId) {
 
 async function downloadAndUpdateInvoice(invoiceId) {
     try {
+        openPancakeInvoiceTab();
         showToast('Đang tải file...', 'info');
         await downloadInvoiceExport(invoiceId);
 
@@ -559,6 +560,7 @@ async function bulkMergeInvoices() {
     }
 
     if (!confirm(`Bạn có muốn gộp ${count} file HDDT thành 1 file Excel duy nhất?`)) return;
+    openPancakeInvoiceTab();
 
     try {
         if (typeof XLSX === 'undefined') {
@@ -624,6 +626,7 @@ async function bulkDownloadInvoices() {
 
     const count = selectedInvoiceIds.size;
     if (!confirm(`Bạn có chắc muốn tải ${count} file đã chọn?`)) return;
+    openPancakeInvoiceTab();
 
     try {
         showToast(`Đang tải ${count} file...`, 'info');

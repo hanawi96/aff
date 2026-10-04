@@ -917,6 +917,7 @@ async function _renderInvHistoryList(highlightExportId) {
 
 /** Tải file HĐĐT: tải file về máy + gọi markExportDownloaded để đánh dấu đơn đã xuất. */
 async function invDownloadExport(exportId) {
+    openPancakeInvoiceTab();
     // Tải file về máy
     const link = document.createElement('a');
     link.href = `${CONFIG.API_URL}?action=downloadExport&id=${exportId}`;

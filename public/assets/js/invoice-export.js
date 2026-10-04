@@ -2,6 +2,12 @@
 // INVOICE EXPORT MODULE - MauUploadHD.xlsx (Hóa Đơn Điện Tử Hàng Loạt)
 // =============================================================================
 
+/** Mở Pancake để upload file HĐĐT vừa tải. Gọi đồng bộ trong cú click để Chrome không chặn tab. */
+function openPancakeInvoiceTab() {
+    const tab = window.open('https://invoice.pancake.vn/', '_blank');
+    if (tab) tab.opener = null;
+}
+
 const INVOICE_EXCEL_HEADERS = [
     'MaHD', 'FKEY', 'NgayHoaDon', 'MaKhachHang', 'TenNguoiMua', 'TenDonVi',
     'DiaChiKhachHang', 'MaSoThue', 'CCCD', 'SoHoChieu', 'MaNganSach',
