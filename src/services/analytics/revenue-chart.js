@@ -1,5 +1,6 @@
 // Revenue Chart Analytics
 import { jsonResponse } from '../../utils/response.js';
+import { monthLabels, monthBucketIndex } from './chart-axis.js';
 
 /**
  * Get revenue chart data for visualization
@@ -31,33 +32,7 @@ export async function getRevenueChart(data, env, corsHeaders) {
         
         let currentStart, currentEnd, previousStart, previousEnd, groupBy, labels;
         
-        // Handle custom date range (when period='all' with startDate/endDate)
-        if (period === 'all' && data.startDate && data.endDate) {
-            currentStart = new Date(data.startDate).getTime();
-            currentEnd = new Date(data.endDate).getTime();
-            
-            // Calculate duration for comparison period
-            const duration = currentEnd - currentStart;
-            previousStart = currentStart - duration;
-            previousEnd = currentStart - 1;
-            
-            // Determine groupBy based on duration
-            const days = Math.ceil(duration / (24 * 60 * 60 * 1000));
-            if (days <= 1) {
-                groupBy = 'hour';
-                labels = Array.from({length: 24}, (_, i) => `${i}h`);
-            } else if (days <= 31) {
-                groupBy = 'day';
-                labels = Array.from({length: days}, (_, i) => `${i + 1}`);
-            } else if (days <= 365) {
-                groupBy = 'day';
-                const daysCount = Math.min(days, 31);
-                labels = Array.from({length: daysCount}, (_, i) => `${i + 1}`);
-            } else {
-                groupBy = 'month';
-                labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
-            }
-        } else if (period === 'today') {
+        if (period === 'today') {
             // Today vs Yesterday
             currentStart = getVNStartOfDay(vnNow.year, vnNow.month, vnNow.date);
             currentEnd = currentStart + 24 * 60 * 60 * 1000 - 1;
@@ -100,20 +75,40 @@ export async function getRevenueChart(data, env, corsHeaders) {
             previousStart = getVNStartOfDay(vnNow.year - 1, 1, 1);
             previousEnd = currentStart - 1;
             groupBy = 'month';
-            labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+            labels = [];
+        } else if (data.startDate) {
+            // 3 tháng, 6 tháng, hôm qua, khoảng tùy chọn. Kỳ này không có nhánh riêng.
+            currentStart = new Date(data.startDate).getTime();
+            currentEnd = data.endDate ? new Date(data.endDate).getTime() : now;
+            const duration = Math.max(currentEnd - currentStart, 1);
+            previousStart = currentStart - duration;
+            previousEnd = currentStart - 1;
+            const days = Math.ceil(duration / (24 * 60 * 60 * 1000));
+            if (days <= 1) {
+                groupBy = 'hour';
+                labels = Array.from({ length: 24 }, (_, i) => `${i}h`);
+            } else if (days <= 31) {
+                groupBy = 'day';
+                labels = Array.from({ length: days }, (_, i) => `${i + 1}`);
+            } else {
+                groupBy = 'month';
+                labels = [];
+            }
         } else {
-            // Default to 'all' - all time data
-            // Get first order date as start
             const { results: firstOrder } = await env.DB.prepare(`
                 SELECT MIN(created_at_unix) as first_date FROM orders WHERE created_at_unix IS NOT NULL
             `).all();
-            
+
             currentStart = firstOrder[0]?.first_date || (now - 365 * 24 * 60 * 60 * 1000);
             currentEnd = now;
             previousStart = currentStart;
             previousEnd = currentStart;
             groupBy = 'month';
-            labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+            labels = [];
+        }
+
+        if (groupBy === 'month') {
+            labels = monthLabels(currentStart, currentEnd, getVNDate);
         }
         
         // Fetch orders for both periods with optimized JOIN
@@ -164,18 +159,13 @@ export async function getRevenueChart(data, env, corsHeaders) {
             // Calculate index based on groupBy
             let index = 0;
             if (groupBy === 'hour') {
-                const hours = Math.floor((timestamp - baseTime) / (60 * 60 * 1000));
-                index = Math.min(hours, 23);
+                index = Math.floor((timestamp - baseTime) / (60 * 60 * 1000));
             } else if (groupBy === 'day') {
-                const days = Math.floor((timestamp - baseTime) / (24 * 60 * 60 * 1000));
-                index = Math.min(days, labels.length - 1);
+                index = Math.floor((timestamp - baseTime) / (24 * 60 * 60 * 1000));
             } else if (groupBy === 'month') {
-                const vnDate = getVNDate(timestamp);
-                const baseDate = getVNDate(baseTime);
-                index = vnDate.month - baseDate.month;
-                if (index < 0) index += 12;
-                index = Math.min(index, 11);
+                index = monthBucketIndex(timestamp, baseTime, getVNDate);
             }
+            if (index < 0 || index >= labels.length) return;
             
             // Use pre-calculated values from SQL (much faster than calculating in JS)
             const revenue = order.revenue || 0;

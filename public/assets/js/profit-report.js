@@ -405,6 +405,7 @@ function refreshData() {
     // Clear cache for current period to force reload
     dataCache[currentPeriod] = { data: null, timestamp: 0 };
     chartCache[currentPeriod] = { data: null, timestamp: 0 };
+    if (ordersChartCache[currentPeriod]) ordersChartCache[currentPeriod] = { data: null, timestamp: 0 };
     
     showToast('Đang làm mới dữ liệu...', 'info');
     loadAllData();
