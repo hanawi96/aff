@@ -98,6 +98,9 @@ body {
         display: flex !important;
         visibility: visible !important;
         opacity: 1 !important;
+        height: auto !important;
+        overflow: visible !important;
+        margin: 0 !important;
         padding: 0.5rem 0 !important;
     }
     
