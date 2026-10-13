@@ -613,22 +613,80 @@ function createCustomerRow(customer, index) {
 }
 
 
+let customerDetailToken = 0;
+
+function mountCustomerModal() {
+    let modal = document.getElementById('customerModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'customerModal';
+        modal.className = 'fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) closeCustomerModal();
+        });
+        document.body.appendChild(modal);
+    }
+    return modal;
+}
+
+function showCustomerModalLoading(phone) {
+    const known = allCustomers.find((item) => item.phone === phone || escapeHtml(item.phone || '') === phone);
+    const name = known ? escapeHtml(known.name) : '';
+    const shownPhone = escapeHtml((known && known.phone) || phone || '');
+    const modal = mountCustomerModal();
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <div class="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-slate-200 shrink-0"></div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold text-slate-900 truncate">${name || 'Đang tải'}</p>
+                    <p class="text-xs text-slate-500 font-mono mt-0.5">${shownPhone}</p>
+                </div>
+                <button type="button" onclick="closeCustomerModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex items-center justify-center shrink-0" aria-label="Đóng">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="px-4 py-4 space-y-3">
+                <div class="h-3 w-2/3 rounded bg-slate-100 animate-pulse"></div>
+                <div class="h-3 w-full rounded bg-slate-100 animate-pulse"></div>
+                <div class="h-3 w-5/6 rounded bg-slate-100 animate-pulse"></div>
+                <div class="h-3 w-1/2 rounded bg-slate-100 animate-pulse"></div>
+            </div>
+        </div>
+    `;
+}
+
+function showCustomerModalError(message) {
+    const modal = document.getElementById('customerModal');
+    if (!modal) return;
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-sm p-5" onclick="event.stopPropagation()">
+            <p class="text-sm font-semibold text-slate-900">Không tải được chi tiết</p>
+            <p class="text-sm text-slate-500 mt-1">${escapeHtml(message)}</p>
+            <button type="button" onclick="closeCustomerModal()" class="mt-4 text-sm font-medium text-slate-700 hover:text-slate-900">Đóng</button>
+        </div>
+    `;
+}
+
 // View customer detail
 async function viewCustomerDetail(phone) {
+    const token = ++customerDetailToken;
+    showCustomerModalLoading(phone);
     try {
-        showToast('Đang tải...', 'info');
-
         const [detailRes, noteRes] = await Promise.all([
             fetch(`${CONFIG.API_URL}?action=getCustomerDetail&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`),
             fetch(`${CONFIG.API_URL}?action=getCustomerNote&phone=${encodeURIComponent(phone)}&timestamp=${Date.now()}`)
         ]);
 
         const [detailData, noteData] = await Promise.all([detailRes.json(), noteRes.json()]);
+        if (token !== customerDetailToken) return;
 
         if (detailData.success) {
-            // Pre-populate note cache for this customer
             if (noteData.success && noteData.note) {
-                customerNotes[phone] = {
+                const notePhone = detailData.customer?.phone || phone;
+                customerNotes[notePhone] = {
                     content: noteData.note.content || '',
                     updated_at: noteData.note.updated_at,
                     has_content: !!(noteData.note.content && noteData.note.content.trim())
@@ -639,23 +697,22 @@ async function viewCustomerDetail(phone) {
             throw new Error(detailData.error || 'Không thể tải thông tin khách hàng');
         }
     } catch (error) {
+        if (token !== customerDetailToken) return;
         console.error('Error loading customer detail:', error);
-        showToast('Lỗi: ' + error.message, 'error');
+        showCustomerModalError(error.message);
     }
 }
 
 // Show customer detail modal
 function showCustomerModal(customer) {
-    const modal = document.createElement('div');
-    modal.id = 'customerModal';
-    modal.className = 'fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    const modal = mountCustomerModal();
     
     const segmentBadges = {
-        'VIP': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 text-yellow-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-yellow-500 rounded-full"></span>VIP</span>',
-        'Regular': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-green-500 rounded-full"></span>Regular</span>',
-        'New': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 text-blue-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-blue-500 rounded-full"></span>New</span>',
-        'At Risk': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 text-orange-800 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-orange-500 rounded-full"></span>At Risk</span>',
-        'Churned': '<span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-200 text-gray-700 text-sm font-semibold rounded-full"><span class="w-2 h-2 bg-gray-400 rounded-full"></span>Churned</span>'
+        'VIP': '<span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 text-amber-800 text-xs font-semibold rounded-full">VIP</span>',
+        'Regular': '<span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-800 text-xs font-semibold rounded-full">Regular</span>',
+        'New': '<span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-sky-50 text-sky-800 text-xs font-semibold rounded-full">New</span>',
+        'At Risk': '<span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-orange-50 text-orange-800 text-xs font-semibold rounded-full">At Risk</span>',
+        'Churned': '<span class="inline-flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full">Churned</span>'
     };
 
     // Show actual date instead of "days ago"
@@ -669,123 +726,111 @@ function showCustomerModal(customer) {
 
     const orders = Array.isArray(customer.orders) ? customer.orders : [];
 
+    const note = customerNotes[customer.phone];
+    const hasNote = !!(note && note.has_content);
+
     modal.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-200/80 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div class="bg-gradient-to-r from-sky-50 via-white to-indigo-50 px-6 py-5 border-b border-slate-100 shrink-0">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="flex items-center gap-4 min-w-0">
-                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 ring-2 ring-white shrink-0">
-                            <span class="text-white font-bold text-lg">${getInitials(customer.name)}</span>
-                        </div>
-                        <div class="min-w-0">
-                            <h2 class="text-xl font-bold text-slate-900 truncate">${escapeHtml(customer.name)}</h2>
-                            <p class="text-sm text-slate-500 font-mono mt-0.5">${escapeHtml(customer.phone)}</p>
-                        </div>
-                    </div>
-                    <button type="button" onclick="closeCustomerModal()" class="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 flex items-center justify-center transition-colors shrink-0" aria-label="Đóng">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="p-6 overflow-y-auto flex-1 min-h-0">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                    <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Phân khúc</p>
+        <div class="bg-white rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200 w-full max-w-lg max-h-[86vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <div class="px-4 py-3 border-b border-slate-100 flex items-center gap-3 shrink-0">
+                <div class="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-semibold shrink-0">${getInitials(customer.name)}</div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h2 class="text-sm font-semibold text-slate-900 truncate">${escapeHtml(customer.name)}</h2>
                         ${segmentBadges[customer.segment] || segmentBadges['New']}
                     </div>
-                    <div class="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-                        <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Tổng đơn</p>
-                        <p class="text-2xl font-bold text-emerald-900 tabular-nums">${customer.total_orders}</p>
-                    </div>
-                    <div class="rounded-xl border border-violet-100 bg-violet-50/50 p-4">
-                        <p class="text-xs font-semibold text-violet-700 uppercase tracking-wide mb-1">Tổng chi tiêu</p>
-                        <p class="text-lg font-bold text-violet-900 tabular-nums leading-tight">${formatCurrency(customer.total_spent)}</p>
-                    </div>
-                    <div class="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
-                        <p class="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-1">TB / đơn</p>
-                        <p class="text-lg font-bold text-amber-900 tabular-nums leading-tight">${formatCurrency(customer.avg_order_value)}</p>
-                    </div>
+                    <p class="text-xs text-slate-500 font-mono mt-0.5">${escapeHtml(customer.phone)}</p>
                 </div>
+                <button type="button" onclick="closeCustomerModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 flex items-center justify-center shrink-0" aria-label="Đóng">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
 
-                <div class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 mb-6">
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">Thông tin liên hệ</h3>
-                    <div class="space-y-2.5 text-sm">
-                        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-                            <span class="text-slate-500 shrink-0">Địa chỉ</span>
-                            <span class="text-slate-900 font-medium text-right sm:text-left">${escapeHtml(customer.address || 'Chưa có')}</span>
-                        </div>
-                        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-                            <span class="text-slate-500 shrink-0">Đơn gần nhất</span>
-                            <span class="text-slate-900 font-medium tabular-nums">${lastOrderText}</span>
-                        </div>
-                        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-                            <span class="text-slate-500 shrink-0">Khách từ</span>
-                            <span class="text-slate-900 font-medium tabular-nums">${firstOrderText}</span>
-                        </div>
-                        ${customer.ctv_codes ? `
-                        <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-4">
-                            <span class="text-slate-500 shrink-0">CTV giới thiệu</span>
-                            <span class="text-slate-900 font-medium">${escapeHtml(customer.ctv_codes)}</span>
-                        </div>
-                        ` : ''}
-                    </div>
+            <div class="grid grid-cols-3 divide-x divide-slate-100 border-b border-slate-100 shrink-0">
+                <div class="px-3 py-2.5">
+                    <p class="text-[11px] text-slate-400">Tổng đơn</p>
+                    <p class="text-sm font-semibold text-slate-900 tabular-nums">${customer.total_orders}</p>
                 </div>
+                <div class="px-3 py-2.5">
+                    <p class="text-[11px] text-slate-400">Chi tiêu</p>
+                    <p class="text-sm font-semibold text-slate-900 tabular-nums">${formatCurrency(customer.total_spent)}</p>
+                </div>
+                <div class="px-3 py-2.5">
+                    <p class="text-[11px] text-slate-400">TB / đơn</p>
+                    <p class="text-sm font-semibold text-slate-900 tabular-nums">${formatCurrency(customer.avg_order_value)}</p>
+                </div>
+            </div>
 
-                <div class="rounded-xl border border-amber-100 bg-amber-50/30 p-4 mb-6">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-amber-700">Ghi chú</h3>
-                        <button type="button" onclick="openNoteModalFromDetail('${phone}', '${escapeHtml(customer.name)}')"
-                            class="text-xs text-amber-600 hover:text-amber-700 font-medium transition-colors">
-                            ${customerNotes[customer.phone]?.has_content ? 'Sửa' : 'Thêm ghi chú'}
+            <div class="px-4 py-3 overflow-y-auto flex-1 min-h-0 text-sm">
+                <dl class="space-y-1.5">
+                    <div class="flex gap-3">
+                        <dt class="w-24 shrink-0 text-slate-400">Địa chỉ</dt>
+                        <dd class="text-slate-800 min-w-0">${escapeHtml(customer.address || 'Chưa có')}</dd>
+                    </div>
+                    <div class="flex gap-3">
+                        <dt class="w-24 shrink-0 text-slate-400">Đơn gần nhất</dt>
+                        <dd class="text-slate-800 tabular-nums">${lastOrderText}</dd>
+                    </div>
+                    <div class="flex gap-3">
+                        <dt class="w-24 shrink-0 text-slate-400">Khách từ</dt>
+                        <dd class="text-slate-800 tabular-nums">${firstOrderText}</dd>
+                    </div>
+                    ${customer.ctv_codes ? `
+                    <div class="flex gap-3">
+                        <dt class="w-24 shrink-0 text-slate-400">CTV</dt>
+                        <dd class="text-slate-800">${escapeHtml(customer.ctv_codes)}</dd>
+                    </div>
+                    ` : ''}
+                </dl>
+
+                <div class="mt-3 pt-3 border-t border-slate-100">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Ghi chú</p>
+                        <button type="button" onclick="openNoteModalFromDetail('${escapeHtml(customer.phone)}', '${escapeHtml(customer.name)}')"
+                            class="text-xs font-medium text-slate-500 hover:text-slate-900">
+                            ${hasNote ? 'Sửa' : 'Thêm'}
                         </button>
                     </div>
-                    <div id="detailNoteContent" class="text-sm text-slate-700 min-h-[40px]">
-                        ${customerNotes[customer.phone]?.has_content
-                            ? `<div class="bg-white/70 rounded-lg p-3 border border-amber-100">${escapeHtml(customerNotes[customer.phone].content).replace(/\n/g, '<br>')}</div>`
-                            : '<span class="text-slate-400 italic">Chưa có ghi chú nào</span>'
+                    <div id="detailNoteContent" class="text-sm text-slate-700">
+                        ${hasNote
+                            ? escapeHtml(note.content).replace(/\n/g, '<br>')
+                            : '<span class="text-slate-400">Chưa có ghi chú</span>'
                         }
                     </div>
                 </div>
 
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 mb-3">Lịch sử đơn hàng <span class="text-slate-400 font-semibold">(${orders.length})</span></h3>
-                    <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
-                        ${orders.length === 0 ? '<p class="text-sm text-slate-500 py-8 text-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50">Chưa có đơn hàng trong lịch sử.</p>' : orders.map(order => `
-                            <div class="rounded-xl border border-slate-100 bg-white p-4 hover:border-slate-200 hover:shadow-sm transition-all">
-                                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <span class="text-xs font-mono font-bold text-indigo-600">${escapeHtml(order.order_id)}</span>
+                <div class="mt-3 pt-3 border-t border-slate-100">
+                    <p class="text-[11px] font-medium text-slate-400 uppercase tracking-wide mb-1">Đơn hàng <span class="text-slate-300">${orders.length}</span></p>
+                    ${orders.length === 0 ? '<p class="text-sm text-slate-400 py-3">Chưa có đơn hàng.</p>' : `
+                    <div class="divide-y divide-slate-100">
+                        ${orders.map(order => `
+                            <div class="py-2 flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="flex flex-wrap items-center gap-1.5">
+                                        <span class="text-xs font-mono font-medium text-slate-800">${escapeHtml(order.order_id)}</span>
                                         ${getStatusBadge(order.status)}
                                     </div>
-                                    <span class="text-base font-bold text-emerald-700 tabular-nums">${formatCurrency(order.total_amount)}</span>
+                                    <p class="text-xs text-slate-400 mt-0.5 tabular-nums">
+                                        ${formatDate(order.created_at_unix)}
+                                        ${order.referral_code ? ` · CTV ${escapeHtml(order.referral_code)}` : ''}
+                                    </p>
                                 </div>
-                                <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                                    <span class="tabular-nums">${formatDate(order.created_at_unix)}</span>
-                                    ${order.referral_code ? `<span class="text-violet-600 font-medium">CTV ${escapeHtml(order.referral_code)}</span>` : ''}
-                                </div>
+                                <span class="text-sm font-semibold text-slate-900 tabular-nums shrink-0">${formatCurrency(order.total_amount)}</span>
                             </div>
                         `).join('')}
                     </div>
+                    `}
                 </div>
-            </div>
-            
-            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end shrink-0">
-                <button type="button" onclick="closeCustomerModal()"
-                    class="px-5 py-2.5 text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold shadow-sm">
-                    Đóng
-                </button>
             </div>
         </div>
     `;
-    
-    document.body.appendChild(modal);
+
 }
 
 // Close customer modal
 function closeCustomerModal() {
+    customerDetailToken++;
     const modal = document.getElementById('customerModal');
     if (modal) {
         modal.remove();
