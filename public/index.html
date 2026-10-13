@@ -31,7 +31,7 @@
         <link rel="stylesheet" href="shop/assets/css/form-validation.css">
         <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css">
     </noscript>
-    <link rel="stylesheet" href="shop/styles.css?v=41">
+    <link rel="stylesheet" href="shop/styles.css?v=46">
     <link rel="stylesheet" href="shop/assets/css/home.css?v=3">
     <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css?v=4">
     <link rel="stylesheet" href="shop/cart.css?v=33">
@@ -54,11 +54,11 @@
                 
                 <!-- Navigation - Desktop -->
                 <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/" class="text-gray-700 hover:text-primary transition font-medium text-sm">Trang chủ</a>
-                    <a href="#products" class="text-gray-700 hover:text-primary transition font-medium text-sm">Sản phẩm</a>
-                    <a href="#process" class="text-gray-700 hover:text-primary transition font-medium text-sm">Quy trình</a>
-                    <a href="#reviews" class="text-gray-700 hover:text-primary transition font-medium text-sm">Lời mẹ chia sẻ</a>
-                    <a href="#faq" class="text-gray-700 hover:text-primary transition font-medium text-sm">Câu hỏi</a>
+                    <a href="/" class="shop-nav-link text-gray-700 hover:text-primary transition font-medium">Trang chủ</a>
+                    <a href="#products" class="shop-nav-link text-gray-700 hover:text-primary transition font-medium">Sản phẩm</a>
+                    <a href="#process" class="shop-nav-link text-gray-700 hover:text-primary transition font-medium">Quy trình</a>
+                    <a href="#reviews" class="shop-nav-link text-gray-700 hover:text-primary transition font-medium">Lời mẹ chia sẻ</a>
+                    <a href="#faq" class="shop-nav-link text-gray-700 hover:text-primary transition font-medium">Câu hỏi</a>
                 </nav>
                 
                 <!-- Actions -->
@@ -398,11 +398,11 @@
                 </div>
                 <div class="real-vong-copy">
                     <h2 class="real-vong-title">Vòng dâu tằm thật<br><span class="font-handwritten">có tác dụng gì?</span></h2>
-                    <p class="real-vong-lead">Em làm từ cây dâu tằm ta nhà trồng. Hạt mài tay, màu gỗ tự nhiên, không sơn bóng, không tẩm hóa chất. Bé đeo sát da nên em chỉ dùng gỗ dâu thật.</p>
+                    <p class="real-vong-lead">Vòng được em làm từ cây dâu tằm ta nhà trồng. Hạt được mài mịn tỉ mỉ, không sơn bóng, không tẩy màu, không tẩm hóa chất. Các mẹ hoàn toàn yên tâm khi đeo cho bé nha.</p>
                     <ul class="real-vong-list">
                         <li>
                             <span class="real-vong-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6.5 12.4 10.2 16 17.5 8.2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                            <span><strong>Ngủ ngon hơn.</strong> Nhiều mẹ thấy bé bớt giật mình và ngủ sâu hơn.</span>
+                            <span><strong>Ngủ ngon hơn.</strong> Bé bớt giật mình và ngủ ngoan và sâu hơn.</span>
                         </li>
                         <li>
                             <span class="real-vong-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M6.5 12.4 10.2 16 17.5 8.2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
@@ -623,6 +623,7 @@
                     </div>
                     <div class="categories-chips-grid" id="categoriesSkeleton" style="display: none;"></div>
                     <div class="categories-chips-grid" id="categoriesGrid">
+                        <button type="button" class="category-chip active" onclick="window.categoryActions.filterByCategory(null)" data-category-id="all"><span class="category-chip-icon"><span class="category-chip-all-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4.75A.75.75 0 0 1 4.75 4h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5A.75.75 0 0 1 4 10.25v-5.5Zm9 0a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5a.75.75 0 0 1-.75-.75v-5.5ZM4.75 13a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-5.5Zm9 0a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-5.5Z"/></svg></span></span><span class="category-chip-name">Tất cả mẫu</span></button>
                         <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(8)" data-category-id="8"><span class="category-chip-icon"><img src="assets/images/category-thumbs/8.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Vòng trơn</span><span class="category-chip-badge">Phổ biến</span></button>
                         <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(37)" data-category-id="37"><span class="category-chip-icon"><img src="assets/images/category-thumbs/37.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Mix charm ngựa 2026</span><span class="category-chip-badge">Phổ biến</span></button>
                         <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(11)" data-category-id="11"><span class="category-chip-icon"><img src="assets/images/category-thumbs/11.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Vòng co giãn</span></button>
@@ -2081,6 +2082,12 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                         <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
                                     </svg>
+                                    <span>Làm theo cân nặng riêng của bé</span>
+                                </li>
+                                <li>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
+                                    </svg>
                                     <span>Hạt dâu tằm lâu năm, già chắc &amp; đặc lõi</span>
                                 </li>
                                 <li>
@@ -2182,7 +2189,7 @@
         </div>
     </div>
     
-    <script type="module" src="shop/assets/js/app.js?v=56"></script>
+    <script type="module" src="shop/assets/js/app.js?v=60"></script>
     <script defer src="shop/assets/js/faq-modal.js"></script>
     <script defer src="shop/assets/js/feedback-carousel.js"></script>
 </body>

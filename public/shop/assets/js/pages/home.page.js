@@ -4,8 +4,8 @@
 
 import { apiService } from '../shared/services/api.service.js?v=5';
 import { cartService } from '../shared/services/cart.service.js';
-import { ProductGrid, ProductActions } from '../features/products/index.js?v=11';
-import { renderCategories, CategoryActions } from '../features/categories/index.js?v=2';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=14';
+import { renderCategories, CategoryActions } from '../features/categories/index.js?v=4';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=2';
 import { QuickCheckout } from '../features/checkout/index.js?v=2025c';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
@@ -583,8 +583,7 @@ export class HomePage {
      * Render page content
      */
     render() {
-        // Render categories
-        renderCategories(this.categories, 'categoriesGrid');
+        this.renderCategories();
         
         // Render products
         const productsToRender = this.allProducts.length > 0 ? this.allProducts : this.products;
@@ -697,6 +696,7 @@ export class HomePage {
     renderCategories() {
         this.ensureCategoryActions();
         renderCategories(this.categories, 'categoriesGrid');
+        this.categoryActions.updateActiveState(this.categoryActions.activeCategory);
     }
 
     /**

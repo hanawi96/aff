@@ -11,7 +11,12 @@ import { CONFIG, productCardUrl, productCardSourceUrl } from '../../shared/const
  * @param {Object} product - Product data
  * @returns {string} HTML string
  */
-export function createProductCard(product) {
+function bestSellerTag(rank) {
+    if (rank < 1 || rank > 3) return '';
+    return `<span class="bestseller-tag" aria-label="Sản phẩm bán chạy số ${rank}">Bán chạy số ${rank}</span>`;
+}
+
+export function createProductCard(product, bestSellerRank = 0) {
     const discount = calculateDiscount(product.original_price, product.price);
     const rating = product.rating || 4.5;
     const purchases = product.purchases || 0;
@@ -91,6 +96,7 @@ export function createProductCard(product) {
                          onclick="window.openProductDetail(${product.id})"
                          onerror="if(!this.dataset.fullTried){this.dataset.fullTried='1';this.src='${escapeHtml(imageUrl)}';return;}this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
                 </div>
+                ${!isOutOfStock ? bestSellerTag(bestSellerRank) : ''}
                 ${isOutOfStock ? `<span class="product-badge out-of-stock">Hết hàng</span>` : ''}
                 ${shouldShowMarketingBadges && discount > 0 ? `<span class="product-badge sale">-${discount}%</span>` : ''}
                 ${product.string_type === 'draw' ? '<span class="product-badge string-draw">Dây rút</span>' : ''}
@@ -140,7 +146,7 @@ export function createProductCard(product) {
  * @param {Array} products - Array of products
  * @param {string} containerId - Container element ID
  */
-export function renderProducts(products, containerId) {
+export function renderProducts(products, containerId, bestSellerRanks = null) {
     const container = document.getElementById(containerId);
     if (!container) {
         // Container not ready yet - silently return
@@ -152,5 +158,8 @@ export function renderProducts(products, containerId) {
         return;
     }
 
-    container.innerHTML = products.map(createProductCard).join('');
+    container.innerHTML = products.map((product) => {
+        const rank = bestSellerRanks?.get(Number(product.id)) || 0;
+        return createProductCard(product, rank);
+    }).join('');
 }

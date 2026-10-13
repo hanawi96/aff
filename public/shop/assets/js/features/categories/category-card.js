@@ -10,6 +10,18 @@ import { CATEGORY_IMAGES } from '../../shared/constants/config.js';
  * @param {Object} category - Category data
  * @returns {string} HTML string
  */
+const ALL_CATEGORY_ICON = `<span class="category-chip-all-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4.75A.75.75 0 0 1 4.75 4h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5A.75.75 0 0 1 4 10.25v-5.5Zm9 0a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5a.75.75 0 0 1-.75-.75v-5.5ZM4.75 13a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-5.5Zm9 0a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-5.5Z"/></svg></span>`;
+
+/** Chip "Tất cả": bỏ lọc danh mục, về danh sách mặc định. */
+export function createAllCategoriesChip() {
+    return `
+        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(null)" data-category-id="all">
+            <span class="category-chip-icon">${ALL_CATEGORY_ICON}</span>
+            <span class="category-chip-name">Tất cả mẫu</span>
+        </button>
+    `;
+}
+
 export function createCategoryCard(category, index = 0) {
     const popularBadge = category.is_featured === 1 || category.is_featured === true
         ? '<span class="category-chip-badge">Phổ biến</span>'
@@ -60,5 +72,6 @@ export function renderCategories(categories, containerId) {
         .filter(cat => cat.is_active === 1)
         .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
     
-    container.innerHTML = activeCategories.map((cat, i) => createCategoryCard(cat, i)).join('');
+    container.innerHTML = createAllCategoriesChip()
+        + activeCategories.map((cat, i) => createCategoryCard(cat, i)).join('');
 }
