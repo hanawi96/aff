@@ -1146,7 +1146,7 @@ async function loadProducts() {
     
     // Load products and categories in parallel
     const [productsRes, categoriesRes] = await Promise.all([
-      shopvdFetch(`${API_BASE_URL}?action=getAllProducts`),
+      shopvdFetch(`${API_BASE_URL}?action=getAllProducts&inStock=1`),
       shopvdFetch(`${API_BASE_URL}?action=getAllCategories`)
     ]);
     
@@ -1154,7 +1154,10 @@ async function loadProducts() {
     const categoriesData = await categoriesRes.json();
     
     if (productsData.success && Array.isArray(productsData.products)) {
-      allProductsCache = productsData.products;
+      allProductsCache = productsData.products.filter((product) => {
+        const qty = parseInt(product?.stock_quantity, 10);
+        return Number.isFinite(qty) && qty > 0;
+      });
       productsLoaded = true;
       
       // Get featured/hot products from API (already sorted by purchases DESC)
@@ -6265,12 +6268,44 @@ function setupPancakeMessageGrab() {
   setupPancakeDoubleClickGrab();
 }
 
+function categoryIdNumber(value) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'object') return categoryIdNumber(value.id);
+  const id = parseInt(value, 10);
+  return Number.isFinite(id) ? id : null;
+}
+
+function productCategoryIds(product) {
+  const ids = new Set();
+  const add = (value) => {
+    const id = categoryIdNumber(value);
+    if (id != null) ids.add(id);
+  };
+  add(product?.category_id);
+  if (Array.isArray(product?.category_ids)) product.category_ids.forEach(add);
+  if (Array.isArray(product?.categories)) product.categories.forEach(add);
+  return ids;
+}
+
+function categoriesWithStock() {
+  const inStockIds = new Set();
+  for (const product of allProductsCache) {
+    for (const id of productCategoryIds(product)) inStockIds.add(id);
+  }
+  return allCategoriesCache.filter((cat) => inStockIds.has(categoryIdNumber(cat.id)));
+}
+
 // Render category filter
 function renderCategoryFilter() {
   const container = document.getElementById('category-filter-buttons');
   if (!container) return;
 
-  const categoryButtons = allCategoriesCache.map(cat =>
+  const visibleCategories = categoriesWithStock();
+  if (selectedCategoryId != null && !visibleCategories.some((cat) => categoryIdNumber(cat.id) === selectedCategoryId)) {
+    selectedCategoryId = null;
+  }
+
+  const categoryButtons = visibleCategories.map(cat =>
     `<button type="button" class="shopvd-category-btn" data-category-id="${cat.id}">${escapeHtml(cat.name)}</button>`
   ).join('');
 
@@ -6349,14 +6384,7 @@ function renderAllProducts() {
   
   // Filter by category if selected
   if (selectedCategoryId) {
-    products = products.filter(p => {
-      // Check if product has this category
-      if (p.category_id === selectedCategoryId) return true;
-      if (Array.isArray(p.categories)) {
-        return p.categories.some(c => c.id === selectedCategoryId || c === selectedCategoryId);
-      }
-      return false;
-    });
+    products = products.filter((p) => productCategoryIds(p).has(selectedCategoryId));
   }
   
   
