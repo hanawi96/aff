@@ -1770,6 +1770,172 @@ body {
     line-height: 1.4;
 }
 
+/* ===== QuickBuy order summary — compact & soft ===== */
+#quickCheckoutModal .order-details-section {
+    margin: 0.75rem 0 0.5rem;
+    padding: 0;
+    background: linear-gradient(165deg, #fffaf7 0%, #fff6f1 100%);
+    border: 1.2px solid #f0e0d6;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+#quickCheckoutModal .order-details-toggle {
+    padding: 0.7rem 0.85rem;
+    background: transparent;
+    border: none;
+    gap: 0.5rem;
+}
+
+#quickCheckoutModal .order-details-toggle::after {
+    left: 0.85rem;
+    right: 0.85rem;
+    height: 1px;
+    background: #f0e0d6;
+}
+
+#quickCheckoutModal .order-details-toggle:hover {
+    background: rgba(231, 111, 81, 0.04);
+}
+
+#quickCheckoutModal .order-details-title {
+    gap: 0.45rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #7c2d12;
+}
+
+#quickCheckoutModal .order-details-title svg {
+    width: 1rem;
+    height: 1rem;
+    color: #e76f51;
+}
+
+#quickCheckoutModal .toggle-icon {
+    width: 1rem;
+    height: 1rem;
+    color: #a87860;
+}
+
+#quickCheckoutModal .order-details-content {
+    padding: 0.65rem 0.85rem 0.85rem;
+}
+
+#quickCheckoutModal .order-details-content.show {
+    max-height: 420px;
+}
+
+#quickCheckoutModal .summary-rows {
+    gap: 0.4rem;
+}
+
+#quickCheckoutModal .summary-row {
+    padding: 0.25rem 0 !important;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #78716c;
+    border: none !important;
+}
+
+#quickCheckoutModal .summary-row .amount {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #44403c;
+    white-space: nowrap;
+}
+
+#quickCheckoutModal .summary-row .item-count {
+    font-size: 0.85rem;
+    color: #a8a29e;
+    font-weight: 500;
+}
+
+#quickCheckoutModal .summary-row.discount-row,
+#quickCheckoutModal .summary-row.discount-row .amount {
+    color: #15803d;
+}
+
+#quickCheckoutModal .order-items-row {
+    align-items: flex-start;
+}
+
+#quickCheckoutModal .order-items-row .order-items-values {
+    gap: 0.3rem;
+}
+
+#quickCheckoutModal .order-item-chip {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #57534e;
+    background: #fff;
+    border: 1.2px solid #f0e0d6;
+    border-radius: 999px;
+}
+
+#quickCheckoutModal .order-item-chip .order-item-qty {
+    margin-left: 0.25rem;
+    font-size: 0.85rem;
+    color: #a87860;
+}
+
+#quickCheckoutModal .summary-divider {
+    height: 1px;
+    margin: 0.5rem 0;
+    background: linear-gradient(90deg, transparent, #e8c4b0, transparent);
+}
+
+#quickCheckoutModal .summary-total {
+    padding: 0.15rem 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #7c2d12;
+}
+
+#quickCheckoutModal .summary-total .total-amount,
+#quickCheckoutModal .order-details-section .summary-total .total-amount {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #c2410c;
+    line-height: 1.2;
+}
+
+#quickCheckoutModal .order-details-section.paid .summary-total #orderTotalLabelText,
+#quickCheckoutModal .order-details-section.paid .summary-total .total-amount {
+    color: #15803d !important;
+}
+
+#quickCheckoutModal .summary-row.payment-row {
+    margin-top: 0.5rem;
+    padding: 0.55rem 0.65rem !important;
+    border-radius: 10px;
+    background: #fff8f0;
+    border: 1.2px solid #f3e0c8 !important;
+    font-size: 1rem;
+}
+
+#quickCheckoutModal .summary-row.payment-row .payment-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #9a3412;
+}
+
+#quickCheckoutModal .summary-row.payment-row .payment-label svg {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+#quickCheckoutModal .summary-row.payment-row .payment-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #c2410c;
+}
+
 /* ===== QuickBuy payment methods — clear selected state ===== */
 #quickCheckoutModal .payment-methods {
     display: flex;

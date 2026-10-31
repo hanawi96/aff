@@ -309,7 +309,7 @@
 }
 
 .address-list-item:hover {
-    background: #fff0f5;
+    background: #fff5f0;
 }
 
 /* Disable hover transform on mobile for better performance */
@@ -323,7 +323,7 @@
     width: 1.25rem;
     height: 1.25rem;
     flex-shrink: 0;
-    color: #ff6b9d;
+    color: #e76f51;
 }
 
 .address-list-item .item-icon svg {
@@ -340,7 +340,7 @@
 
 .address-list-item .item-arrow {
     font-size: 1.25rem;
-    color: #ff6b9d;
+    color: #e76f51;
     flex-shrink: 0;
 }
 
@@ -363,7 +363,7 @@
 }
 
 .address-result-item:hover {
-    background: #fff0f5;
+    background: #fff5f0;
 }
 
 /* Disable hover transform on mobile for better performance */
@@ -377,7 +377,7 @@
     width: 1.25rem;
     height: 1.25rem;
     flex-shrink: 0;
-    color: #ff6b9d;
+    color: #e76f51;
 }
 
 .address-result-item .result-icon svg {
@@ -413,7 +413,7 @@
 
 .address-result-item .result-arrow {
     font-size: 1.25rem;
-    color: #ff6b9d;
+    color: #e76f51;
     flex-shrink: 0;
 }
 
@@ -524,8 +524,8 @@
 /* Keyboard Navigation Focus */
 .address-list-item.keyboard-focused,
 .address-result-item.keyboard-focused {
-    background: #fff0f5;
-    outline: 2px solid #ff6b9d;
+    background: #fff5f0;
+    outline: 2px solid #e76f51;
     outline-offset: -2px;
     transform: translateX(4px);
 }
@@ -534,7 +534,7 @@
 .address-list-item:focus,
 .address-result-item:focus,
 .breadcrumb-item:focus {
-    outline: 2px solid #ff6b9d;
+    outline: 2px solid #e76f51;
     outline-offset: 2px;
 }
 

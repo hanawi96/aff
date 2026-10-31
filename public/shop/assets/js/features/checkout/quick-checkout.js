@@ -371,9 +371,12 @@ export class QuickCheckout {
             return;
         }
         
-        let html = '<div class="cross-sell-header-legend">';
-        html += '<svg class="gift-icon-animated" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path d="M9.375 3a1.875 1.875 0 0 0 0 3.75h1.875v4.5H3.375A1.875 1.875 0 0 1 1.5 9.375v-.75c0-1.036.84-1.875 1.875-1.875h3.193A3.375 3.375 0 0 1 12 2.753a3.375 3.375 0 0 1 5.432 3.997h3.943c1.035 0 1.875.84 1.875 1.875v.75c0 1.036-.84 1.875-1.875 1.875H12.75v-4.5h1.875a1.875 1.875 0 1 0-1.875-1.875V6.75h-1.5V4.875C11.25 3.839 10.41 3 9.375 3ZM11.25 12.75H3v6.75a2.25 2.25 0 0 0 2.25 2.25h6v-9ZM12.75 12.75v9h6.75a2.25 2.25 0 0 0 2.25-2.25v-6.75h-9Z" /></svg> ';
-        html += '<span>Mua kèm - <strong style="color: #e74c3c;">MIỄN PHÍ SHIP</strong></span>';
+        let html = '<div class="cross-sell-header">';
+        html += '<div class="cross-sell-header-text">';
+        html += '<span class="cross-sell-title">Mua kèm</span>';
+        html += '<span class="cross-sell-subtitle">Thêm để được miễn phí ship</span>';
+        html += '</div>';
+        html += '<span class="cross-sell-freeship-chip">Freeship</span>';
         html += '</div>';
         
         html += '<div class="cross-sell-items-wrapper">';
@@ -383,10 +386,9 @@ export class QuickCheckout {
             const isSelected = !!selectedItem;
             const quantity = selectedItem ? selectedItem.quantity : 1;
             
-            html += '<div class="cross-sell-item ' + (isSelected ? 'selected' : '') + '">';
+            html += '<div class="cross-sell-item' + (isSelected ? ' selected' : '') + '">';
             html += '<img src="' + (product.image || CONFIG.DEFAULT_IMAGE) + '" ';
-            html += 'alt="' + escapeHtml(product.name) + '" class="cross-sell-image" ';
-            html += 'loading="lazy">';
+            html += 'alt="' + escapeHtml(product.name) + '" class="cross-sell-image" loading="lazy">';
             
             html += '<div class="cross-sell-info">';
             html += '<div class="cross-sell-name">' + escapeHtml(product.name) + '</div>';
@@ -394,34 +396,26 @@ export class QuickCheckout {
             html += '</div>';
             
             html += '<div class="cross-sell-actions">';
-            
-            // Always show quantity selector
             html += '<div class="cross-sell-qty-compact">';
-            html += '<button class="cross-sell-qty-btn-compact" onclick="quickCheckout.updateTempQty(' + product.id + ', -1)" data-product="' + product.id + '" data-action="minus">';
-            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;"><path fill-rule="evenodd" d="M4.25 12a.75.75 0 0 1 .75-.75h14a.75.75 0 0 1 0 1.5H5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /></svg>';
+            html += '<button type="button" class="cross-sell-qty-btn-compact" onclick="quickCheckout.updateTempQty(' + product.id + ', -1)" data-product="' + product.id + '" data-action="minus" aria-label="Giảm số lượng">';
+            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M4.25 12a.75.75 0 0 1 .75-.75h14a.75.75 0 0 1 0 1.5H5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /></svg>';
             html += '</button>';
             html += '<span class="cross-sell-qty-value-compact" data-product="' + product.id + '">' + quantity + '</span>';
-            html += '<button class="cross-sell-qty-btn-compact" onclick="quickCheckout.updateTempQty(' + product.id + ', 1)" data-product="' + product.id + '" data-action="plus">';
-            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;"><path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" /></svg>';
+            html += '<button type="button" class="cross-sell-qty-btn-compact" onclick="quickCheckout.updateTempQty(' + product.id + ', 1)" data-product="' + product.id + '" data-action="plus" aria-label="Tăng số lượng">';
+            html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" /></svg>';
             html += '</button>';
             html += '</div>';
             
-            // Add/Remove button
             if (!isSelected) {
-                html += '<button class="cross-sell-add-btn-compact" onclick="quickCheckout.addCrossSell(' + product.id + ')">';
-                html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;"><path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" /></svg> Thêm';
-                html += '</button>';
+                html += '<button type="button" class="cross-sell-add-btn-compact" onclick="quickCheckout.addCrossSell(' + product.id + ')">Thêm</button>';
             } else {
-                html += '<button class="cross-sell-remove-btn-compact" onclick="quickCheckout.removeCrossSell(' + product.id + ')">';
-                html += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg> Đã thêm';
-                html += '</button>';
+                html += '<button type="button" class="cross-sell-remove-btn-compact" onclick="quickCheckout.removeCrossSell(' + product.id + ')">Xóa</button>';
             }
             
-            html += '</div>';
-            html += '</div>';
+            html += '</div></div>';
         });
         
-        html += '</div>'; // close items-wrapper
+        html += '</div>';
         
         container.innerHTML = html;
     }
@@ -430,29 +424,25 @@ export class QuickCheckout {
      * Render skeleton loading for cross-sell products
      */
     renderCrossSellSkeleton(container) {
-        let html = '<div class="cross-sell-header-legend">';
-        html += '<svg class="gift-icon-animated" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path d="M9.375 3a1.875 1.875 0 0 0 0 3.75h1.875v4.5H3.375A1.875 1.875 0 0 1 1.5 9.375v-.75c0-1.036.84-1.875 1.875-1.875h3.193A3.375 3.375 0 0 1 12 2.753a3.375 3.375 0 0 1 5.432 3.997h3.943c1.035 0 1.875.84 1.875 1.875v.75c0 1.036-.84 1.875-1.875 1.875H12.75v-4.5h1.875a1.875 1.875 0 1 0-1.875-1.875V6.75h-1.5V4.875C11.25 3.839 10.41 3 9.375 3ZM11.25 12.75H3v6.75a2.25 2.25 0 0 0 2.25 2.25h6v-9ZM12.75 12.75v9h6.75a2.25 2.25 0 0 0 2.25-2.25v-6.75h-9Z" /></svg> ';
-        html += '<span>Mua kèm - <strong style="color: #e74c3c;">MIỄN PHÍ SHIP</strong></span>';
+        let html = '<div class="cross-sell-header">';
+        html += '<div class="cross-sell-header-text">';
+        html += '<span class="cross-sell-title">Mua kèm</span>';
+        html += '<span class="cross-sell-subtitle">Thêm để được miễn phí ship</span>';
         html += '</div>';
-        
+        html += '<span class="cross-sell-freeship-chip">Freeship</span>';
+        html += '</div>';
         html += '<div class="cross-sell-items-wrapper">';
-        
-        // Show 2 skeleton items
         for (let i = 0; i < 2; i++) {
             html += '<div class="cross-sell-item skeleton-loading">';
             html += '<div class="skeleton-box cross-sell-image"></div>';
             html += '<div class="cross-sell-info">';
-            html += '<div class="skeleton-box" style="height: 16px; width: 80%; margin-bottom: 8px;"></div>';
-            html += '<div class="skeleton-box" style="height: 14px; width: 50%;"></div>';
+            html += '<div class="skeleton-box" style="height: 14px; width: 72%; margin-bottom: 6px;"></div>';
+            html += '<div class="skeleton-box" style="height: 12px; width: 40%;"></div>';
             html += '</div>';
-            html += '<div class="cross-sell-actions">';
-            html += '<div class="skeleton-box" style="height: 32px; width: 100px;"></div>';
-            html += '</div>';
+            html += '<div class="cross-sell-actions"><div class="skeleton-box" style="height: 28px; width: 72px;"></div></div>';
             html += '</div>';
         }
-        
         html += '</div>';
-        
         container.innerHTML = html;
     }
     
