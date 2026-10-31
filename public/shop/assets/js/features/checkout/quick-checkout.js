@@ -599,16 +599,15 @@ export class QuickCheckout {
             }
         }
         
-        // Update UI - both active class and radio button
-        document.querySelectorAll('.payment-method-item').forEach(item => {
+        // Update UI - active class, radio, and aria-checked
+        const modal = document.getElementById('quickCheckoutModal');
+        const items = (modal || document).querySelectorAll('.payment-method-item');
+        items.forEach(item => {
             const radio = item.querySelector('.payment-method-radio');
-            if (item.dataset.method === method) {
-                item.classList.add('active');
-                if (radio) radio.checked = true;
-            } else {
-                item.classList.remove('active');
-                if (radio) radio.checked = false;
-            }
+            const selected = item.dataset.method === method;
+            item.classList.toggle('active', selected);
+            item.setAttribute('aria-checked', selected ? 'true' : 'false');
+            if (radio) radio.checked = selected;
         });
         
         // Show/hide bank transfer info
@@ -684,9 +683,9 @@ export class QuickCheckout {
             const style = document.createElement('style');
             style.id = 'bankQrStyle';
             style.textContent = `
-                #bankQrWrap{text-align:center;padding:1rem 0 1rem;border-bottom:1px dashed rgba(0,0,0,.1);margin-bottom:.75rem}
+                #bankQrWrap{text-align:center;padding:1rem 0 1rem;border-bottom:1.2px dashed rgba(0,0,0,.1);margin-bottom:.75rem}
                 #bankQrImg{width:100%;max-width:280px;height:auto;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.12);display:block;margin:0 auto .5rem}
-                #bankQrLoading{width:100%;max-width:280px;height:80px;border-radius:12px;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;font-size:.8rem;color:#94a3b8;background:#f8fafc}
+                #bankQrLoading{width:100%;max-width:280px;height:80px;border-radius:12px;border:1.2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;margin:0 auto .5rem;font-size:.8rem;color:#94a3b8;background:#f8fafc}
                 #bankQrHint{font-size:.72rem;color:#64748b;margin:0;font-weight:500}
             `;
             document.head.appendChild(style);
@@ -1214,7 +1213,7 @@ export class QuickCheckout {
             if (!confirmationDiv) {
                 confirmationDiv = document.createElement('div');
                 confirmationDiv.id = 'weightConfirmationMessage';
-                confirmationDiv.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745; border-radius: 12px; margin-top: 0.5rem;';
+                confirmationDiv.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 1.2px solid #28a745; border-radius: 12px; margin-top: 0.5rem;';
                 babyWeightGroup.appendChild(confirmationDiv);
             }
             
@@ -1223,7 +1222,7 @@ export class QuickCheckout {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; color: #28a745;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg>
                     Đã chọn: ${displayText}
                 </span>
-                <button type="button" class="preset-weight-change-btn" style="background: white; border: 2px solid #28a745; color: #28a745; padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.3s ease;">
+                <button type="button" class="preset-weight-change-btn" style="background: white; border: 1.2px solid #28a745; color: #28a745; padding: 0.4rem 0.8rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.3s ease;">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Chọn lại
                 </button>
             `;
@@ -1746,12 +1745,19 @@ export class QuickCheckout {
      */
     renderAvailableCodes() {
         const container = document.getElementById('codeListQuick');
+        const availableCodesSection = document.getElementById('availableCodesQuick');
+        const viewCodesBtn = document.getElementById('viewCodesBtn');
         if (!container) return;
         
         if (!this.availableDiscounts || this.availableDiscounts.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #999; padding: 0.75rem; font-size: 0.85rem;">Không có mã giảm giá khả dụng</div>';
+            container.innerHTML = '';
+            if (availableCodesSection) availableCodesSection.style.display = 'none';
+            if (viewCodesBtn) viewCodesBtn.style.display = 'none';
             return;
         }
+
+        if (availableCodesSection) availableCodesSection.style.display = '';
+        if (viewCodesBtn) viewCodesBtn.style.display = 'flex';
         
         // Get top 1 best discount (most beneficial)
         const orderAmount = this.calculateTotal() + this.discountAmount;

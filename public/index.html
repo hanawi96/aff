@@ -31,10 +31,10 @@
         <link rel="stylesheet" href="shop/assets/css/form-validation.css">
         <link rel="stylesheet" href="shop/assets/css/hierarchical-address-selector.css">
     </noscript>
-    <link rel="stylesheet" href="shop/styles.css?v=47">
+    <link rel="stylesheet" href="shop/styles.css?v=50">
     <link rel="stylesheet" href="shop/assets/css/home.css?v=3">
     <link rel="stylesheet" href="shop/assets/css/feedback-carousel.css?v=4">
-    <link rel="stylesheet" href="shop/cart.css?v=33">
+    <link rel="stylesheet" href="shop/cart.css?v=35">
 </head>
 <body class="bg-warm">
     <!-- Header - Handmade Style -->
@@ -1517,16 +1517,6 @@
                         </svg>
                         Xem tất cả mã giảm giá
                     </button>
-                    
-                    <p class="discount-tip">
-                        💡 Mẹo: Mua thêm bó dâu tằm để được miễn phí vận chuyển
-                        <button class="btn-view-bundle" onclick="quickCheckout.scrollToCrossSellSection()" title="Xem bó dâu tằm" aria-label="Xem bó dâu tằm">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;">
-                                <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                                <path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </p>
                 </div>
                 
                 <!-- Payment Method -->
@@ -1538,20 +1528,42 @@
                         </svg>
                         Phương thức thanh toán<span class="required">*</span>
                     </label>
-                    <div class="payment-methods">
-                        <div class="payment-method-item active" data-method="cod" onclick="quickCheckout.selectPaymentMethod('cod')">
-                            <input type="radio" name="payment-method-quick" class="payment-method-radio" checked>
+                    <div class="payment-methods" role="radiogroup" aria-label="Phương thức thanh toán">
+                        <div class="payment-method-item active" data-method="cod" role="radio" aria-checked="true" tabindex="0" onclick="quickCheckout.selectPaymentMethod('cod')">
+                            <span class="payment-method-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M4.5 3.75a3 3 0 0 0-3 3v.75h21v-.75a3 3 0 0 0-3-3h-15Z" />
+                                    <path fill-rule="evenodd" d="M22.5 9.75h-21v7.5a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-7.5Zm-18 3.75a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z" clip-rule="evenodd" />
+                                </svg>
+                            </span>
                             <div class="payment-method-info">
                                 <div class="payment-method-name">Thanh toán khi nhận hàng</div>
-                                <div class="payment-method-desc">Thanh toán bằng tiền mặt khi nhận hàng</div>
+                                <div class="payment-method-desc">Trả tiền mặt khi shipper giao đến</div>
                             </div>
+                            <input type="radio" name="payment-method-quick" class="payment-method-radio" checked tabindex="-1" aria-hidden="true">
+                            <span class="payment-method-check" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" />
+                                </svg>
+                            </span>
                         </div>
-                        <div class="payment-method-item" data-method="bank" onclick="quickCheckout.selectPaymentMethod('bank')">
-                            <input type="radio" name="payment-method-quick" class="payment-method-radio">
+                        <div class="payment-method-item" data-method="bank" role="radio" aria-checked="false" tabindex="0" onclick="quickCheckout.selectPaymentMethod('bank')">
+                            <span class="payment-method-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" />
+                                    <path fill-rule="evenodd" d="M20.25 10.332v9.918H21a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1 0-1.5h.75v-9.918a.75.75 0 0 1 .634-.74A49.109 49.109 0 0 1 12 9c2.59 0 5.134.202 7.616.592a.75.75 0 0 1 .634.74Zm-7.5 2.418a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Zm3-.75a.75.75 0 0 1 .75.75v6.75a.75.75 0 0 1-1.5 0v-6.75a.75.75 0 0 1 .75-.75ZM9 12.75a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Z" clip-rule="evenodd" />
+                                </svg>
+                            </span>
                             <div class="payment-method-info">
                                 <div class="payment-method-name">Chuyển khoản ngân hàng</div>
-                                <div class="payment-method-desc">Chuyển khoản trước, giao hàng sau</div>
+                                <div class="payment-method-desc">Chuyển trước, giao hàng sau</div>
                             </div>
+                            <input type="radio" name="payment-method-quick" class="payment-method-radio" tabindex="-1" aria-hidden="true">
+                            <span class="payment-method-check" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" />
+                                </svg>
+                            </span>
                         </div>
                     </div>
                     
