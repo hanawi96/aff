@@ -4,8 +4,8 @@
 
 import { apiService } from '../shared/services/api.service.js?v=5';
 import { cartService } from '../shared/services/cart.service.js';
-import { ProductGrid, ProductActions } from '../features/products/index.js?v=14';
-import { renderCategories, CategoryActions } from '../features/categories/index.js?v=4';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=19';
+import { renderCategories, CategoryActions } from '../features/categories/index.js?v=5';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=2';
 import { QuickCheckout } from '../features/checkout/index.js?v=2025c';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
@@ -514,8 +514,8 @@ export class HomePage {
         
         // Product Grid
         this.productGrid = new ProductGrid('productsGrid', {
-            initialCount: 18,  // 18 sản phẩm mỗi trang (3 cột x 6 hàng trên máy tính)
-            itemsPerPage: 18   // Mỗi lần "Xem thêm" hiện thêm 18 sản phẩm
+            initialCount: 12,  // Mặc định hiện 12 SP (Tất cả danh mục)
+            itemsPerPage: 12   // Mỗi lần "Xem thêm" chỉ thêm 12 SP
         });
         console.log('✅ HomePage: ProductGrid initialized');
 
@@ -690,6 +690,9 @@ export class HomePage {
         this.categoryActions = new CategoryActions((categoryId) => {
             this.filterByCategory(categoryId);
         });
+        this.categoryActions.setImageWarmer((categoryId) => {
+            this.productGrid?.warmCategoryImages?.(categoryId, 12);
+        });
         window.categoryActions = this.categoryActions;
     }
 
@@ -697,6 +700,7 @@ export class HomePage {
         this.ensureCategoryActions();
         renderCategories(this.categories, 'categoriesGrid');
         this.categoryActions.updateActiveState(this.categoryActions.activeCategory);
+        this.categoryActions.bindImageWarmup();
     }
 
     /**

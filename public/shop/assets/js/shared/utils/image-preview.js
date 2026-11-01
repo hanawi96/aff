@@ -4,7 +4,7 @@
 // Includes: Product Detail Modal with URL sync
 // ============================================
 
-import { CONFIG, productThumbUrl, productCardUrl, productDetailUrl, productZoomUrl } from '../constants/config.js?v=5';
+import { CONFIG, productThumbUrl, productCardUrl, productDetailUrl, productZoomUrl } from '../constants/config.js?v=8';
 import { MODAL_CONSTANTS } from '../constants/modal-constants.js';
 import { eventManager } from './event-manager.js';
 

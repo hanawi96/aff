@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const MAPPING_URL = 'https://shopvd.store/assets/data/ward_mapping_2025.json';
+  const MAPPING_PATH = 'data/ward_mapping_2025.json';
   const CENTRAL_PROVINCES = [
     'thành phố hồ chí minh',
     'thành phố hà nội',
@@ -204,9 +204,12 @@
     if (loadingPromise) return loadingPromise;
 
     loadingPromise = (async () => {
-      const res = await (globalThis.shopvdFetch || fetch)(MAPPING_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      mappingRaw = await res.json();
+      // Load qua SW — content script không fetch được file trong package.
+      const loadAsset = globalThis.shopvdLoadAsset;
+      if (typeof loadAsset !== 'function') {
+        throw new Error('shopvdLoadAsset unavailable — reload extension');
+      }
+      mappingRaw = await loadAsset(MAPPING_PATH);
       tree = buildTree(mappingRaw);
       loaded = true;
       return tree;

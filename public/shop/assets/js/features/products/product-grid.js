@@ -2,7 +2,8 @@
 // PRODUCT GRID COMPONENT
 // ============================================
 
-import { renderProducts } from './product-card.js?v=10';
+import { renderProducts } from './product-card.js?v=13';
+import { warmProductGridImages } from './product-image-cache.js?v=2';
 
 /** Phần trăm giảm đang hiện trên thẻ sản phẩm. Không giảm thì là 0. */
 function _discountPercent(product) {
@@ -53,10 +54,10 @@ export class ProductGrid {
         this.products = []; // Deprecated - chỉ để tương thích
         this.allProducts = []; // NGUỒN DỮ LIỆU CHÍNH - Tất cả sản phẩm
         this.filteredProducts = []; // Sản phẩm sau khi filter
-        this.initialCount = options.initialCount || 18;    // Số sản phẩm hiển thị ban đầu
-        this.itemsPerPage = options.itemsPerPage || 8;     // Số sản phẩm load thêm mỗi lần
+        this.initialCount = options.initialCount || 12;    // Số sản phẩm hiển thị ban đầu
+        this.itemsPerPage = options.itemsPerPage || 12;    // Số sản phẩm load thêm mỗi lần
         this.displayedCount = this.initialCount;           // Bắt đầu với initialCount
-        this.currentFilter = 'best-selling'; // Mặc định hiển thị "Bán chạy"
+        this.currentFilter = 'best-selling'; // Mặc định hiển thị "Bán chạy" trong tab Tất cả
         this.currentSort = 'default';
         this.isSearching = false; // Track search state
         this.currentSearchQuery = ''; // Track current search query
@@ -66,7 +67,7 @@ export class ProductGrid {
      * Set all products (NGUỒN DỮ LIỆU CHÍNH)
      * Đây là method chính để set dữ liệu
      * @param {object} [options]
-     * @param {boolean} [options.preserveExpandedView] - Khi API nối thêm SP ở nền: giữ số ô đang mở (Xem thêm), không reset về 18.
+     * @param {boolean} [options.preserveExpandedView] - Khi API nối thêm SP ở nền: giữ số ô đang mở (Xem thêm), không reset về trang đầu.
      */
     setAllProducts(products, options = {}) {
         const preserveExpanded = options.preserveExpandedView === true;
@@ -90,6 +91,12 @@ export class ProductGrid {
 
         const sourceCount = Array.isArray(products) ? products.length : 0;
         console.log('✅ All products set:', inStock.length, preserveExpanded ? '(giữ số ô đang xem)' : '', sourceCount !== inStock.length ? `(ẩn ${sourceCount - inStock.length} hết hàng)` : '');
+
+        // Warm first page of current filter while browser is idle (helps first category taps).
+        const scheduleIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 400));
+        scheduleIdle(() => {
+            warmProductGridImages(this.filteredProducts, this.initialCount);
+        });
     }
     
     /**
@@ -109,7 +116,7 @@ export class ProductGrid {
             this.filter(this.currentFilter);
         } else {
             this.filteredProducts = [...this.allProducts];
-            this.displayedCount = this.initialCount; // Reset về initialCount (16)
+            this.displayedCount = this.initialCount; // Reset về trang đầu (12)
             this.render();
         }
     }
@@ -153,10 +160,39 @@ export class ProductGrid {
         }
         
         console.log('ProductGrid: Filtered products:', this.filteredProducts.length);
-        
-        // Reset về số lượng ban đầu
-        this.displayedCount = this.initialCount; // Reset về initialCount (16)
+
+        // Pre-warm HTTP cache for the page about to render (instant if hover already warmed).
+        warmProductGridImages(this.filteredProducts, this.initialCount);
+
+        // Đổi danh mục: luôn về 12 SP đầu, không bung hết.
+        this.displayedCount = this.initialCount;
         this.render();
+    }
+
+    /**
+     * Warm grid images for a category (used on chip hover / touch).
+     */
+    warmCategoryImages(categoryId, limit = this.initialCount) {
+        const sourceProducts = this.allProducts;
+        if (!sourceProducts?.length) return;
+
+        if (categoryId == null) {
+            warmProductGridImages(sourceProducts, limit);
+            return;
+        }
+
+        const id = Number(categoryId);
+        const matched = sourceProducts.filter((product) => {
+            if (Array.isArray(product.categories)) {
+                return product.categories.some((cat) => Number(cat.id || cat.category_id) === id);
+            }
+            if (product.category_id != null) return Number(product.category_id) === id;
+            if (Array.isArray(product.category_ids)) {
+                return product.category_ids.some((cid) => Number(cid) === id);
+            }
+            return false;
+        });
+        warmProductGridImages(matched, limit);
     }
     
     /**
@@ -377,8 +413,6 @@ export class ProductGrid {
     render() {
         const productsToShow = this.filteredProducts.slice(0, this.displayedCount);
         renderProducts(productsToShow, this.containerId, this.bestSellerRanks());
-
-        // Update load more button
         this.updateLoadMoreButton();
     }
     

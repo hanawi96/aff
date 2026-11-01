@@ -1196,10 +1196,13 @@ async function loadAddressData() {
   if (addressLoaded) return;
   
   try {
-    // ?v=2025b: cache-busting — bỏ qua bản tree_2 cũ (thiếu phường) đã lưu trong HTTP cache.
-    // Đổi version này mỗi khi cập nhật dữ liệu địa chỉ để client tải bản mới ngay.
-    const response = await shopvdFetch('https://shopvd.store/assets/data/tree_2.json?v=2025b');
-    const raw = await response.json();
+    // Bundled in extension — load qua SW (content script không fetch được chrome-extension://).
+    const loadAsset = globalThis.shopvdLoadAsset;
+    if (typeof loadAsset !== 'function') {
+      throw new Error('shopvdLoadAsset unavailable — reload extension');
+    }
+    const raw = await loadAsset('data/tree_2.json');
+    if (!Array.isArray(raw)) throw new Error('Invalid tree_2.json');
     
     addressData = [];
     

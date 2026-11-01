@@ -37,10 +37,13 @@ export const CONFIG = {
 
 const R2_PUBLIC_HOST = 'pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev';
 
+/** Image resize trên Worker (workers.dev) — không phụ thuộc domain shop. */
+const IMAGE_CDN_BASE = 'https://ctv-api.yendev96.workers.dev';
+
 function resizedR2Url(imageUrl, width, quality) {
     const url = String(imageUrl || '').trim();
     if (!url.includes(R2_PUBLIC_HOST)) return url;
-    return `https://shopvd.store/cdn-cgi/image/width=${width},quality=${quality},format=auto/${url}`;
+    return `${IMAGE_CDN_BASE}/cdn/image/width=${width},quality=${quality},format=auto/${url}`;
 }
 
 /** Ảnh nhỏ trong hàng gợi ý, flash sale: rộng 480px. */
@@ -48,17 +51,18 @@ export function productThumbUrl(imageUrl) {
     return resizedR2Url(imageUrl, 480, 75);
 }
 
-/** Ảnh thẻ khi ô nhỏ (máy tính 3 cột, máy tính bảng 2 cột): rộng 960px. */
-export function productCardUrl(imageUrl) {
-    return resizedR2Url(imageUrl, 960, 80);
+/**
+ * Ảnh lưới trang chủ: R2 gốc (WebP sẵn).
+ * Không bọc Worker/CDN — tránh phụ thuộc hop phụ; file R2 đã public và ổn định.
+ */
+export function productGridUrl(imageUrl) {
+    const url = String(imageUrl || '').trim();
+    return url || CONFIG.DEFAULT_IMAGE;
 }
 
-/**
- * Ảnh gốc cho ô thẻ gần đầy chiều ngang điện thoại.
- * File sản phẩm khoảng 1024px. Không xin bản rộng hơn, vì CDN sẽ phóng to và ảnh vẫn mờ.
- */
-export function productCardSourceUrl(imageUrl) {
-    return String(imageUrl || '').trim();
+/** Ảnh thẻ khi cần bản lớn hơn (chi tiết / zoom gần): rộng 960px. */
+export function productCardUrl(imageUrl) {
+    return resizedR2Url(imageUrl, 960, 80);
 }
 
 /** Ảnh đang hiện trong modal chi tiết: rộng 960px. */

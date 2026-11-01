@@ -12,8 +12,19 @@ import { sendDailyReport } from './services/notifications/daily-report.js';
 import { snapshotYesterdayAdSpend } from './services/settings/ad-spend.js';
 import { syncPancakeUnsavedOrders } from './services/orders/pancake-unsaved-sync.js';
 import { runScheduledDriveBackup } from './services/backup/drive-backup.js';
+import { handleImageResize, isImageResizePath } from './services/images/image-resize.js';
 
 async function handleRequest(request, env, ctx) {
+    // Ảnh CDN: không init Turso — trả nhanh, không phụ thuộc shopvd.store
+    try {
+        const earlyUrl = new URL(request.url);
+        if (isImageResizePath(earlyUrl.pathname)) {
+            return await handleImageResize(request, earlyUrl);
+        }
+    } catch (imgErr) {
+        console.error('[MAIN] Image route error:', imgErr);
+    }
+
     const DB = initTurso(env);
     env.DB = DB;
     env.ctx = ctx;

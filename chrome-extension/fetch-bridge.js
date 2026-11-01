@@ -2,6 +2,47 @@
 (function () {
   const nativeFetch = globalThis.fetch.bind(globalThis);
 
+  /**
+   * Load JSON đóng gói trong extension qua service worker.
+   * Content script không fetch được chrome-extension:// (CSP / package isolation).
+   */
+  async function shopvdLoadAsset(path) {
+    const assetPath = String(path || '').replace(/^\/+/, '');
+    if (!assetPath) throw new TypeError('Missing asset path');
+
+    if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
+      const res = await nativeFetch(assetPath);
+      if (!res.ok) throw new TypeError(`Failed to load asset HTTP ${res.status}`);
+      return res.json();
+    }
+
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.runtime.sendMessage(
+          { type: 'SHOPVD_LOAD_ASSET', path: assetPath },
+          (resp) => {
+            const runtimeErr = chrome.runtime.lastError?.message;
+            if (runtimeErr) {
+              reject(new Error(runtimeErr));
+              return;
+            }
+            if (!resp || resp.error) {
+              reject(new TypeError(resp?.error || 'Failed to load asset'));
+              return;
+            }
+            try {
+              resolve(JSON.parse(resp.body || 'null'));
+            } catch (err) {
+              reject(err);
+            }
+          }
+        );
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
   async function shopvdFetch(url, init = {}) {
     const options = init && typeof init === 'object' ? { ...init } : {};
     const { signal } = options;
@@ -77,4 +118,5 @@
   }
 
   globalThis.shopvdFetch = shopvdFetch;
+  globalThis.shopvdLoadAsset = shopvdLoadAsset;
 })();

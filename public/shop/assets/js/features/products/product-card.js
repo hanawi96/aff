@@ -2,13 +2,15 @@
 // PRODUCT CARD COMPONENT
 // ============================================
 
-import { formatPrice, generateStars, escapeHtml } from '../../shared/utils/formatters.js';
+import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
-import { CONFIG, productCardUrl, productCardSourceUrl } from '../../shared/constants/config.js?v=6';
+import { CONFIG, productGridUrl } from '../../shared/constants/config.js?v=9';
 
 /**
  * Create product card HTML
  * @param {Object} product - Product data
+ * @param {number} bestSellerRank
+ * @param {number} cardIndex - vị trí trong lưới (0-based); 6 ảnh đầu ưu tiên tải cao
  * @returns {string} HTML string
  */
 function bestSellerTag(rank) {
@@ -16,17 +18,13 @@ function bestSellerTag(rank) {
     return `<span class="bestseller-tag" aria-label="Sản phẩm bán chạy số ${rank}">Bán chạy số ${rank}</span>`;
 }
 
-export function createProductCard(product, bestSellerRank = 0) {
+export function createProductCard(product, bestSellerRank = 0, cardIndex = 0) {
     const discount = calculateDiscount(product.original_price, product.price);
     const rating = product.rating || 4.5;
     const purchases = product.purchases || 0;
-    const imageUrl = product.image_url || CONFIG.DEFAULT_IMAGE;
-    const thumbUrl = productCardUrl(imageUrl);
-    const sharpUrl = productCardSourceUrl(imageUrl);
-    // Điện thoại 1 cột chọn ảnh gốc (~1024px). Ô 2–3 cột vẫn dùng bản 960px.
-    const srcsetAttr = sharpUrl && sharpUrl !== thumbUrl
-        ? ` srcset="${escapeHtml(thumbUrl)} 960w, ${escapeHtml(sharpUrl)} 1024w" sizes="(min-width: 1024px) 370px, (min-width: 768px) 46vw, 100vw"`
-        : '';
+    // R2 trực tiếp — hiện ngay khi load trang (không CDN phụ thuộc domain).
+    const imageUrl = productGridUrl(product.image_url || product.image || CONFIG.DEFAULT_IMAGE);
+    const fetchPriority = cardIndex < 6 ? 'high' : 'auto';
     const savedAmount = product.original_price && product.original_price > product.price
         ? product.original_price - product.price
         : 0;
@@ -88,13 +86,16 @@ export function createProductCard(product, bestSellerRank = 0) {
         <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${product.id}">
             <div class="product-image-wrapper">
                 <div class="product-image-container">
-                    <img src="${escapeHtml(thumbUrl)}"${srcsetAttr}
-                         alt="${escapeHtml(product.name)}" 
+                    <img src="${escapeHtml(imageUrl)}"
+                         alt="${escapeHtml(product.name)}"
                          class="product-image"
-                         loading="lazy"
+                         width="400"
+                         height="400"
+                         loading="eager"
                          decoding="async"
+                         fetchpriority="${fetchPriority}"
                          onclick="window.openProductDetail(${product.id})"
-                         onerror="if(!this.dataset.fullTried){this.dataset.fullTried='1';this.src='${escapeHtml(imageUrl)}';return;}this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
+                         onerror="this.onerror=null;this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
                 </div>
                 ${!isOutOfStock ? bestSellerTag(bestSellerRank) : ''}
                 ${isOutOfStock ? `<span class="product-badge out-of-stock">Hết hàng</span>` : ''}
@@ -141,25 +142,17 @@ export function createProductCard(product, bestSellerRank = 0) {
     `;
 }
 
-/**
- * Render products to container
- * @param {Array} products - Array of products
- * @param {string} containerId - Container element ID
- */
 export function renderProducts(products, containerId, bestSellerRanks = null) {
     const container = document.getElementById(containerId);
-    if (!container) {
-        // Container not ready yet - silently return
-        return;
-    }
+    if (!container) return;
 
     if (products.length === 0) {
         container.innerHTML = '<p style="text-align: center; grid-column: 1/-1;">Không tìm thấy sản phẩm nào.</p>';
         return;
     }
 
-    container.innerHTML = products.map((product) => {
+    container.innerHTML = products.map((product, index) => {
         const rank = bestSellerRanks?.get(Number(product.id)) || 0;
-        return createProductCard(product, rank);
+        return createProductCard(product, rank, index);
     }).join('');
 }

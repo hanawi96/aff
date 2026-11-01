@@ -15,7 +15,7 @@
     "build:admin": "npm run build:admin-css && npm run build:admin-js",
     "build": "npm run build:css && npm run build:admin && echo 'CSS + admin bundle OK. Deploy public/ as usual.'",
     "deploy": "wrangler deploy",
-    "deploy:pages": "wrangler pages publish public --project-name=ctv-system",
+    "deploy:pages": "wrangler pages deploy public --project-name=ctv --commit-dirty=true",
     "db:shell": "turso db shell vdt-yendev96",
     "db:backup": "turso db shell vdt-yendev96 .dump > database/backup.sql",
     "db:verify": "node scripts/verify-migration.js",

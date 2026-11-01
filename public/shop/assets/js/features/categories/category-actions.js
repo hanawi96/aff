@@ -9,11 +9,9 @@ export class CategoryActions {
     constructor(onFilterCallback) {
         this.onFilterCallback = onFilterCallback;
         this.activeCategory = null;
+        this._warmCategoryImages = null;
     }
-    
-    /**
-     * Filter products by category
-     */
+
     /**
      * null = Tất cả (bỏ lọc). Id danh mục luôn là số.
      */
@@ -23,10 +21,44 @@ export class CategoryActions {
         return Number.isFinite(id) ? id : null;
     }
 
+    /**
+     * Preload first-page product images when user hovers / touches a chip
+     * so category switch paints from cache.
+     * @param {(categoryId: number|null) => void} warmFn
+     */
+    setImageWarmer(warmFn) {
+        this._warmCategoryImages = typeof warmFn === 'function' ? warmFn : null;
+    }
+
+    /**
+     * Bind hover/touch preload on current category chips (re-call after re-render).
+     */
+    bindImageWarmup() {
+        if (!this._warmCategoryImages) return;
+
+        document.querySelectorAll('#categoriesGrid .category-chip').forEach((chip) => {
+            if (chip.dataset.imageWarmBound === '1') return;
+            chip.dataset.imageWarmBound = '1';
+
+            const warm = () => {
+                const id = this.normalizeCategoryId(chip.dataset.categoryId);
+                this._warmCategoryImages(id);
+            };
+
+            chip.addEventListener('pointerenter', warm, { passive: true });
+            chip.addEventListener('touchstart', warm, { passive: true });
+        });
+    }
+
     filterByCategory(categoryId) {
         const normalizedId = this.normalizeCategoryId(categoryId);
         console.log('Filter by category:', normalizedId);
-        
+
+        // Start warming immediately on click (covers tap without prior hover).
+        if (this._warmCategoryImages) {
+            this._warmCategoryImages(normalizedId);
+        }
+
         // Update active state
         this.updateActiveState(normalizedId);
 
@@ -38,7 +70,7 @@ export class CategoryActions {
             this.onFilterCallback(normalizedId);
         }
     }
-    
+
     /**
      * Update active state of category chips.
      * categoryId null chọn chip "Tất cả".

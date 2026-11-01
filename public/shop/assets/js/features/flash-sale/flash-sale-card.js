@@ -3,7 +3,7 @@
 // ============================================
 
 import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
-import { CONFIG, productThumbUrl } from '../../shared/constants/config.js?v=2';
+import { CONFIG, productThumbUrl } from '../../shared/constants/config.js?v=8';
 
 /**
  * Create flash sale card HTML - Bundle Offer Style with Progress Bar
