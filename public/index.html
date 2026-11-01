@@ -621,28 +621,18 @@
                             <div class="w-24 h-0.5 bg-gradient-to-l from-transparent to-primary/30"></div>
                         </div>
                     </div>
-                    <div class="categories-chips-grid" id="categoriesSkeleton" style="display: none;"></div>
-                    <div class="categories-chips-grid" id="categoriesGrid">
-                        <button type="button" class="category-chip active" onclick="window.categoryActions.filterByCategory(null)" data-category-id="all"><span class="category-chip-icon"><span class="category-chip-all-mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4.75A.75.75 0 0 1 4.75 4h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5A.75.75 0 0 1 4 10.25v-5.5Zm9 0a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-.75.75h-5.5a.75.75 0 0 1-.75-.75v-5.5ZM4.75 13a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-5.5Zm9 0a.75.75 0 0 0-.75.75v5.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-5.5a.75.75 0 0 0-.75-.75h-5.5Z"/></svg></span></span><span class="category-chip-name">Tất cả mẫu</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(8)" data-category-id="8"><span class="category-chip-icon"><img src="assets/images/category-thumbs/8.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Vòng trơn</span><span class="category-chip-badge">Phổ biến</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(37)" data-category-id="37"><span class="category-chip-icon"><img src="assets/images/category-thumbs/37.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Mix charm ngựa 2026</span><span class="category-chip-badge">Phổ biến</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(11)" data-category-id="11"><span class="category-chip-icon"><img src="assets/images/category-thumbs/11.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Vòng co giãn</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(10)" data-category-id="10"><span class="category-chip-icon"><img src="assets/images/category-thumbs/10.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Mix charm rắn</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(15)" data-category-id="15"><span class="category-chip-icon"><img src="assets/images/category-thumbs/15.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Mix charm chuông</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(9)" data-category-id="9"><span class="category-chip-icon"><img src="assets/images/category-thumbs/9.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async" fetchpriority="high"></span><span class="category-chip-name">Mix bi bạc</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(20)" data-category-id="20"><span class="category-chip-icon"><img src="assets/images/category-thumbs/20.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Mix chỉ màu các loại</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(18)" data-category-id="18"><span class="category-chip-icon"><img src="assets/images/category-thumbs/18.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Mix hoa sen</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(13)" data-category-id="13"><span class="category-chip-icon"><img src="assets/images/category-thumbs/13.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Mix hạt bồ đề</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(16)" data-category-id="16"><span class="category-chip-icon"><img src="assets/images/category-thumbs/16.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Mix hổ phách</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(17)" data-category-id="17"><span class="category-chip-icon"><img src="assets/images/category-thumbs/17.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Mix thánh giá</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(21)" data-category-id="21"><span class="category-chip-icon"><img src="assets/images/category-thumbs/21.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Mix thẻ tên bé</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(19)" data-category-id="19"><span class="category-chip-icon"><img src="assets/images/category-thumbs/19.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Mix đá đỏ tự nhiên</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(12)" data-category-id="12"><span class="category-chip-icon"><img src="assets/images/category-thumbs/12.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Mix dây ngũ sắc</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(22)" data-category-id="22"><span class="category-chip-icon"><img src="assets/images/category-thumbs/22.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Vòng người lớn</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(14)" data-category-id="14"><span class="category-chip-icon"><img src="assets/images/category-thumbs/14.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Hạt dâu tằm mài sẵn</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(24)" data-category-id="24"><span class="category-chip-icon"><img src="assets/images/category-thumbs/24.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Bi, charm bạc</span></button>
-                        <button type="button" class="category-chip" onclick="window.categoryActions.filterByCategory(23)" data-category-id="23"><span class="category-chip-icon"><img src="assets/images/category-thumbs/23.webp" alt="" class="category-chip-thumb" width="32" height="32" loading="eager" decoding="async"></span><span class="category-chip-name">Sản phẩm bán kèm</span></button>
+                    <!-- Skeleton giữ chỗ — chỉ hiện chip thật sau khi đã lọc theo SP đang bán (tránh flash danh mục trống). -->
+                    <div class="categories-chips-grid" id="categoriesSkeleton" aria-hidden="true">
+                        <div class="skeleton-category-chip"></div>
+                        <div class="skeleton-category-chip"></div>
+                        <div class="skeleton-category-chip"></div>
+                        <div class="skeleton-category-chip"></div>
+                        <div class="skeleton-category-chip"></div>
+                        <div class="skeleton-category-chip"></div>
+                        <div class="skeleton-category-chip"></div>
+                        <div class="skeleton-category-chip"></div>
                     </div>
+                    <div class="categories-chips-grid hidden" id="categoriesGrid"></div>
                 </div>
 
                 <!-- Main catalog section -->
@@ -2195,7 +2185,7 @@
         </div>
     </div>
     
-    <script type="module" src="shop/assets/js/app.js?v=64"></script>
+    <script type="module" src="shop/assets/js/app.js?v=69"></script>
     <script defer src="shop/assets/js/faq-modal.js"></script>
     <script defer src="shop/assets/js/feedback-carousel.js"></script>
 </body>

@@ -4,8 +4,8 @@
 
 import { apiService } from '../shared/services/api.service.js?v=5';
 import { cartService } from '../shared/services/cart.service.js';
-import { ProductGrid, ProductActions } from '../features/products/index.js?v=19';
-import { renderCategories, CategoryActions } from '../features/categories/index.js?v=5';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=20';
+import { renderCategories, CategoryActions } from '../features/categories/index.js?v=7';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=2';
 import { QuickCheckout } from '../features/checkout/index.js?v=2025c';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
@@ -156,12 +156,27 @@ export class HomePage {
             const filterParam = urlParams.get('filter');
             const categoryParam = urlParams.get('category');
             const productParam = urlParams.get('product');
+
+            // ?category= — áp dụng ngay lần paint đầu, không chờ setTimeout (tránh flash "Tất cả").
+            const parsedUrlCategory = categoryParam != null ? Number(categoryParam) : NaN;
+            this.urlCategoryId = Number.isFinite(parsedUrlCategory) ? parsedUrlCategory : null;
             
-            // Chip danh mục có sẵn trong HTML. Bấm được ngay khi JS chạy, không chờ API sản phẩm.
+            // Không paint chip danh mục cho đến khi có SP — tránh hiện rồi ẩn danh mục trống.
             this.ensureCategoryActions();
+            if (this.urlCategoryId != null) {
+                this.categoryActions.updateActiveState(this.urlCategoryId);
+            }
             const cachedCategories = apiService.getValidCachedCategoriesSync();
             if (cachedCategories) {
                 this.categories = cachedCategories;
+            }
+            // Nếu session đã có đủ categories + products → hiện chip đã lọc ngay (không flash).
+            const syncProductsForChips =
+                apiService.getValidCachedProductsSync?.() ||
+                null;
+            if (cachedCategories && Array.isArray(syncProductsForChips) && syncProductsForChips.length) {
+                this.allProducts = syncProductsForChips;
+                this.products = syncProductsForChips;
                 this.renderCategories();
                 this.hideCategoriesSkeleton();
             }
@@ -173,9 +188,14 @@ export class HomePage {
             categoriesPromise.then((categories) => {
                 if (!categories || categories.length === 0) return;
                 this.categories = categories;
-                this.renderCategories();
-                this.hideCategoriesSkeleton();
-                this.logCategoryImages('sau API danh mục');
+                // Chỉ paint khi đã có catalog SP; không thì chờ showCriticalContent.
+                const productsForChips =
+                    this.allProducts.length > 0 ? this.allProducts : this.products;
+                if (productsForChips.length > 0) {
+                    this.renderCategories();
+                    this.hideCategoriesSkeleton();
+                    this.logCategoryImages('sau API danh mục');
+                }
             });
             const reportCategoryImages = () => this.logCategoryImages('sau khi trang tải xong');
             if (document.readyState === 'complete') reportCategoryImages();
@@ -218,11 +238,9 @@ export class HomePage {
                 setTimeout(() => {
                     this.performSearchFromURL(searchParam, filterParam);
                 }, 500);
-            } else if (categoryParam) {
-                // Category from URL
-                setTimeout(() => {
-                    this.filterByCategoryFromURL(categoryParam);
-                }, 500);
+            } else if (this.urlCategoryId != null) {
+                // Đã lọc đúng danh mục lúc renderProducts; chỉ cuộn tới lưới sau layout.
+                requestAnimationFrame(() => this.scrollToProductsGrid());
             } else if (productParam) {
                 // Product detail modal from URL (shareable links).
                 // URL đã sẵn ?product=X → mở với fromPopstate=true để KHÔNG pushState trùng entry.
@@ -334,6 +352,7 @@ export class HomePage {
                     if (this.productActions) {
                         this.productActions.setProducts(this.allProducts);
                     }
+                    this.renderCategories();
 
                     this.setShopPerfHudBody(
                         `⏳ Đang nối: ${this.allProducts.length}/${this._shopProductsTotal || '?'} SP (API phân trang)…`,
@@ -344,6 +363,7 @@ export class HomePage {
                     page += 1;
                 }
                 apiService.setCache('products', this.allProducts);
+                this.renderCategories();
                 this.setShopPerfHudBody(
                     `✅ Hoàn tất: ${this.allProducts.length} SP đã đồng bộ · cache session đã lưu (5 phút).`,
                     'ok'
@@ -374,6 +394,7 @@ export class HomePage {
                         this.productActions.setProducts(this.allProducts);
                     }
                     this._shopProductsTotal = this.allProducts.length;
+                    this.renderCategories();
                     this.setShopPerfHudBody(
                         `✅ Fallback OK: ${this.allProducts.length} SP (một request getAllProducts).`,
                         'ok'
@@ -409,6 +430,7 @@ export class HomePage {
                 if (this.productActions) {
                     this.productActions.setProducts(this.allProducts);
                 }
+                this.renderCategories();
                 this.setShopPerfHudBody(
                     `✅ Đã làm mới catalog: ${fresh.length} SP (stale-first).`,
                     'ok'
@@ -473,6 +495,10 @@ export class HomePage {
         
         // Render products immediately - primary user intent on shop page
         this.renderProducts();
+
+        // Chip danh mục chỉ hiện sau khi đã lọc theo SP đang bán
+        this.renderCategories();
+        this.hideCategoriesSkeleton();
         
         // Hide products skeleton first for fastest visual completion
         this.hideProductsSkeleton();
@@ -672,7 +698,14 @@ export class HomePage {
         const productsToRender = this.allProducts.length > 0 ? this.allProducts : this.products;
 
         if (this.productGrid) {
+            // Gắn danh mục URL trước setAllProducts → paint đầu đã đúng filter, không flash "Tất cả".
+            if (this.urlCategoryId != null && this.productGrid.currentCategoryId == null) {
+                this.productGrid.currentCategoryId = this.urlCategoryId;
+            }
             this.productGrid.setAllProducts(productsToRender);
+            if (this.urlCategoryId != null) {
+                this.categoryActions?.updateActiveState(this.urlCategoryId);
+            }
         } else {
             console.error('❌ ProductGrid not initialized!');
         }
@@ -698,8 +731,14 @@ export class HomePage {
 
     renderCategories() {
         this.ensureCategoryActions();
-        renderCategories(this.categories, 'categoriesGrid');
-        this.categoryActions.updateActiveState(this.categoryActions.activeCategory);
+        const productsForChips =
+            this.allProducts.length > 0 ? this.allProducts : this.products;
+        renderCategories(this.categories, 'categoriesGrid', productsForChips);
+        const activeId =
+            this.categoryActions.activeCategory != null
+                ? this.categoryActions.activeCategory
+                : this.urlCategoryId;
+        this.categoryActions.updateActiveState(activeId);
         this.categoryActions.bindImageWarmup();
     }
 
@@ -1405,6 +1444,12 @@ export class HomePage {
      */
     filterByCategory(categoryId) {
         console.log('HomePage: Filter by category:', categoryId);
+
+        const normalized =
+            categoryId == null || categoryId === '' || categoryId === 'all'
+                ? null
+                : Number(categoryId);
+        this.urlCategoryId = Number.isFinite(normalized) ? normalized : null;
         
         // If searching, clear search first
         if (this.productGrid && this.productGrid.isSearching) {

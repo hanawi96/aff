@@ -3,8 +3,8 @@
 // ============================================
 
 import { loadCommonPartials } from './shared/partials-loader.js';
-import { HomePage } from './pages/home.page.js?v=26';
-import './shared/utils/image-preview.js?v=30'; // Import image preview utility
+import { HomePage } from './pages/home.page.js?v=29';
+import './shared/utils/image-preview.js?v=32'; // Import image preview utility
 import { checkAndSaveReferralFromURL } from './shared/utils/ctv-tracking.js'; // Import CTV tracking
 
 /**

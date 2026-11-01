@@ -354,7 +354,8 @@ function _escAttr(s) {
 }
 
 /**
- * Build the image carousel: product photo first, then the six quy trình làm vòng photos.
+ * Build the image carousel: product photo first, then (usually) six quy trình làm vòng photos.
+ * Danh mục 24 (Bi, charm bạc): chỉ ảnh sản phẩm — không gắn ảnh quy trình làm vòng.
  */
 function _buildImageCarousel(product) {
     const track = document.getElementById('imageCarouselTrack');
@@ -363,14 +364,17 @@ function _buildImageCarousel(product) {
     const currentIdx = document.getElementById('carouselCurrentIdx');
     if (!track) return;
 
+    const skipProcessImages = _productInCategory(product, '24');
     const processBase = 'https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/quy-trinh-lam-vong';
-    const processImages = _processImageLabels.map((label, i) => ({
-        url: `${processBase}/${i + 1}.webp`,
-        fullUrl: `${processBase}/${i + 1}.webp`,
-        alt: label,
-        label,
-        type: 'process'
-    }));
+    const processImages = skipProcessImages
+        ? []
+        : _processImageLabels.map((label, i) => ({
+            url: `${processBase}/${i + 1}.webp`,
+            fullUrl: `${processBase}/${i + 1}.webp`,
+            alt: label,
+            label,
+            type: 'process'
+        }));
     const fullProductUrl = product.image_url || CONFIG.DEFAULT_IMAGE;
     const images = [
         {
@@ -705,28 +709,42 @@ function _updateCarouselUI(index) {
         }
     }
 
-    // Show/hide arrows on first/last slide
+    // Mũi tên / dots: ẩn hết khi chỉ 1 ảnh (vd. danh mục 24 Bi, charm bạc).
     const prevBtn = document.getElementById('carouselPrevBtn');
     const nextBtn = document.getElementById('carouselNextBtn');
+    const dotsWrap = document.getElementById('carouselDots');
     const total = _carouselState.images.length;
+    const singleSlide = total <= 1;
+
+    if (dotsWrap) dotsWrap.style.display = singleSlide ? 'none' : '';
 
     if (prevBtn) {
-        if (index === 0) {
-            prevBtn.style.opacity = '0.4';
-            prevBtn.style.pointerEvents = 'none';
+        if (singleSlide) {
+            prevBtn.style.display = 'none';
         } else {
-            prevBtn.style.opacity = '';
-            prevBtn.style.pointerEvents = '';
+            prevBtn.style.display = '';
+            if (index === 0) {
+                prevBtn.style.opacity = '0.4';
+                prevBtn.style.pointerEvents = 'none';
+            } else {
+                prevBtn.style.opacity = '';
+                prevBtn.style.pointerEvents = '';
+            }
         }
     }
 
     if (nextBtn) {
-        if (index === total - 1) {
-            nextBtn.style.opacity = '0.4';
-            nextBtn.style.pointerEvents = 'none';
+        if (singleSlide) {
+            nextBtn.style.display = 'none';
         } else {
-            nextBtn.style.opacity = '';
-            nextBtn.style.pointerEvents = '';
+            nextBtn.style.display = '';
+            if (index === total - 1) {
+                nextBtn.style.opacity = '0.4';
+                nextBtn.style.pointerEvents = 'none';
+            } else {
+                nextBtn.style.opacity = '';
+                nextBtn.style.pointerEvents = '';
+            }
         }
     }
 }

@@ -51,12 +51,43 @@ export function createCategoryCard(category, index = 0) {
     `;
 }
 
+function _isProductOutOfStock(product) {
+    const raw = product?.stock_quantity ?? product?.stockQuantity;
+    if (raw === undefined || raw === null || raw === '') return false;
+    const qty = typeof raw === 'string'
+        ? parseInt(String(raw).replace(/[^\d-]/g, ''), 10)
+        : Number(raw);
+    return Number.isFinite(qty) && qty <= 0;
+}
+
+function _productBelongsToCategory(product, categoryId) {
+    const id = Number(categoryId);
+    if (!Number.isFinite(id) || !product) return false;
+    if (Array.isArray(product.categories)) {
+        if (product.categories.some((cat) => Number(cat.id || cat.category_id) === id)) return true;
+    }
+    if (product.category_id != null && Number(product.category_id) === id) return true;
+    if (Array.isArray(product.category_ids)) {
+        if (product.category_ids.some((cid) => Number(cid) === id)) return true;
+    }
+    return false;
+}
+
+/** Danh mục còn ít nhất 1 SP đang bán (không tính hết hàng). */
+export function categoryHasSellableProduct(categoryId, products) {
+    if (!Array.isArray(products) || products.length === 0) return false;
+    return products.some(
+        (product) => _productBelongsToCategory(product, categoryId) && !_isProductOutOfStock(product)
+    );
+}
+
 /**
  * Render categories to container
  * @param {Array} categories - Array of categories
  * @param {string} containerId - Container element ID
+ * @param {Array|null} products - Nếu có: ẩn danh mục không còn SP bán được
  */
-export function renderCategories(categories, containerId) {
+export function renderCategories(categories, containerId, products = null) {
     const container = document.getElementById(containerId);
     if (!container) {
         // Container not ready yet - silently return
@@ -68,8 +99,16 @@ export function renderCategories(categories, containerId) {
         return;
     }
     
+    // Bắt buộc có catalog SP trước khi hiện chip — không bao giờ render full rồi mới ẩn.
+    const hasProductCatalog = Array.isArray(products) && products.length > 0;
+    if (!hasProductCatalog) {
+        container.innerHTML = '';
+        return;
+    }
+
     const activeCategories = categories
-        .filter(cat => cat.is_active === 1)
+        .filter((cat) => cat.is_active === 1 || cat.is_active === true)
+        .filter((cat) => categoryHasSellableProduct(cat.id, products))
         .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
     
     container.innerHTML = createAllCategoriesChip()

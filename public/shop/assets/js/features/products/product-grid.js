@@ -58,6 +58,7 @@ export class ProductGrid {
         this.itemsPerPage = options.itemsPerPage || 12;    // Số sản phẩm load thêm mỗi lần
         this.displayedCount = this.initialCount;           // Bắt đầu với initialCount
         this.currentFilter = 'best-selling'; // Mặc định hiển thị "Bán chạy" trong tab Tất cả
+        this.currentCategoryId = null; // null = Tất cả; số = đang lọc danh mục (giữ khi setAllProducts)
         this.currentSort = 'default';
         this.isSearching = false; // Track search state
         this.currentSearchQuery = ''; // Track current search query
@@ -112,6 +113,11 @@ export class ProductGrid {
      * Apply current filter (internal method)
      */
     applyCurrentFilter() {
+        // Ưu tiên danh mục đang chọn (kể cả từ ?category=) — tránh flash về "Tất cả".
+        if (this.currentCategoryId != null) {
+            this.filterByCategory(this.currentCategoryId);
+            return;
+        }
         if (this.currentFilter) {
             this.filter(this.currentFilter);
         } else {
@@ -125,7 +131,13 @@ export class ProductGrid {
      * Filter products by category
      */
     filterByCategory(categoryId) {
-        console.log('ProductGrid: Filtering by category:', categoryId);
+        const normalized =
+            categoryId == null || categoryId === '' || categoryId === 'all'
+                ? null
+                : Number(categoryId);
+        this.currentCategoryId = Number.isFinite(normalized) ? normalized : null;
+
+        console.log('ProductGrid: Filtering by category:', this.currentCategoryId);
         
         // LUÔN dùng allProducts làm nguồn
         const sourceProducts = this.allProducts;
@@ -136,28 +148,27 @@ export class ProductGrid {
             return;
         }
         
-        if (!categoryId) {
+        if (this.currentCategoryId == null) {
             // Tất cả: về đúng danh sách mặc định (Bán chạy, hoặc tab sắp xếp đang chọn).
             this.filter(this.currentFilter || 'best-selling');
             return;
-        } else {
-            // Filter products by category
-            this.filteredProducts = sourceProducts.filter(product => {
-                // Check if product has categories array
-                if (Array.isArray(product.categories)) {
-                    return product.categories.some(cat => cat.id === categoryId);
-                }
-                // Check if product has category_id
-                if (product.category_id) {
-                    return product.category_id === categoryId;
-                }
-                // Check if product has category_ids array
-                if (Array.isArray(product.category_ids)) {
-                    return product.category_ids.includes(categoryId);
-                }
-                return false;
-            });
         }
+
+        const id = this.currentCategoryId;
+        this.filteredProducts = sourceProducts.filter((product) => {
+            if (Array.isArray(product.categories)) {
+                return product.categories.some(
+                    (cat) => Number(cat.id || cat.category_id) === id
+                );
+            }
+            if (product.category_id != null) {
+                return Number(product.category_id) === id;
+            }
+            if (Array.isArray(product.category_ids)) {
+                return product.category_ids.some((cid) => Number(cid) === id);
+            }
+            return false;
+        });
         
         console.log('ProductGrid: Filtered products:', this.filteredProducts.length);
 
