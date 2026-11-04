@@ -1250,17 +1250,6 @@
 
                     <!-- Filters -->
                     <div class="flex flex-wrap items-center gap-3 shrink-0">
-                        <!-- Export Priority Orders Button -->
-                        <button id="exportPriorityBtn" onclick="exportPriorityOrders()"
-                            class="hidden inline-flex items-center gap-1.5 px-3 py-2.5 bg-white border border-yellow-300 rounded-lg hover:bg-yellow-50 hover:border-yellow-400 transition-all text-sm font-medium text-yellow-800"
-                            title="Export tất cả đơn ưu tiên ra Excel">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span>Export ưu tiên</span>
-                            <span id="exportPriorityCount" class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-yellow-500 text-white text-xs font-bold">0</span>
-                        </button>
-
                         <!-- Lọc đơn có sản phẩm chưa có cân/size -->
                         <button type="button" id="missingSizeFilterBtn" onclick="toggleMissingSizeFilter()"
                             class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg hover:bg-amber-50 hover:border-amber-300 transition-all text-sm font-medium">
@@ -1858,7 +1847,7 @@
     </div>
 
     <!-- Một bundle đã minify — build: npm run build:admin-js (sau khi sửa JS đơn hàng) -->
-    <script defer src="../assets/js/admin-orders.bundle.min.js?v=216"></script>
+    <script defer src="../assets/js/admin-orders.bundle.min.js?v=217"></script>
     
     <!-- Patch: Add missing bulkToggleInvoiceStatus function -->
     <script>

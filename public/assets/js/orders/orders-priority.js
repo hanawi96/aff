@@ -42,10 +42,6 @@ async function toggleOrderPriority(orderId, currentPriority, silent = false, ski
             filterOrdersData(true);
         }
 
-        if (typeof updateExportPriorityButton === 'function') {
-            updateExportPriorityButton();
-        }
-        
         // Show toast only if not silent
         if (!silent) {
             showToast(data.message, 'success');

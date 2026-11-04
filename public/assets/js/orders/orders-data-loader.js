@@ -152,9 +152,6 @@ function _renderOrdersFromCurrentData() {
     filterOrdersData();
     updateDateSortIcon();
     updateAmountSortIcon();
-    if (typeof updateExportPriorityButton === 'function') {
-        updateExportPriorityButton();
-    }
     _scheduleSearchIndexPrebuild();
 }
 
