@@ -8,13 +8,10 @@
 // ============================================
 let customDatePickerModal = null;
 let currentDateMode = 'single'; // 'single' or 'range'
-let priorityFilterActive = false; // Track priority filter state
 /** Chỉ hiện đơn có ít nhất 1 sản phẩm thiếu cân/size (dùng getOrderProductsMissingSizeWeight) */
 let missingSizeFilterActive = false;
 /** Chỉ hiện đơn có ≥1 SP thuộc DM 21, tên/lưu ý SP có "thẻ", hoặc lưu ý đơn có "thẻ" */
 let theTenBeFilterActive = false;
-/** Chỉ hiện đơn có lưu ý đơn hoặc lưu ý ít nhất một dòng SP */
-let hasNotesFilterActive = false;
 /** Chỉ hiện đơn gửi sau cần làm (từ badge thông báo) */
 let sendLaterUrgentFilterActive = false;
 let sendLaterUrgentFilterIds = null;
@@ -135,18 +132,6 @@ function orderHasTheTenBeProduct(order) {
     }
 }
 
-/** Fallback khi thiếu cache (hiếm) — đồng bộ logic với hasAnyNotes trong buildSearchIndex */
-function orderHasAnyNotesFallback(order) {
-    if (order.notes && String(order.notes).trim()) return true;
-    try {
-        const products = typeof order.products === 'string' ? JSON.parse(order.products) : order.products;
-        if (!Array.isArray(products)) return false;
-        return products.some(p => typeof p === 'object' && p !== null && p.notes && String(p.notes).trim());
-    } catch {
-        return false;
-    }
-}
-
 // ============================================
 // SEARCH INDEX CACHE (Performance Optimization)
 // ============================================
@@ -185,7 +170,6 @@ function buildSearchIndex() {
         }
 
         const orderNotesNorm = removeVietnameseTones((order.notes || '').toLowerCase());
-        const hasAnyNotes = !!(order.notes && String(order.notes).trim()) || productNotes.length > 0;
 
         return {
             id: order.id,
@@ -200,7 +184,6 @@ function buildSearchIndex() {
             products: productNames,
             orderNotes: orderNotesNorm,
             productNotes,
-            hasAnyNotes,
             // Keep reference to original order
             order: order
         };
@@ -313,11 +296,10 @@ function filterOrdersData(preservePage = false) {
     const ctvFilter = document.getElementById('ctvFilter')?.value || 'all';
     const dateFilter = document.getElementById('dateFilter')?.value || 'all';
 
-    // D1: chỉ build search index khi thực sự cần — search box có nội dung
-    // hoặc bật lọc "Có lưu ý" (hai chỗ duy nhất đọc `cached` ở dưới).
+    // D1: chỉ build search index khi search box có nội dung.
     // Tránh parse products của ~1000 đơn ngay lúc load (chặn first paint);
     // prebuild ở idle (orders-data-loader) lo cho lần search đầu tiên.
-    const needsSearchIndex = !!searchTerm || hasNotesFilterActive;
+    const needsSearchIndex = !!searchTerm;
     if (needsSearchIndex && (!searchIndexCache || searchIndexCache.length !== allOrdersData.length)) {
         buildSearchIndex();
     }
@@ -330,9 +312,6 @@ function filterOrdersData(preservePage = false) {
         // ============================================
         const matchesSearch = cachedOrderMatchesSearch(cached, searchRaw, searchScope);
 
-        // Priority filter
-        const matchesPriority = !priorityFilterActive || order.is_priority === 1;
-
         // Bộ lọc "Chưa có size" — chỉ đơn Chưa gửi / Chờ gửi lại / Gửi sau có SP thiếu cân/size
         let matchesMissingSize = true;
         if (missingSizeFilterActive) {
@@ -344,11 +323,6 @@ function filterOrdersData(preservePage = false) {
 
         // Bộ lọc "Thẻ tên bé" — DM 21, tên/lưu ý SP hoặc lưu ý đơn chứa "thẻ tên" / "thẻ"
         const matchesTheTenBe = !theTenBeFilterActive || orderHasTheTenBeProduct(order);
-
-        // Bộ lọc "Có lưu ý" — cache.hasAnyNotes (O(1))
-        const matchesHasNotes = !hasNotesFilterActive || (cached
-            ? cached.hasAnyNotes
-            : orderHasAnyNotesFallback(order));
 
         let matchesSendLaterUrgent = true;
         if (sendLaterUrgentFilterActive && sendLaterUrgentFilterIds) {
@@ -446,7 +420,7 @@ function filterOrdersData(preservePage = false) {
             matchesInvoiceStatus = !(order.invoice_exported_at > 0) && !(order.manual_invoice_exported === 1);
         }
 
-        return matchesSearch && matchesPriority && matchesMissingSize && matchesTheTenBe && matchesHasNotes && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCustomerSource && matchesCTV && matchesDate && matchesInvoiceStatus;
+        return matchesSearch && matchesMissingSize && matchesTheTenBe && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCustomerSource && matchesCTV && matchesDate && matchesInvoiceStatus;
     });
 
     console.log('[DEBUG] filterOrdersData — filteredOrdersData.length:', filteredOrdersData.length, '| first item:', JSON.stringify(filteredOrdersData[0]));
@@ -1451,40 +1425,6 @@ function updateCustomDateLabel(startDate, endDate) {
 // ============================================
 
 /**
- * Toggle priority filter (show only priority orders or all orders)
- * Button text stays as "Tất cả đơn ưu tiên" - only highlight changes
- */
-function togglePriorityFilter() {
-    const button = document.getElementById('priorityFilterBtn');
-    const icon = button.querySelector('svg');
-    
-    // Toggle state
-    priorityFilterActive = !priorityFilterActive;
-    
-    if (priorityFilterActive) {
-        // Active state: Show only priority orders - highlight button
-        button.classList.remove('border-gray-300', 'hover:bg-yellow-50', 'hover:border-yellow-400');
-        button.classList.add('bg-yellow-50', 'border-yellow-500');
-        icon.classList.remove('text-gray-500');
-        icon.classList.add('text-yellow-500');
-        icon.setAttribute('fill', 'currentColor');
-    } else {
-        // Inactive state: Show all orders - unhighlight button
-        button.classList.remove('bg-yellow-50', 'border-yellow-500');
-        button.classList.add('border-gray-300', 'hover:bg-yellow-50', 'hover:border-yellow-400');
-        icon.classList.remove('text-yellow-500');
-        icon.classList.add('text-gray-500');
-        icon.setAttribute('fill', 'none');
-    }
-    
-    // Apply filter
-    filterOrdersData();
-}
-
-/**
- * Bật/tắt bộ lọc chỉ đơn có sản phẩm chưa có cân hoặc size
- */
-/**
  * Cập nhật badge số lượng đơn "Chưa có size" trên nút lọc.
  * Đếm theo computeOrdersWithMissingSize() — chỉ đơn Chưa gửi hàng / Chờ gửi lại / Gửi sau.
  * Nhẹ: 1 lượt quét allOrdersData; ẩn badge khi = 0.
@@ -1584,36 +1524,6 @@ function toggleMissingSizeFilter() {
     if (missingSizeFilterActive) {
         clearSendLaterUrgentTableFilter();
     }
-    filterOrdersData();
-}
-
-/**
- * Chỉ đơn có ghi chú đơn hàng hoặc ghi chú ít nhất một dòng sản phẩm
- */
-function toggleHasNotesFilter() {
-    const button = document.getElementById('hasNotesFilterBtn');
-    if (!button) return;
-    const icon = button.querySelector('svg');
-    const label = button.querySelector('span');
-
-    hasNotesFilterActive = !hasNotesFilterActive;
-
-    if (hasNotesFilterActive) {
-        button.classList.remove('border-gray-300', 'hover:bg-indigo-50', 'hover:border-indigo-300');
-        button.classList.add('bg-indigo-50', 'border-indigo-500', 'ring-1', 'ring-indigo-200');
-        icon.classList.remove('text-gray-500');
-        icon.classList.add('text-indigo-600');
-        label.classList.remove('text-gray-700');
-        label.classList.add('text-indigo-700', 'font-semibold');
-    } else {
-        button.classList.remove('bg-indigo-50', 'border-indigo-500', 'ring-1', 'ring-indigo-200');
-        button.classList.add('border-gray-300', 'hover:bg-indigo-50', 'hover:border-indigo-300');
-        icon.classList.remove('text-indigo-600');
-        icon.classList.add('text-gray-500');
-        label.classList.remove('text-indigo-700', 'font-semibold');
-        label.classList.add('text-gray-700');
-    }
-
     filterOrdersData();
 }
 

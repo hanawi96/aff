@@ -28,7 +28,75 @@ function isZaloPage() {
   return window.location.hostname === 'chat.zalo.me';
 }
 
-/** Zalo: co #chatViewContainer khi sidebar mở để không che tin nhắn */
+const SHOPVD_SIDEBAR_WIDTH_KEY = 'shopvd_sidebar_width';
+const SHOPVD_SIDEBAR_WIDTH_DEFAULT_PANCAKE = 538;
+const SHOPVD_SIDEBAR_WIDTH_DEFAULT_ZALO = 676;
+const SHOPVD_SIDEBAR_WIDTH_MIN = 360;
+const SHOPVD_SIDEBAR_WIDTH_MAX = 920;
+
+function getDefaultSidebarWidth() {
+  return isZaloPage() ? SHOPVD_SIDEBAR_WIDTH_DEFAULT_ZALO : SHOPVD_SIDEBAR_WIDTH_DEFAULT_PANCAKE;
+}
+
+let shopvdSidebarWidthPx = getDefaultSidebarWidth();
+
+function clampSidebarWidth(px) {
+  const n = Math.round(Number(px));
+  if (!Number.isFinite(n)) return getDefaultSidebarWidth();
+  return Math.min(SHOPVD_SIDEBAR_WIDTH_MAX, Math.max(SHOPVD_SIDEBAR_WIDTH_MIN, n));
+}
+
+function applySidebarWidth(px, { persist = false, syncInput = true } = {}) {
+  const width = clampSidebarWidth(px);
+  shopvdSidebarWidthPx = width;
+  document.documentElement.style.setProperty('--shopvd-sidebar-width', `${width}px`);
+  if (syncInput) {
+    const input = document.getElementById('shopvd-sidebar-width-input');
+    if (input && input.value !== String(width)) input.value = String(width);
+  }
+  syncZaloChatLayoutOffset();
+  if (persist) {
+    try {
+      chrome.storage.local.set({ [SHOPVD_SIDEBAR_WIDTH_KEY]: width });
+    } catch (_) { /* ignore */ }
+  }
+  return width;
+}
+
+async function loadSidebarWidthFromStorage() {
+  try {
+    const data = await chrome.storage.local.get(SHOPVD_SIDEBAR_WIDTH_KEY);
+    if (data?.[SHOPVD_SIDEBAR_WIDTH_KEY] != null) {
+      applySidebarWidth(data[SHOPVD_SIDEBAR_WIDTH_KEY], { persist: false });
+      return;
+    }
+  } catch (_) { /* ignore */ }
+  applySidebarWidth(getDefaultSidebarWidth(), { persist: false });
+}
+
+function bindSidebarWidthControl() {
+  const input = document.getElementById('shopvd-sidebar-width-input');
+  if (!input || input.dataset.shopvdBound === '1') return;
+  input.dataset.shopvdBound = '1';
+  input.value = String(shopvdSidebarWidthPx);
+  input.min = String(SHOPVD_SIDEBAR_WIDTH_MIN);
+  input.max = String(SHOPVD_SIDEBAR_WIDTH_MAX);
+
+  const commit = () => {
+    const width = applySidebarWidth(input.value, { persist: true });
+    input.value = String(width);
+  };
+
+  input.addEventListener('change', commit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    commit();
+    input.blur();
+  });
+}
+
+/** Zalo: co #chatViewContainer khi sidebar mở — khớp đúng px sidebar */
 function syncZaloChatLayoutOffset() {
   if (!isZaloPage()) {
     clearZaloChatLayoutOffset();
@@ -37,9 +105,8 @@ function syncZaloChatLayoutOffset() {
 
   const sidebar = document.getElementById('shopvd-sidebar');
   const open = !!(sidebar && !sidebar.classList.contains('collapsed'));
-  const width = open ? 330 : 0;
+  const width = open ? shopvdSidebarWidthPx : 0;
 
-  // Class trên <html> + CSS selector #chatViewContainer — bền khi Zalo re-render DOM
   document.documentElement.classList.toggle('shopvd-zalo-sidebar-open', open);
   if (open) {
     document.documentElement.style.setProperty('--shopvd-zalo-chat-offset', `${width}px`);
@@ -248,6 +315,19 @@ function createSidebar() {
           <button type="button" id="shopvd-ship-status-refresh" class="shopvd-ship-refresh hidden" title="Kiểm tra lại đã lưu DB" aria-label="Kiểm tra lại đã lưu DB">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
           </button>
+          <label class="shopvd-width-control" title="Chiều rộng sidebar (px) — Enter để lưu">
+            <input
+              type="number"
+              id="shopvd-sidebar-width-input"
+              class="shopvd-width-input"
+              min="360"
+              max="920"
+              step="10"
+              inputmode="numeric"
+              aria-label="Chiều rộng sidebar px"
+            >
+            <span class="shopvd-width-suffix">px</span>
+          </label>
           <button id="shopvd-toggle" class="shopvd-btn-toggle" title="Thu gọn sidebar" aria-label="Thu gọn sidebar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="15 18 9 12 15 6"/>
@@ -9625,6 +9705,7 @@ function setSidebarCollapsed(collapsed) {
 // Setup event listeners
 function setupEventListeners() {
   bindOrderFormValidationListeners();
+  bindSidebarWidthControl();
 
   document.getElementById('shopvd-toggle')?.addEventListener('click', () => {
     setSidebarCollapsed(true);
@@ -12664,6 +12745,7 @@ function init() {
   }
 
   void initConvPhoneMapWithServerSync();
+  void loadSidebarWidthFromStorage();
 
   const existing = document.getElementById('shopvd-sidebar');
   const staleSidebar = existing && existing.dataset.shopvdVersion !== SHOPVD_EXT_VERSION;
@@ -12677,6 +12759,7 @@ function init() {
 
   if (!document.getElementById('shopvd-sidebar')) {
     createSidebar();
+    applySidebarWidth(shopvdSidebarWidthPx, { persist: false });
     bindPancakeHeaderOffsetSync();
     renderProducts();
     loadProducts();
@@ -12686,6 +12769,7 @@ function init() {
     existing.dataset.shopvdVersion = SHOPVD_EXT_VERSION;
     const sub = existing.querySelector('.shopvd-top-sub');
     if (sub) sub.textContent = `Tạo đơn · v${SHOPVD_EXT_VERSION}`;
+    applySidebarWidth(shopvdSidebarWidthPx, { persist: false });
   }
 
   syncZaloChatLayoutOffset();

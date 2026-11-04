@@ -49,7 +49,6 @@ function _isDefaultNewestShippedView() {
     if ((document.getElementById('searchInput')?.value || '').trim()) return false;
     if (typeof missingSizeFilterActive !== 'undefined' && missingSizeFilterActive) return false;
     if (typeof theTenBeFilterActive !== 'undefined' && theTenBeFilterActive) return false;
-    if (typeof hasNotesFilterActive !== 'undefined' && hasNotesFilterActive) return false;
     if (typeof sendLaterUrgentFilterActive !== 'undefined' && sendLaterUrgentFilterActive) return false;
     if (typeof amountSortOrder !== 'undefined' && amountSortOrder !== 'none') return false;
     if ((typeof dateSortOrder !== 'undefined' ? dateSortOrder : 'desc') !== 'desc') return false;
@@ -172,7 +171,6 @@ function shouldUseHistoryMode() {
     // 3 bộ lọc đặc biệt (parse JSON products ở client) — không đưa lên SQL được
     if (typeof missingSizeFilterActive !== 'undefined' && missingSizeFilterActive) return false;
     if (typeof theTenBeFilterActive !== 'undefined' && theTenBeFilterActive) return false;
-    if (typeof hasNotesFilterActive !== 'undefined' && hasNotesFilterActive) return false;
     if (typeof sendLaterUrgentFilterActive !== 'undefined' && sendLaterUrgentFilterActive) return false;
 
     // Sort theo GIÁ TRỊ đơn cần toàn bộ dữ liệu để xếp đúng → client mode

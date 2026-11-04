@@ -369,7 +369,7 @@ export async function getDueInvoiceOrders(params, env, corsHeaders) {
  * Dùng khi người dùng lọc trạng thái "Đã gửi hàng" (shipped) hoặc "Tất cả trạng thái" (all).
  * Cursor keyset: (sortValue, id) < (cursorSort, cursorId) — nhanh, không giảm tốc theo số trang.
  * Chỉ hỗ trợ các filter ĐƠN GIẢN xử lý được bằng SQL (payment/source/ctv/invoice/date).
- * Các filter phức tạp (search từ khóa, thiếu size, thẻ tên bé, có lưu ý) KHÔNG đi qua đây —
+ * Các filter phức tạp (search từ khóa, thiếu size, thẻ tên bé) KHÔNG đi qua đây —
  * frontend sẽ fallback về tải đầy đủ, nên không có rủi ro sai lệch.
  *
  * @param {object} params

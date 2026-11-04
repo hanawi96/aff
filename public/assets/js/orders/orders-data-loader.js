@@ -146,7 +146,7 @@ function _renderOrdersFromCurrentData() {
     if (typeof resetSendLaterUrgentBannerCache === 'function') resetSendLaterUrgentBannerCache();
     // D1: KHÔNG build search index ngay (parse products của ~1000 đơn rất nặng,
     // chặn first paint). Chỉ đánh dấu cache cũ; filterOrdersData tự build khi cần
-    // (tìm kiếm / lọc "Có lưu ý"), ngoài ra prebuild ở idle để search vẫn tức thì.
+    // (tìm kiếm), ngoài ra prebuild ở idle để search vẫn tức thì.
     if (typeof invalidateSearchCache === 'function') invalidateSearchCache();
     // Áp dụng bộ lọc theo DOM (trạng thái mặc định: chưa gửi, thanh toán, CTV, ngày…)
     filterOrdersData();
