@@ -281,10 +281,6 @@ function createSidebar() {
   sidebar.innerHTML = `
     <div class="shopvd-top-sticky">
       <div class="shopvd-top-bar">
-        <div class="shopvd-top-brand">
-          <span class="shopvd-top-title">ShopVD</span>
-          <span class="shopvd-top-sub">Tạo đơn · v${SHOPVD_EXT_VERSION}</span>
-        </div>
         <div class="shopvd-phone-search" id="shopvd-phone-search">
           <span class="shopvd-phone-search-icon" aria-hidden="true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -3763,6 +3759,38 @@ function shopvdFormatStatusMoney(amount) {
   return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
 }
 
+/** Preview SP trên strip — chip cân/SL clickable khi đơn còn sửa được. */
+function shopvdShipProductsHtml(order, { editable = false } = {}) {
+  const orderId = Number(order?.id) || 0;
+  const brief = Array.isArray(order?.products_brief) ? order.products_brief : null;
+  if (!brief || !brief.length) {
+    const preview = order?.products_preview || '';
+    return preview ? `<span class="shopvd-ship-preview">${escapeHtml(preview)}</span>` : '';
+  }
+
+  const parts = brief.map((p) => {
+    const name = escapeHtml(p?.name || 'SP');
+    const size = String(p?.size || '').trim();
+    const qty = Math.max(1, parseInt(p?.quantity, 10) || 1);
+    const idx = Number.isFinite(Number(p?.i)) ? Number(p.i) : 0;
+    if (editable && orderId > 0) {
+      const sizeBtn = size
+        ? `<button type="button" class="shopvd-strip-edit" data-order-id="${orderId}" data-item-index="${idx}" data-field="size" title="Sửa cân nặng">${escapeHtml(size)}</button>`
+        : `<button type="button" class="shopvd-strip-edit is-empty" data-order-id="${orderId}" data-item-index="${idx}" data-field="size" title="Thêm cân nặng">+cân</button>`;
+      const qtyBtn = `<button type="button" class="shopvd-strip-edit" data-order-id="${orderId}" data-item-index="${idx}" data-field="quantity" title="Sửa số lượng">×${qty}</button>`;
+      return `<span class="shopvd-ship-prod">${name}<span class="shopvd-ship-sep">·</span>${sizeBtn}${qtyBtn}</span>`;
+    }
+    const sizeText = size ? `${escapeHtml(size)} ×${qty}` : `×${qty}`;
+    return `<span class="shopvd-ship-prod">${name}<span class="shopvd-ship-sep">·</span>${sizeText}</span>`;
+  });
+
+  const extra = Number(order?.products_brief_extra) || 0;
+  if (extra > 0) {
+    parts.push(`<span class="shopvd-ship-multi">(+${extra})</span>`);
+  }
+  return `<span class="shopvd-ship-preview shopvd-ship-preview-items">${parts.join('<span class="shopvd-ship-sep">,</span>')}</span>`;
+}
+
 function renderDbSaveStatusCard(payload = {}) {
   const strip = document.getElementById('shopvd-ship-status');
   const body = document.getElementById('shopvd-ship-status-body');
@@ -3847,11 +3875,11 @@ function renderDbSaveStatusCard(payload = {}) {
       const shipTime = shopvdResolveShipTime(o);
       const timeLabel = shopvdShipTimeLabel(o);
       const amount = o.total_amount ? shopvdFormatStatusMoney(o.total_amount) : '';
-      const preview = o.products_preview || '';
       const provinceHtml = shopvdShipProvinceHtml(o);
       const returnBadge = shopvdReturningCustomerBadgeHtml(count);
 
       const canEdit = isShopvdOrderEditable(o.status) && Number(o.id) > 0;
+      const productsHtml = shopvdShipProductsHtml(o, { editable: canEdit });
       const editBtn = canEdit
         ? `<button type="button" class="shopvd-edit-order-btn" data-order-id="${Number(o.id)}" title="Sửa đơn ${escapeHtml(o.order_id || '')}" aria-label="Sửa đơn hàng">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -3873,10 +3901,10 @@ function renderDbSaveStatusCard(payload = {}) {
         </div>
         <div class="shopvd-ship-detail">
           ${provinceHtml}
-          ${provinceHtml && (amount || preview) ? '<span class="shopvd-ship-sep">·</span>' : ''}
+          ${provinceHtml && (amount || productsHtml) ? '<span class="shopvd-ship-sep">·</span>' : ''}
           ${amount ? `<span class="shopvd-ship-amount">${amount}</span>` : ''}
-          ${amount && preview ? '<span class="shopvd-ship-sep">·</span>' : ''}
-          ${preview ? `<span class="shopvd-ship-preview">${preview}</span>` : ''}
+          ${amount && productsHtml ? '<span class="shopvd-ship-sep">·</span>' : ''}
+          ${productsHtml}
         </div>`;
 
       shopvdLastSavedOrderMeta = {
@@ -5148,6 +5176,256 @@ async function updateOrder(orderData) {
   }
 }
 
+/** Cart submit từ products JSON đơn — giữ đủ dòng (kể cả giá 0). */
+function buildCartFromOrderProductsRaw(products) {
+  let items = products;
+  if (typeof items === 'string') {
+    try {
+      items = JSON.parse(items);
+    } catch (_) {
+      items = [];
+    }
+  }
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((p) => sanitizeCartItemForSubmit({
+      name: String(p?.name || p?.product_name || '').trim(),
+      quantity: Math.max(1, parseInt(p?.quantity, 10) || 1),
+      price: parseInt(p?.price ?? p?.product_price, 10) || 0,
+      cost_price: parseInt(p?.cost_price ?? p?.product_cost ?? p?.cost, 10) || 0,
+      product_id: p?.product_id ?? null,
+      image_url: p?.image_url || '',
+      weight: formatWeightSize(p?.size ?? p?.weight ?? '') || '',
+      size: p?.size ?? p?.weight ?? '',
+      notes: p?.notes || '',
+    }))
+    .filter((p) => p.name);
+}
+
+/** Cập nhật đơn im lặng từ bản ghi DB + cart đã patch (không mở modal). */
+async function silentUpdateOrderFromDbOrder(order, cart) {
+  const shippingFee = parseInt(order.shipping_fee, 10) || 0;
+  const discountAmount = parseInt(order.discount_amount, 10) || 0;
+  const productsTotal = cart.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+  const orderData = {
+    orderDbId: Number(order.id),
+    orderId: order.order_id,
+    orderDate: order.created_at_unix || Date.now(),
+    customer: {
+      name: order.customer_name,
+      phone: order.customer_phone,
+      address: order.address || '',
+    },
+    cart,
+    totalAmount: Math.max(0, productsTotal + shippingFee - discountAmount),
+    paymentMethod: order.payment_method || 'cod',
+    status: order.status || 'pending',
+    shippingFee,
+    shippingCost: parseInt(order.shipping_cost, 10) || 0,
+    depositAmount: parseInt(order.deposit_amount, 10) || 0,
+    deposit_amount: parseInt(order.deposit_amount, 10) || 0,
+    customerSource: order.customer_source || null,
+    customer_source: order.customer_source || null,
+    referralCode: order.referral_code || null,
+    referral_code: order.referral_code || null,
+    discountCode: order.discount_code || null,
+    discount_code: order.discount_code || null,
+    discountAmount,
+    discount_amount: discountAmount,
+    isPriority: Number(order.is_priority) === 1 ? 1 : 0,
+    is_priority: Number(order.is_priority) === 1 ? 1 : 0,
+    isMakeup: Number(order.is_makeup) === 1 ? 1 : 0,
+    is_makeup: Number(order.is_makeup) === 1 ? 1 : 0,
+    plannedSendAtUnix: order.planned_send_at_unix || null,
+    planned_send_at_unix: order.planned_send_at_unix || null,
+    notes: order.notes || null,
+    province_id: order.province_id || null,
+    province_name: order.province_name || null,
+    ward_id: order.ward_id || null,
+    ward_name: order.ward_name || null,
+    street_address: order.street_address || null,
+    district_id: order.district_id || null,
+    district_name: order.district_name || null,
+  };
+
+  const response = await shopvdFetch(`${API_BASE_URL}/api/order/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(orderData),
+  });
+  const result = await response.json();
+  if (!result?.success) {
+    throw new Error(result?.error || 'Không cập nhật được đơn');
+  }
+  shopvdOrderDetailCache.delete(Number(order.id));
+  return result;
+}
+
+async function patchSavedOrderItemField(orderDbId, itemIndex, field, rawValue) {
+  const id = Number(orderDbId);
+  const idx = Number(itemIndex);
+  if (!(id > 0) || !Number.isFinite(idx) || idx < 0) {
+    throw new Error('Thiếu thông tin sản phẩm');
+  }
+
+  shopvdOrderDetailCache.delete(id);
+  const order = await fetchOrderById(id);
+  if (!order) throw new Error('Không tải được đơn hàng');
+  if (!isShopvdOrderEditable(order.status)) {
+    throw new Error('Đơn này không còn sửa được');
+  }
+
+  let products = order.products;
+  if (typeof products === 'string') {
+    try {
+      products = JSON.parse(products);
+    } catch (_) {
+      products = [];
+    }
+  }
+  if (!Array.isArray(products) || !products[idx]) {
+    throw new Error('Không tìm thấy sản phẩm trong đơn');
+  }
+
+  const item = { ...products[idx] };
+  if (field === 'quantity') {
+    item.quantity = Math.max(1, parseInt(rawValue, 10) || 1);
+  } else if (field === 'size') {
+    const formatted = formatWeightSize(String(rawValue || '').trim());
+    const size = normalizeOrderItemSizeClient(formatted);
+    if (size) {
+      item.size = size;
+      delete item.weight;
+    } else {
+      delete item.size;
+      delete item.weight;
+    }
+  } else {
+    throw new Error('Trường không hỗ trợ');
+  }
+
+  const nextProducts = products.slice();
+  nextProducts[idx] = item;
+  const cart = buildCartFromOrderProductsRaw(nextProducts);
+  if (!cart.length) throw new Error('Giỏ hàng trống sau khi sửa');
+
+  await silentUpdateOrderFromDbOrder({ ...order, products: nextProducts }, cart);
+  return { order, item, field };
+}
+
+function beginStripInlineEdit(btn) {
+  if (!btn || btn.classList.contains('is-editing') || btn.classList.contains('is-loading')) return;
+
+  const orderId = Number(btn.getAttribute('data-order-id'));
+  const itemIndex = Number(btn.getAttribute('data-item-index'));
+  const field = btn.getAttribute('data-field');
+  if (!(orderId > 0) || !Number.isFinite(itemIndex) || (field !== 'size' && field !== 'quantity')) {
+    return;
+  }
+
+  const originalHTML = btn.innerHTML;
+  const originalClass = btn.className;
+  let currentValue = '';
+  if (field === 'quantity') {
+    currentValue = String(originalHTML).replace(/[^\d]/g, '') || '1';
+  } else {
+    currentValue = btn.classList.contains('is-empty')
+      ? ''
+      : String(originalHTML).replace(/<[^>]*>/g, '').trim();
+  }
+
+  const input = document.createElement('input');
+  input.type = field === 'quantity' ? 'number' : 'text';
+  input.className = 'shopvd-strip-edit-input';
+  input.value = currentValue;
+  if (field === 'quantity') {
+    input.min = '1';
+    input.step = '1';
+    input.inputMode = 'numeric';
+  } else {
+    input.placeholder = '3kg';
+  }
+
+  btn.classList.add('is-editing');
+  btn.innerHTML = '';
+  btn.appendChild(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+  const restore = () => {
+    btn.className = originalClass;
+    btn.innerHTML = originalHTML;
+  };
+
+  const commit = async () => {
+    if (done) return;
+    done = true;
+    const nextRaw = input.value.trim();
+    const unchanged = field === 'quantity'
+      ? String(Math.max(1, parseInt(nextRaw, 10) || 1)) === String(Math.max(1, parseInt(currentValue, 10) || 1))
+      : formatWeightSize(nextRaw) === formatWeightSize(currentValue);
+
+    if (unchanged) {
+      restore();
+      return;
+    }
+
+    btn.classList.remove('is-editing');
+    btn.classList.add('is-loading');
+    btn.textContent = '…';
+    try {
+      await patchSavedOrderItemField(orderId, itemIndex, field, nextRaw);
+      showStatus(field === 'quantity' ? 'Đã cập nhật số lượng' : 'Đã cập nhật cân nặng', 'success', 1800);
+      handlePancakeChatDbSaveCheck(true, { forceRefresh: true });
+      const searchInput = document.getElementById('shopvd-phone-search-input');
+      const searchPhone = normalizeDraftPhone(sanitizePhoneDigits(searchInput?.value || ''));
+      if (searchPhone && isValidDraftPhone(searchPhone)) {
+        lookupOrderStatusByPhoneSearch(searchPhone, { force: true });
+      }
+    } catch (err) {
+      restore();
+      showStatus(`⚠️ ${err?.message || 'Không cập nhật được'}`, 'error', 2600);
+    }
+  };
+
+  const cancel = () => {
+    if (done) return;
+    done = true;
+    restore();
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      commit();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      cancel();
+    }
+  });
+  input.addEventListener('blur', () => {
+    commit();
+  });
+}
+
+function setupStripInlineProductEdit() {
+  if (window.__shopvdStripEditBound) return;
+  window.__shopvdStripEditBound = true;
+  // document-level: sidebar có thể bị remove/create lại khi đổi URL
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('.shopvd-strip-edit');
+    if (!btn || !btn.closest?.('#shopvd-sidebar')) return;
+    if (btn.classList.contains('is-editing') || btn.classList.contains('is-loading')) return;
+    if (e.target.closest?.('.shopvd-strip-edit-input')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    beginStripInlineEdit(btn);
+  }, true);
+}
+
 function setupDbSaveStatusCard() {
   document.getElementById('shopvd-ship-status-refresh')?.addEventListener('click', () => {
     handlePancakeChatDbSaveCheck(true, { forceRefresh: true });
@@ -5189,6 +5467,7 @@ function setupDbSaveStatusCard() {
     cancelEditSavedOrder();
   });
 
+  setupStripInlineProductEdit();
   setupPhoneOrderSearch();
 
   renderDbSaveStatusCard({ state: 'idle' });
@@ -5280,10 +5559,10 @@ function renderPhoneSearchResultPanel(payload = {}) {
       const shipTime = shopvdResolveShipTime(o);
       const timeLabel = shopvdShipTimeLabel(o);
       const amount = o.total_amount ? shopvdFormatStatusMoney(o.total_amount) : '';
-      const preview = o.products_preview || '';
       const provinceHtml = shopvdShipProvinceHtml(o);
       const returnBadge = shopvdReturningCustomerBadgeHtml(count);
       const canEdit = isShopvdOrderEditable(o.status) && Number(o.id) > 0;
+      const productsHtml = shopvdShipProductsHtml(o, { editable: canEdit });
       const editBtn = canEdit
         ? `<button type="button" class="shopvd-edit-order-btn" data-order-id="${Number(o.id)}" title="Sửa đơn ${escapeHtml(o.order_id || '')}" aria-label="Sửa đơn hàng">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -5305,10 +5584,10 @@ function renderPhoneSearchResultPanel(payload = {}) {
         </div>
         <div class="shopvd-ship-detail">
           ${provinceHtml}
-          ${provinceHtml && (amount || preview) ? '<span class="shopvd-ship-sep">·</span>' : ''}
+          ${provinceHtml && (amount || productsHtml) ? '<span class="shopvd-ship-sep">·</span>' : ''}
           ${amount ? `<span class="shopvd-ship-amount">${amount}</span>` : ''}
-          ${amount && preview ? '<span class="shopvd-ship-sep">·</span>' : ''}
-          ${preview ? `<span class="shopvd-ship-preview">${preview}</span>` : ''}
+          ${amount && productsHtml ? '<span class="shopvd-ship-sep">·</span>' : ''}
+          ${productsHtml}
         </div>`;
       return;
     }
@@ -12767,8 +13046,6 @@ function init() {
     loadShippingFees();
   } else if (existing) {
     existing.dataset.shopvdVersion = SHOPVD_EXT_VERSION;
-    const sub = existing.querySelector('.shopvd-top-sub');
-    if (sub) sub.textContent = `Tạo đơn · v${SHOPVD_EXT_VERSION}`;
     applySidebarWidth(shopvdSidebarWidthPx, { persist: false });
   }
 

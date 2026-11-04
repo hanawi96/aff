@@ -576,17 +576,29 @@ function formatShippingPreviewSize(value) {
 function formatShippingStatusOrder(row) {
     if (!row) return null;
     let preview = '';
+    /** @type {{ i: number, name: string, size: string, quantity: number }[]} */
+    let productsBrief = [];
+    let productsBriefExtra = 0;
     try {
         let items = row.products;
         if (typeof items === 'string') items = JSON.parse(items);
         if (Array.isArray(items)) {
-            preview = items.slice(0, 2).map((p) => {
+            productsBrief = items.slice(0, 2).map((p, idx) => {
                 const name = p?.name || p?.product_name || 'SP';
                 const qty = parseInt(p?.quantity, 10) || 1;
                 const size = formatShippingPreviewSize(p?.size ?? p?.weight);
-                return size ? `${name} · ${size} ×${qty}` : `${name} ×${qty}`;
-            }).join(', ');
-            if (items.length > 2) preview += ` (+${items.length - 2})`;
+                return {
+                    i: idx,
+                    name: String(name),
+                    size: size || '',
+                    quantity: qty,
+                };
+            });
+            productsBriefExtra = Math.max(0, items.length - 2);
+            preview = productsBrief.map((p) => (
+                p.size ? `${p.name} · ${p.size} ×${p.quantity}` : `${p.name} ×${p.quantity}`
+            )).join(', ');
+            if (productsBriefExtra > 0) preview += ` (+${productsBriefExtra})`;
         }
     } catch (_) { /* ignore */ }
     return {
@@ -600,7 +612,9 @@ function formatShippingStatusOrder(row) {
         total_amount: row.total_amount,
         is_priority: Number(row.is_priority) === 1 ? 1 : 0,
         province_name: row.province_name || '',
-        products_preview: preview
+        products_preview: preview,
+        products_brief: productsBrief,
+        products_brief_extra: productsBriefExtra,
     };
 }
 
