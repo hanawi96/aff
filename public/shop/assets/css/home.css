@@ -1716,6 +1716,14 @@ body {
     margin-right: 0.35rem;
     color: #9ca3af;
     font-weight: 600;
+    font-size: 0.92em;
+}
+
+.combo-deal-price {
+    font-size: 1.22em;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: #c2410c;
 }
 
 .combo-save {
@@ -1762,10 +1770,20 @@ body {
 }
 
 .combo-swipe {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
     margin: 0.15rem 0 0;
     text-align: center;
     font-size: 0.75rem;
     color: #a08d84;
+}
+
+.combo-swipe svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    flex-shrink: 0;
 }
 
 .product-combo-hint {

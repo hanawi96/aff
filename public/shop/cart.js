@@ -282,32 +282,17 @@ const cart = {
         }, 300);
     },
     
-    // Setup auto-clear for address fields
+    // Setup auto-clear for address street (HierarchicalAddressSelector)
     setupAddressAutoClear: () => {
-        // Wait for address selector to be ready
         setTimeout(() => {
-            const provinceSelect = document.getElementById('provinceSelect');
-            const wardSelect = document.getElementById('wardSelect');
             const streetInput = document.getElementById('streetInput');
-            
-            if (provinceSelect) {
-                provinceSelect.addEventListener('change', () => {
-                    errorDisplayService.clearError('provinceSelect');
-                });
-            }
-            
-            if (wardSelect) {
-                wardSelect.addEventListener('change', () => {
-                    errorDisplayService.clearError('wardSelect');
-                });
-            }
-            
-            if (streetInput) {
+            if (streetInput && !streetInput.dataset.autoClearBound) {
+                streetInput.dataset.autoClearBound = '1';
                 streetInput.addEventListener('input', () => {
                     errorDisplayService.clearError('streetInput');
                 });
             }
-        }, 500);
+        }, 800);
     },
 
     // Load available discounts from API
@@ -383,26 +368,26 @@ const cart = {
         if (phoneInput && !phoneInput.value) phoneInput.value = '0987654321';
         if (nameInput && !nameInput.value) nameInput.value = 'Nguyễn Văn A';
         
-        // Fill address if selector is ready
-        if (!window.cartAddressSelector) return;
-        
-        await waitFor(1000);
-        
-        const provinceSelect = document.getElementById('cartProvince');
-        if (provinceSelect && !provinceSelect.value) {
-            provinceSelect.value = '01';
-            provinceSelect.dispatchEvent(new Event('change'));
-            
-            await waitFor(500);
-            
-            const wardSelect = document.getElementById('cartWard');
-            if (wardSelect && wardSelect.options.length > 1) {
-                wardSelect.selectedIndex = 1;
+        // Fill address via HierarchicalAddressSelector (cùng Quickbuy)
+        if (!window.cartAddressSelector && typeof window.ensureCartAddressSelector === 'function') {
+            try {
+                await window.ensureCartAddressSelector();
+            } catch (_) {
+                return;
             }
-            
-            const streetInput = document.getElementById('cartStreet');
-            if (streetInput && !streetInput.value) {
-                streetInput.value = 'Số 123, Ngõ 456';
+        }
+        if (!window.cartAddressSelector) return;
+
+        await waitFor(300);
+
+        if (typeof window.cartAddressSelector.hydrateFromCodes === 'function') {
+            const data = window.cartAddressSelector.getAddressData?.() || {};
+            if (!data.provinceCode) {
+                window.cartAddressSelector.hydrateFromCodes({
+                    provinceCode: '01',
+                    wardCode: '00004',
+                    street: 'Số 123, Ngõ 456'
+                });
             }
         }
     },
@@ -1042,39 +1027,42 @@ const cart = {
         const phone = formData.cartPhone;
         const name = formData.cartName;
         
-        // Validate address
+        // Validate address (HierarchicalAddressSelector — dùng chung Quickbuy)
+        if (!window.cartAddressSelector) {
+            if (typeof window.ensureCartAddressSelector === 'function') {
+                try {
+                    await window.ensureCartAddressSelector();
+                } catch (_) { /* toast below */ }
+            }
+        }
         if (!window.cartAddressSelector) {
             utils.showToast('Đang tải địa chỉ, vui lòng thử lại', 'error');
             return;
         }
-        
-        const addressData = window.cartAddressSelector.getAddress();
-        if (!addressData.isComplete) {
-            utils.showToast('Vui lòng chọn đầy đủ địa chỉ giao hàng', 'error');
-            
-            // Determine which field has error and show inline message
-            if (!addressData.provinceCode) {
-                errorDisplayService.showError('provinceSelect', 'Vui lòng chọn Tỉnh/Thành phố');
-            } else if (!addressData.wardCode) {
-                errorDisplayService.showError('wardSelect', 'Vui lòng chọn Phường/Xã');
+
+        const addressValidation = window.cartAddressSelector.validate
+            ? window.cartAddressSelector.validate()
+            : { isValid: false, message: 'Vui lòng chọn địa chỉ giao hàng' };
+        const addressData = window.cartAddressSelector.getAddress
+            ? window.cartAddressSelector.getAddress()
+            : window.cartAddressSelector.getAddressData();
+
+        if (!addressValidation.isValid) {
+            utils.showToast(addressValidation.message || 'Vui lòng chọn đầy đủ địa chỉ giao hàng', 'error');
+            if (!addressData.provinceCode || !addressData.wardCode) {
+                document.getElementById('addressSelectorDisplay')?.click();
             } else if (!addressData.street) {
+                document.getElementById('streetInput')?.focus();
                 errorDisplayService.showError('streetInput', 'Vui lòng nhập địa chỉ cụ thể');
             }
-            
-            // Scroll to address section
-            document.getElementById('customerInfoSection').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center' 
+            document.getElementById('customerInfoSection')?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
             });
             return;
         }
-        
-        // Clear any address errors if validation passed
-        errorDisplayService.clearError('provinceSelect');
-        errorDisplayService.clearError('wardSelect');
+
         errorDisplayService.clearError('streetInput');
-        
-        // Get address data (already have it from validation above)
         
         // Prepare cart items for API (products array)
         const cartItems = state.cart.map(item => ({

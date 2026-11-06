@@ -135,7 +135,7 @@ export class QuickCheckout {
     async initializeAddressSelector() {
         if (!this.addressSelector) {
             // Use HierarchicalAddressSelector instead of old AddressSelector
-            const { HierarchicalAddressSelector } = await import('../../components/hierarchical-address-selector.js?v=2025c');
+            const { HierarchicalAddressSelector } = await import('../../components/hierarchical-address-selector.js?v=2025d');
             this.addressSelector = new HierarchicalAddressSelector('quickCheckoutAddressSelectorContainer');
             await this.addressSelector.init();
         } else {

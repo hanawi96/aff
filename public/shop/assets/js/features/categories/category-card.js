@@ -24,7 +24,12 @@ export function createAllCategoriesChip() {
 
 export function createCategoryCard(category, index = 0) {
     const popularBadge = category.is_featured === 1 || category.is_featured === true
-        ? '<span class="category-chip-badge">Phổ biến</span>'
+        ? `<span class="category-chip-badge" aria-label="Phổ biến">
+                <svg class="category-chip-badge-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 1.75c.28 0 .52.17.62.43l1.48 3.72a1.5 1.5 0 0 0 .9.9l3.72 1.48c.26.1.43.34.43.62s-.17.52-.43.62l-3.72 1.48a1.5 1.5 0 0 0-.9.9l-1.48 3.72a.67.67 0 0 1-1.24 0l-1.48-3.72a1.5 1.5 0 0 0-.9-.9L3.9 9.52A.67.67 0 0 1 3.9 8.28l3.72-1.48a1.5 1.5 0 0 0 .9-.9L10 2.18c.1-.26.34-.43.62-.43Z"/>
+                </svg>
+                <span class="category-chip-badge-text">Phổ biến</span>
+           </span>`
         : '';
 
     const fromDb = category.image_url && String(category.image_url).trim()

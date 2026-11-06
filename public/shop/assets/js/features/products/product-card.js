@@ -5,7 +5,7 @@
 import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
 import { CONFIG, productGridUrl } from '../../shared/constants/config.js?v=9';
-import { comboSavingsText, isComboAnchor } from '../combo/combo-shelf.js?v=5';
+import { comboSavingsText, isComboAnchor } from '../combo/combo-shelf.js?v=7';
 
 /**
  * Create product card HTML

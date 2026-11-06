@@ -671,6 +671,12 @@ export class HierarchicalAddressSelector {
         };
     }
 
+    /** Alias cho cart / API cũ — kèm isComplete */
+    getAddress() {
+        const data = this.getAddressData();
+        return { ...data, isComplete: this.validate().isValid };
+    }
+
     validate() {
         if (!this.provinceCode) return { isValid: false, message: 'Vui lòng chọn Tỉnh/Thành phố' };
         if (!this.wardCode) return { isValid: false, message: 'Vui lòng chọn Phường/Xã' };

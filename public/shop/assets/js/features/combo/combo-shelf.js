@@ -163,7 +163,7 @@ function renderCard(product, rank, bundles) {
                 <div><span>Vòng</span><strong>${formatPrice(product.price)}</strong></div>
                 <div>
                     <span>Bó dâu</span>
-                    <strong>${save > 0 ? `<s>${formatPrice(listPrice)}</s>` : ''}${formatPrice(save > 0 ? COMBO_BUNDLE_PRICE : listPrice)}</strong>
+                    <strong>${save > 0 ? `<s>${formatPrice(listPrice)}</s>` : ''}<span class="combo-deal-price">${formatPrice(save > 0 ? COMBO_BUNDLE_PRICE : listPrice)}</span></strong>
                 </div>
             </div>
             ${save > 0 ? `<p class="combo-save">Rẻ hơn ${formatPrice(save)}</p>` : ''}
@@ -303,7 +303,7 @@ export function renderComboShelf(products) {
         <div class="combo-track">
             ${top.map(({ product, rank }) => renderCard(product, rank, bundles)).join('')}
         </div>
-        <p class="combo-swipe">Vuốt ngang để xem mẫu khác</p>
+        <p class="combo-swipe">Vuốt ngang để xem mẫu khác<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" /></svg></p>
     `;
     bindShelf(root);
 }

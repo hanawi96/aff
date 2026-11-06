@@ -919,16 +919,55 @@ body {
     position: absolute;
     top: -13px;
     left: 50%;
-    transform: translateX(-50%);
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 14px;
+    transform: translateX(-50%) rotate(-3deg);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22rem;
+    padding: 3px 9px 3px 7px;
+    border-radius: 999px 999px 999px 4px;
+    font-size: 11px;
     font-weight: 700;
     line-height: 1;
-    color: #92400e;
-    background: #fde68a;
-    border: 1px solid #f59e0b;
+    letter-spacing: 0.04em;
+    color: #fffaf5;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.28) 0%, transparent 42%),
+        linear-gradient(135deg, #f4a261 0%, #e76f51 55%, #d35400 100%);
+    border: 1px solid rgba(255, 236, 220, 0.55);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.35) inset,
+        0 3px 10px rgba(231, 111, 81, 0.35);
     pointer-events: none;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+.category-chip-badge-icon {
+    width: 0.7rem;
+    height: 0.7rem;
+    flex-shrink: 0;
+    opacity: 0.95;
+    filter: drop-shadow(0 0 2px rgba(255, 248, 230, 0.7));
+    animation: category-badge-spark 2.4s ease-in-out infinite;
+}
+
+.category-chip-badge-text {
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(120, 40, 10, 0.18);
+}
+
+@keyframes category-badge-spark {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.85; }
+    50% { transform: scale(1.18) rotate(18deg); opacity: 1; }
+}
+
+.category-chip:hover .category-chip-badge,
+.category-chip.active .category-chip-badge {
+    transform: translateX(-50%) rotate(-1deg) translateY(-1px);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.4) inset,
+        0 4px 14px rgba(211, 84, 0, 0.42);
 }
 
 /* Mobile adjustments for category chips */
@@ -953,10 +992,15 @@ body {
     }
 
     .category-chip-badge {
-        font-size: 12px;
+        font-size: 10px;
         top: -11px;
-        left: 50%;
-        transform: translateX(-50%);
+        padding: 2px 8px 2px 6px;
+        transform: translateX(-50%) rotate(-3deg);
+    }
+
+    .category-chip-badge-icon {
+        width: 0.62rem;
+        height: 0.62rem;
     }
 }
 
@@ -4883,7 +4927,7 @@ body {
     background: #faf6f3;
     border-radius: 8px;
     padding: 2px;
-    border: 1.2px solid #f0e4dc;
+    border: none;
 }
 
 .cross-sell-qty-btn-compact {
