@@ -5,6 +5,7 @@
 import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
 import { CONFIG, productGridUrl } from '../../shared/constants/config.js?v=9';
+import { comboSavingsText, isComboAnchor } from '../combo/combo-shelf.js?v=2';
 
 /**
  * Create product card HTML
@@ -128,6 +129,12 @@ export function createProductCard(product, bestSellerRank = 0, cardIndex = 0) {
                         </div>
                     ` : ''}
                 </div>
+                ${!isOutOfStock && isComboAnchor(product.id) && comboSavingsText() ? `
+                    <button type="button" class="product-combo-hint" onclick="window.comboShelf&&window.comboShelf.focusCard(${product.id})">
+                        <span>Thêm bó dâu để phòng</span>
+                        <strong>${escapeHtml(comboSavingsText())}</strong>
+                    </button>
+                ` : ''}
                 <div class="product-button-actions">
                     <button class="bundle-btn-primary" ${isOutOfStock ? 'disabled aria-disabled="true"' : ''} onclick="window.productActions.buyNow(${product.id})" ${isOutOfStock ? 'title="Hết hàng"' : ''}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" /></svg>

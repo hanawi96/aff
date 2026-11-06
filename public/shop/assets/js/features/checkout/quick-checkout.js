@@ -10,6 +10,7 @@ import { apiService } from '../../shared/services/api.service.js';
 import { AddressSelector } from '../../components/address-selector.js';
 import { discountService } from '../../shared/services/discount.service.js';
 import { bundleProductsService } from '../../shared/services/bundle-products.service.js';
+import { COMBO_BUNDLE_PRICE } from '../combo/combo-shelf.js?v=2';
 import { FormValidator } from '../../shared/utils/form-validator.js';
 import { checkoutValidationRules, updateValidationRule } from '../../shared/constants/validation-rules.js';
 import { errorDisplayService } from '../../shared/services/error-display.service.js';
@@ -86,7 +87,10 @@ export class QuickCheckout {
     async open(product) {
         this.product = product;
         this.quantity = 1;
-        this.selectedCrossSells = [];
+        this.comboBundleId = Number(product?.comboBundleId) || null;
+        this.selectedCrossSells = this.comboBundleId
+            ? [{ id: this.comboBundleId, quantity: 1 }]
+            : [];
         this.appliedDiscount = null;
         this.discountAmount = 0;
         
@@ -110,6 +114,10 @@ export class QuickCheckout {
             this.loadCrossSellProducts().then(() => {
                 // Re-render cross-sell section after loaded
                 this.renderCrossSellProducts();
+                if (this.comboBundleId) {
+                    this.updateSummary();
+                    this.updateOrderDetails();
+                }
             }),
             this.initializeAddressSelector()
         ]).catch(error => {
@@ -248,13 +256,16 @@ export class QuickCheckout {
         
         // Clean URL (remove ?buy parameter)
         const url = new URL(window.location);
-        if (url.searchParams.has('buy')) {
+        if (url.searchParams.has('buy') || url.searchParams.has('combo')) {
             url.searchParams.delete('buy');
-            window.history.pushState({}, '', url.pathname + (url.search || ''));
+            url.searchParams.delete('combo');
+            const search = url.searchParams.toString();
+            window.history.pushState({}, '', url.pathname + (search ? `?${search}` : ''));
         }
         
         this.product = null;
         this.quantity = 1;
+        this.comboBundleId = null;
         this.selectedCrossSells = [];
     }
     
@@ -262,12 +273,21 @@ export class QuickCheckout {
      * Load cross-sell products - Using shared service
      */
     async loadCrossSellProducts() {
+        const comboId = this.comboBundleId;
         try {
-            this.crossSellProducts = await bundleProductsService.loadBundleProducts();
+            const list = await bundleProductsService.loadBundleProducts();
+            if (comboId !== this.comboBundleId) return;
+            this.crossSellProducts = list.map((product) => {
+                const listPrice = Number(product.price) || 0;
+                if (comboId && Number(product.id) === Number(comboId) && COMBO_BUNDLE_PRICE < listPrice) {
+                    return { ...product, price: COMBO_BUNDLE_PRICE, listPrice };
+                }
+                return product;
+            });
             console.log('✅ [QUICK-CHECKOUT] Loaded', this.crossSellProducts.length, 'cross-sell products');
         } catch (error) {
             console.error('❌ [QUICK-CHECKOUT] Error loading cross-sell products:', error);
-            this.crossSellProducts = [];
+            if (comboId === this.comboBundleId) this.crossSellProducts = [];
         }
     }
     
@@ -371,10 +391,13 @@ export class QuickCheckout {
             return;
         }
         
+        const comboNote = this.comboBundleId
+            ? 'Bó dâu combo đã được chọn, giá nhẹ hơn'
+            : 'Thêm để được miễn phí ship';
         let html = '<div class="cross-sell-header">';
         html += '<div class="cross-sell-header-text">';
         html += '<span class="cross-sell-title">Mua kèm</span>';
-        html += '<span class="cross-sell-subtitle">Thêm để được miễn phí ship</span>';
+        html += '<span class="cross-sell-subtitle">' + comboNote + '</span>';
         html += '</div>';
         html += '<span class="cross-sell-freeship-chip">Freeship</span>';
         html += '</div>';
@@ -392,7 +415,12 @@ export class QuickCheckout {
             
             html += '<div class="cross-sell-info">';
             html += '<div class="cross-sell-name">' + escapeHtml(product.name) + '</div>';
-            html += '<div class="cross-sell-price">' + formatPrice(product.price) + '</div>';
+            html += '<div class="cross-sell-price">' + formatPrice(product.price);
+            if (product.listPrice && product.listPrice > product.price) {
+                html += '<span class="cross-sell-price-old">' + formatPrice(product.listPrice) + '</span>';
+                html += '<span class="cross-sell-combo-tag">Giá combo</span>';
+            }
+            html += '</div>';
             html += '</div>';
             
             html += '<div class="cross-sell-actions">';

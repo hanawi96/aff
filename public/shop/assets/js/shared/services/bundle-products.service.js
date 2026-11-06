@@ -98,6 +98,19 @@ class BundleProductsService {
     getBundleProductIds() {
         return this.HARDCODED_PRODUCTS.map(p => p.id);
     }
+
+    /**
+     * Bản đang bán, đọc đồng bộ. Không sửa mảng gốc.
+     */
+    getBundleProductsSync() {
+        return this.HARDCODED_PRODUCTS.filter((product) => {
+            if (product.is_active === 0 || product.is_active === false) return false;
+            const qty = product.stock_quantity;
+            if (qty === undefined || qty === null || qty === '') return true;
+            const n = Number(qty);
+            return !Number.isFinite(n) || n > 0;
+        });
+    }
     
     /**
      * Update hardcoded product data (for admin/testing purposes)

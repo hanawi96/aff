@@ -46,14 +46,10 @@ function clampSidebarWidth(px) {
   return Math.min(SHOPVD_SIDEBAR_WIDTH_MAX, Math.max(SHOPVD_SIDEBAR_WIDTH_MIN, n));
 }
 
-function applySidebarWidth(px, { persist = false, syncInput = true } = {}) {
+function applySidebarWidth(px, { persist = false } = {}) {
   const width = clampSidebarWidth(px);
   shopvdSidebarWidthPx = width;
   document.documentElement.style.setProperty('--shopvd-sidebar-width', `${width}px`);
-  if (syncInput) {
-    const input = document.getElementById('shopvd-sidebar-width-input');
-    if (input && input.value !== String(width)) input.value = String(width);
-  }
   syncZaloChatLayoutOffset();
   if (persist) {
     try {
@@ -74,25 +70,38 @@ async function loadSidebarWidthFromStorage() {
   applySidebarWidth(getDefaultSidebarWidth(), { persist: false });
 }
 
+/** Kéo mép trái đổi rộng; double-click về mặc định theo site */
 function bindSidebarWidthControl() {
-  const input = document.getElementById('shopvd-sidebar-width-input');
-  if (!input || input.dataset.shopvdBound === '1') return;
-  input.dataset.shopvdBound = '1';
-  input.value = String(shopvdSidebarWidthPx);
-  input.min = String(SHOPVD_SIDEBAR_WIDTH_MIN);
-  input.max = String(SHOPVD_SIDEBAR_WIDTH_MAX);
+  const handle = document.getElementById('shopvd-sidebar-resize');
+  if (!handle || handle.dataset.shopvdBound === '1') return;
+  handle.dataset.shopvdBound = '1';
 
-  const commit = () => {
-    const width = applySidebarWidth(input.value, { persist: true });
-    input.value = String(width);
-  };
-
-  input.addEventListener('change', commit);
-  input.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
+  handle.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
     e.preventDefault();
-    commit();
-    input.blur();
+    handle.setPointerCapture(e.pointerId);
+    document.documentElement.classList.add('shopvd-sidebar-resizing');
+
+    const onMove = (ev) => {
+      applySidebarWidth(window.innerWidth - ev.clientX, { persist: false });
+    };
+    const onUp = (ev) => {
+      try { handle.releasePointerCapture(ev.pointerId); } catch (_) { /* ignore */ }
+      document.documentElement.classList.remove('shopvd-sidebar-resizing');
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointercancel', onUp);
+      applySidebarWidth(shopvdSidebarWidthPx, { persist: true });
+    };
+
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
+  });
+
+  handle.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    applySidebarWidth(getDefaultSidebarWidth(), { persist: true });
   });
 }
 
@@ -279,6 +288,14 @@ function createSidebar() {
   sidebar.id = 'shopvd-sidebar';
   sidebar.dataset.shopvdVersion = SHOPVD_EXT_VERSION;
   sidebar.innerHTML = `
+    <div
+      id="shopvd-sidebar-resize"
+      class="shopvd-sidebar-resize"
+      title="Kéo để đổi chiều rộng · Double-click về mặc định"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Kéo đổi chiều rộng sidebar"
+    ></div>
     <div class="shopvd-top-sticky">
       <div class="shopvd-top-bar">
         <div class="shopvd-phone-search" id="shopvd-phone-search">
@@ -311,19 +328,6 @@ function createSidebar() {
           <button type="button" id="shopvd-ship-status-refresh" class="shopvd-ship-refresh hidden" title="Kiểm tra lại đã lưu DB" aria-label="Kiểm tra lại đã lưu DB">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
           </button>
-          <label class="shopvd-width-control" title="Chiều rộng sidebar (px) — Enter để lưu">
-            <input
-              type="number"
-              id="shopvd-sidebar-width-input"
-              class="shopvd-width-input"
-              min="360"
-              max="920"
-              step="10"
-              inputmode="numeric"
-              aria-label="Chiều rộng sidebar px"
-            >
-            <span class="shopvd-width-suffix">px</span>
-          </label>
           <button id="shopvd-toggle" class="shopvd-btn-toggle" title="Thu gọn sidebar" aria-label="Thu gọn sidebar">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polyline points="15 18 9 12 15 6"/>
@@ -3677,6 +3681,19 @@ function shopvdFormatStatusDate(ts) {
   if (!Number.isFinite(n) || n <= 0) return '';
   try {
     const d = new Date(n);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mo}`;
+  } catch (_) {
+    return '';
+  }
+}
+
+function shopvdFormatStatusDateTimeTitle(ts) {
+  const n = Number(ts);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  try {
+    const d = new Date(n);
     const hh = String(d.getHours()).padStart(2, '0');
     const mm = String(d.getMinutes()).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
@@ -3713,17 +3730,19 @@ function shopvdStatusTone(status) {
   return SHOPVD_STATUS_TONE[slug] || 'neutral';
 }
 
-function shopvdResolveShipTime(order) {
-  if (!order) return '';
+function shopvdResolveShipTimeUnix(order) {
+  if (!order) return 0;
   const slug = shopvdNormalizeStatusSlug(order.status);
-  if (slug === 'send_later' && order.planned_send_at_unix) {
-    return shopvdFormatStatusDate(order.planned_send_at_unix);
-  }
+  if (slug === 'send_later' && order.planned_send_at_unix) return Number(order.planned_send_at_unix) || 0;
   if (['shipped', 'in_transit', 'delivered'].includes(slug) && order.shipped_at_unix) {
-    return shopvdFormatStatusDate(order.shipped_at_unix);
+    return Number(order.shipped_at_unix) || 0;
   }
-  if (order.shipped_at_unix) return shopvdFormatStatusDate(order.shipped_at_unix);
-  return shopvdFormatStatusDate(order.created_at_unix);
+  if (order.shipped_at_unix) return Number(order.shipped_at_unix) || 0;
+  return Number(order.created_at_unix) || 0;
+}
+
+function shopvdResolveShipTime(order) {
+  return shopvdFormatStatusDate(shopvdResolveShipTimeUnix(order));
 }
 
 function shopvdShipTimeLabel(order) {
@@ -3872,8 +3891,10 @@ function renderDbSaveStatusCard(payload = {}) {
       const tone = shopvdStatusTone(o.status);
       strip.classList.add('is-saved', `is-${tone}`);
       const statusLabel = shopvdStatusLabel(o.status);
-      const shipTime = shopvdResolveShipTime(o);
+      const shipTimeUnix = shopvdResolveShipTimeUnix(o);
+      const shipTime = shopvdFormatStatusDate(shipTimeUnix);
       const timeLabel = shopvdShipTimeLabel(o);
+      const timeTitle = [timeLabel, shopvdFormatStatusDateTimeTitle(shipTimeUnix)].filter(Boolean).join(' ');
       const amount = o.total_amount ? shopvdFormatStatusMoney(o.total_amount) : '';
       const provinceHtml = shopvdShipProvinceHtml(o);
       const returnBadge = shopvdReturningCustomerBadgeHtml(count);
@@ -3896,7 +3917,7 @@ function renderDbSaveStatusCard(payload = {}) {
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
           ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
           ${returnBadge}
-          ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
+          ${shipTime ? `<span class="shopvd-ship-time" title="${escapeHtml(timeTitle)}"><strong>${shipTime}</strong></span>` : ''}
           <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${duplicateBtn}${deleteBtn}</span>
         </div>
         <div class="shopvd-ship-detail">
@@ -5556,8 +5577,10 @@ function renderPhoneSearchResultPanel(payload = {}) {
     if (o) {
       const tone = shopvdStatusTone(o.status);
       const statusLabel = shopvdStatusLabel(o.status);
-      const shipTime = shopvdResolveShipTime(o);
+      const shipTimeUnix = shopvdResolveShipTimeUnix(o);
+      const shipTime = shopvdFormatStatusDate(shipTimeUnix);
       const timeLabel = shopvdShipTimeLabel(o);
+      const timeTitle = [timeLabel, shopvdFormatStatusDateTimeTitle(shipTimeUnix)].filter(Boolean).join(' ');
       const amount = o.total_amount ? shopvdFormatStatusMoney(o.total_amount) : '';
       const provinceHtml = shopvdShipProvinceHtml(o);
       const returnBadge = shopvdReturningCustomerBadgeHtml(count);
@@ -5579,7 +5602,7 @@ function renderPhoneSearchResultPanel(payload = {}) {
           <span class="shopvd-ship-badge is-${tone}">${statusLabel}</span>
           ${phone ? `<span class="shopvd-ship-badge is-phone">${escapeHtml(phone)}</span>` : ''}
           ${returnBadge}
-          ${shipTime ? `<span class="shopvd-ship-time"><span class="shopvd-ship-time-label">${timeLabel}</span><strong>${shipTime}</strong></span>` : ''}
+          ${shipTime ? `<span class="shopvd-ship-time" title="${escapeHtml(timeTitle)}"><strong>${shipTime}</strong></span>` : ''}
           <span class="shopvd-ship-actions">${priorityBtn}${editBtn}${duplicateBtn}${deleteBtn}</span>
         </div>
         <div class="shopvd-ship-detail">

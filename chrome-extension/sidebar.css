@@ -356,52 +356,32 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   flex-shrink: 0;
 }
 
-/* Chiều rộng sidebar — nhập px một lần, lưu lâu dài */
-.shopvd-width-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 26px;
-  padding: 0 6px 0 4px;
-  border: 1px solid #e2e8f0;
-  border-radius: 7px;
-  background: #fff;
-  color: #64748b;
-  cursor: text;
-}
-
-.shopvd-width-control:focus-within {
-  border-color: #a5b4fc;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-  color: #475569;
-}
-
-.shopvd-width-input {
-  width: 3.1em;
+/* Kéo mép trái đổi chiều rộng sidebar */
+.shopvd-sidebar-resize {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
   height: 100%;
-  border: none;
-  outline: none;
+  z-index: 30;
+  cursor: col-resize;
+  touch-action: none;
   background: transparent;
-  padding: 0;
-  font-size: 11.5px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #0f172a;
-  text-align: right;
-  -moz-appearance: textfield;
 }
 
-.shopvd-width-input::-webkit-outer-spin-button,
-.shopvd-width-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+.shopvd-sidebar-resize:hover,
+html.shopvd-sidebar-resizing .shopvd-sidebar-resize {
+  background: linear-gradient(to right, #4f46e5 0 2px, transparent 2px);
 }
 
-.shopvd-width-suffix {
-  font-size: 10px;
-  font-weight: 600;
-  color: #94a3b8;
-  user-select: none;
+html.shopvd-sidebar-resizing,
+html.shopvd-sidebar-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+html.shopvd-sidebar-resizing #chatViewContainer {
+  transition: none !important;
 }
 
 .shopvd-ship-refresh {
@@ -1267,6 +1247,7 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
 
 /* Sticky footer - Tạo đơn */
 .shopvd-sticky-footer {
+  --shopvd-footer-pad-x: 20px;
   position: sticky;
   bottom: 0;
   left: 0;
@@ -1275,16 +1256,19 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  height: 91.33px;
-  min-height: 91.33px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  height: auto;
+  min-height: 72px;
   box-sizing: border-box;
-  padding: 0 20px;
+  padding: 12px var(--shopvd-footer-pad-x);
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(12px);
   border-top: 1px solid #e2e8f0;
   box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.08);
   z-index: 10;
+  container-type: inline-size;
+  container-name: shopvd-footer;
 }
 
 .shopvd-sticky-footer.is-validation-shake {
@@ -1367,16 +1351,19 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 0 0 auto;
   min-width: 0;
+  max-width: 100%;
 }
 
 .shopvd-sticky-footer-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   max-width: 100%;
 }
 
@@ -1467,6 +1454,30 @@ html.shopvd-zalo-page #shopvd-sidebar .shopvd-top-bar {
   color: #10b981;
   letter-spacing: -0.5px;
   line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sidebar hẹp: tổng đơn hàng trên, nút chữ đầy đủ hàng dưới */
+@container shopvd-footer (max-width: 640px) {
+  .shopvd-sticky-footer-left {
+    flex: 1 1 100%;
+  }
+
+  .shopvd-sticky-footer-actions {
+    flex: 1 1 100%;
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+  .shopvd-sticky-copy-btn,
+  .shopvd-sticky-combo-btn,
+  .shopvd-sticky-create-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 }
 
 .shopvd-sticky-create-btn {

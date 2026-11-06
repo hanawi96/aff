@@ -4,13 +4,14 @@
 
 import { apiService } from '../shared/services/api.service.js?v=5';
 import { cartService } from '../shared/services/cart.service.js';
-import { ProductGrid, ProductActions } from '../features/products/index.js?v=20';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=22';
 import { renderCategories, CategoryActions } from '../features/categories/index.js?v=7';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=2';
-import { QuickCheckout } from '../features/checkout/index.js?v=2025c';
+import { QuickCheckout } from '../features/checkout/index.js?v=2025e';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
 import { bundleProductsService } from '../shared/services/bundle-products.service.js';
+import { renderComboShelf } from '../features/combo/combo-shelf.js?v=2';
 
 /**
  * Home Page Manager
@@ -152,6 +153,7 @@ export class HomePage {
             const urlParams = new URLSearchParams(window.location.search);
             const checkoutParam = urlParams.get('checkout');
             const buyParam = urlParams.get('buy');
+            const comboParam = urlParams.get('combo');
             const searchParam = urlParams.get('search');
             const filterParam = urlParams.get('filter');
             const categoryParam = urlParams.get('category');
@@ -231,7 +233,7 @@ export class HomePage {
             } else if (buyParam) {
                 // Direct buy link
                 setTimeout(() => {
-                    this.openQuickBuyFromURL(buyParam);
+                    this.openQuickBuyFromURL(buyParam, comboParam);
                 }, 500);
             } else if (searchParam) {
                 // Search from URL (higher priority than category)
@@ -713,6 +715,7 @@ export class HomePage {
         if (this.productActions && productsToRender.length) {
             this.productActions.setProducts(productsToRender);
         }
+        renderComboShelf(productsToRender);
     }
     
     /**
@@ -1603,7 +1606,7 @@ export class HomePage {
     /**
      * Open quick buy modal from URL parameter
      */
-    async openQuickBuyFromURL(productId) {
+    async openQuickBuyFromURL(productId, comboBundleId) {
         try {
             const id = parseInt(productId);
             if (isNaN(id)) {
@@ -1641,6 +1644,7 @@ export class HomePage {
             if (window.quickCheckout) {
                 const qty = this.getStockQty(product);
                 const maxQuantity = qty === null ? 99 : Math.max(1, qty);
+                const comboId = Number(comboBundleId);
                 window.quickCheckout.open({
                     id: product.id,
                     name: product.name,
@@ -1649,7 +1653,8 @@ export class HomePage {
                     image: product.image_url || product.image,
                     maxQuantity,
                     isFlashSale: false,
-                    categories: product.categories || []
+                    categories: product.categories || [],
+                    comboBundleId: Number.isFinite(comboId) ? comboId : null
                 });
             }
             
