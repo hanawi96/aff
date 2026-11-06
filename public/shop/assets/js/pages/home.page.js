@@ -11,7 +11,7 @@ import { QuickCheckout } from '../features/checkout/index.js?v=2025e';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
 import { bundleProductsService } from '../shared/services/bundle-products.service.js';
-import { renderComboShelf } from '../features/combo/combo-shelf.js?v=2';
+import { renderComboShelf } from '../features/combo/combo-shelf.js?v=4';
 
 /**
  * Home Page Manager

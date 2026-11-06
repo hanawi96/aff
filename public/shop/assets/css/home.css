@@ -1476,28 +1476,24 @@ body {
     padding: 0 0.4rem;
 }
 
-.combo-kicker {
-    margin: 0 0 0.2rem;
-    font-family: 'Pacifico', cursive;
-    font-size: 1.15rem;
-    color: #e76f51;
-}
-
 .combo-title {
     margin: 0;
-    font-size: 1.65rem;
+    font-size: clamp(1.35rem, 5.6vw, 1.65rem);
     line-height: 1.15;
     font-weight: 700;
     color: #3f3a38;
+    white-space: nowrap;
 }
 
 .combo-title span {
     display: block;
-    margin-top: 0.1rem;
+    margin-top: 0.15rem;
     font-family: 'Pacifico', cursive;
-    font-size: 1.85rem;
+    font-size: clamp(1.85rem, 7vw, 2.15rem);
     font-weight: 400;
+    line-height: 1.2;
     color: #e76f51;
+    white-space: nowrap;
 }
 
 .combo-rule {
@@ -1631,9 +1627,10 @@ body {
 
 .combo-card-kicker {
     margin: 0.2rem 0 0.7rem;
-    font-family: 'Pacifico', cursive;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 600;
     color: #e09f3e;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .combo-pills {
@@ -1684,6 +1681,13 @@ body {
     text-align: center;
     font-size: 0.78rem;
     color: #8a7f7a;
+    transition: color 0.2s ease;
+}
+
+.combo-card.needs-choice .combo-hint {
+    color: #dc2626;
+    font-weight: 700;
+    animation: combo-hint-pulse 0.7s ease;
 }
 
 .combo-card.needs-choice .combo-pills {
@@ -1726,29 +1730,15 @@ body {
 .combo-buy {
     margin-top: auto;
     width: 100%;
-    min-height: 3.15rem;
+    min-height: 3rem;
     border: 0;
     border-radius: 999px;
     background: linear-gradient(135deg, #f4a261, #e76f51);
     color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
     cursor: pointer;
     box-shadow: 0 8px 16px rgba(231, 111, 81, 0.22);
-}
-
-.combo-buy span,
-.combo-buy strong {
-    display: block;
-}
-
-.combo-buy span {
-    font-size: 0.95rem;
-    font-weight: 700;
-}
-
-.combo-buy strong {
-    font-size: 0.78rem;
-    font-weight: 600;
-    opacity: 0.95;
 }
 
 .combo-buy.is-waiting {
@@ -1807,6 +1797,14 @@ body {
     75% { transform: translateX(4px); }
 }
 
+@keyframes combo-hint-pulse {
+    0%, 100% { transform: translateX(0) scale(1); }
+    20% { transform: translateX(-3px) scale(1.03); }
+    40% { transform: translateX(3px) scale(1.03); }
+    60% { transform: translateX(-2px) scale(1.02); }
+    80% { transform: translateX(2px) scale(1.02); }
+}
+
 @keyframes combo-glow {
     0% { box-shadow: 0 0 0 0 rgba(231, 111, 81, 0.35); }
     100% { box-shadow: 0 10px 24px rgba(120, 72, 48, 0.06); }
@@ -1852,6 +1850,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .combo-card.is-focus,
     .combo-card.needs-choice .combo-pills,
+    .combo-card.needs-choice .combo-hint,
     .combo-photo-addon {
         animation: none;
         transform: none;

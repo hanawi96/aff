@@ -128,7 +128,6 @@ function renderCard(product, rank, bundles) {
     const chosen = selectedByProduct.get(Number(product.id));
     const chosenStillThere = bundles.some((bundle) => Number(bundle.id) === chosen);
     const activeId = chosenStillThere ? chosen : null;
-    const total = activeId ? Number(product.price) + COMBO_BUNDLE_PRICE : 0;
 
     const pills = bundles.map((bundle) => {
         const label = choiceLabel(bundle);
@@ -166,10 +165,7 @@ function renderCard(product, rank, bundles) {
                 </div>
             </div>
             ${save > 0 ? `<p class="combo-save">Rẻ hơn ${formatPrice(save)}</p>` : ''}
-            <button type="button" class="combo-buy${activeId ? '' : ' is-waiting'}" data-combo-buy aria-disabled="${activeId ? 'false' : 'true'}">
-                <span>Mua combo</span>
-                <strong class="combo-buy-total">${activeId ? formatPrice(total) : 'Chọn bó dâu'}</strong>
-            </button>
+            <button type="button" class="combo-buy${activeId ? '' : ' is-waiting'}" data-combo-buy aria-disabled="${activeId ? 'false' : 'true'}">Mua Combo</button>
         </article>
     `;
 }
@@ -210,9 +206,6 @@ function applyChoice(card, bundleId) {
     }
     const hint = card.querySelector('.combo-hint');
     if (hint) hint.textContent = `Đã chọn bó ${choiceLabel(bundle).title}`;
-    const braceletPrice = Number(card.dataset.comboPrice) || 0;
-    const total = card.querySelector('.combo-buy-total');
-    if (total) total.textContent = formatPrice(braceletPrice + COMBO_BUNDLE_PRICE);
     const buy = card.querySelector('[data-combo-buy]');
     if (buy) {
         buy.classList.remove('is-waiting');
@@ -301,8 +294,7 @@ export function renderComboShelf(products) {
     root.setAttribute('aria-hidden', 'false');
     root.innerHTML = `
         <header class="combo-head">
-            <p class="combo-kicker">Mẹ hay mua cùng</p>
-            <h2 class="combo-title">Combo <span>cho bé yêu</span></h2>
+            <h2 class="combo-title">Combo tiết kiệm nhất <span>cho mẹ</span></h2>
             ${heartRule()}
             <p class="combo-lead">Ba mẫu vòng bán chạy, kèm bó dâu để phòng. Mua cùng, bó dâu ${escapeHtml(savings)}.</p>
         </header>
