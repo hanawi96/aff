@@ -10,12 +10,12 @@ import { apiService } from '../../shared/services/api.service.js';
 import { AddressSelector } from '../../components/address-selector.js';
 import { discountService } from '../../shared/services/discount.service.js';
 import { bundleProductsService } from '../../shared/services/bundle-products.service.js';
-import { COMBO_BUNDLE_PRICE } from '../combo/combo-shelf.js?v=2';
 import { FormValidator } from '../../shared/utils/form-validator.js';
 import { checkoutValidationRules, updateValidationRule } from '../../shared/constants/validation-rules.js';
 import { errorDisplayService } from '../../shared/services/error-display.service.js';
 import { getCTVInfoForOrder, calculateCommission } from '../../shared/utils/ctv-tracking.js';
 import { isOrderFreeShipping, resolveShippingFee } from '../../shared/utils/shipping.js';
+import { withBouquetDealPrice } from '../../shared/utils/bouquet-deal.js';
 
 /**
  * Quick Checkout Manager
@@ -278,13 +278,8 @@ export class QuickCheckout {
         try {
             const list = await bundleProductsService.loadBundleProducts();
             if (comboId !== this.comboBundleId) return;
-            this.crossSellProducts = list.map((product) => {
-                const listPrice = Number(product.price) || 0;
-                if (comboId && Number(product.id) === Number(comboId) && COMBO_BUNDLE_PRICE < listPrice) {
-                    return { ...product, price: COMBO_BUNDLE_PRICE, listPrice };
-                }
-                return product;
-            });
+            // Mua kèm bó dâu với bất kỳ SP nào → giá deal (giảm 10k)
+            this.crossSellProducts = list.map((product) => withBouquetDealPrice(product));
             console.log('✅ [QUICK-CHECKOUT] Loaded', this.crossSellProducts.length, 'cross-sell products');
         } catch (error) {
             console.error('❌ [QUICK-CHECKOUT] Error loading cross-sell products:', error);
@@ -393,14 +388,14 @@ export class QuickCheckout {
         }
         
         const comboNote = this.comboBundleId
-            ? 'Bó dâu combo đã được chọn, giá nhẹ hơn'
-            : 'Đơn từ 100k được miễn phí ship';
+            ? 'Bó dâu combo đã chọn — giảm 10.000đ'
+            : 'Thêm bó dâu giảm ngay 10.000đ';
         let html = '<div class="cross-sell-header">';
         html += '<div class="cross-sell-header-text">';
         html += '<span class="cross-sell-title">Mua kèm</span>';
         html += '<span class="cross-sell-subtitle">' + comboNote + '</span>';
         html += '</div>';
-        html += '<span class="cross-sell-freeship-chip">Đơn ≥100k</span>';
+        html += '<span class="cross-sell-freeship-chip">-10k</span>';
         html += '</div>';
         
         html += '<div class="cross-sell-items-wrapper">';
@@ -456,9 +451,9 @@ export class QuickCheckout {
         let html = '<div class="cross-sell-header">';
         html += '<div class="cross-sell-header-text">';
         html += '<span class="cross-sell-title">Mua kèm</span>';
-        html += '<span class="cross-sell-subtitle">Đơn từ 100k được miễn phí ship</span>';
+        html += '<span class="cross-sell-subtitle">Thêm bó dâu giảm ngay 10.000đ</span>';
         html += '</div>';
-        html += '<span class="cross-sell-freeship-chip">Đơn ≥100k</span>';
+        html += '<span class="cross-sell-freeship-chip">-10k</span>';
         html += '</div>';
         html += '<div class="cross-sell-items-wrapper">';
         for (let i = 0; i < 2; i++) {

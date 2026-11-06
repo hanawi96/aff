@@ -4321,6 +4321,25 @@ html.shopvd-sidebar-resizing #chatViewContainer {
   font-variant-numeric: tabular-nums;
 }
 
+.shopvd-product-total-old {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: line-through;
+  margin-right: 0.2rem;
+}
+
+.shopvd-bouquet-deal-badge {
+  color: #0f766e !important;
+  background: #ccfbf1;
+  border: 1px solid #99f6e4;
+  border-radius: 999px;
+  padding: 0.1rem 0.4rem;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+}
+
 /* Inline Edit Styles */
 .shopvd-inline-editable {
   cursor: pointer;

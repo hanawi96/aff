@@ -2,7 +2,7 @@
 // PRODUCT GRID COMPONENT
 // ============================================
 
-import { renderProducts } from './product-card.js?v=16';
+import { renderProducts } from './product-card.js?v=20';
 import { warmProductGridImages } from './product-image-cache.js?v=2';
 
 /** Phần trăm giảm đang hiện trên thẻ sản phẩm. Không giảm thì là 0. */
@@ -400,30 +400,11 @@ export class ProductGrid {
     }
     
     /**
-     * Ba sản phẩm bán nhiều nhất trong catalog đang bán.
-     * Hạng giữ nguyên khi lọc danh mục hay đổi cách sắp xếp.
-     */
-    bestSellerRanks() {
-        const ranked = [...this.allProducts].sort((a, b) => {
-            const bySales = (Number(b.purchases) || 0) - (Number(a.purchases) || 0);
-            if (bySales !== 0) return bySales;
-            return Number(a.id) - Number(b.id);
-        });
-        const ranks = new Map();
-        for (const product of ranked) {
-            if ((Number(product.purchases) || 0) <= 0) break;
-            ranks.set(Number(product.id), ranks.size + 1);
-            if (ranks.size === 3) break;
-        }
-        return ranks;
-    }
-
-    /**
      * Render products
      */
     render() {
         const productsToShow = this.filteredProducts.slice(0, this.displayedCount);
-        renderProducts(productsToShow, this.containerId, this.bestSellerRanks());
+        renderProducts(productsToShow, this.containerId);
         this.updateLoadMoreButton();
     }
     

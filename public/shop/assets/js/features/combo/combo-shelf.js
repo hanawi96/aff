@@ -7,8 +7,10 @@ import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
 import { productThumbUrl, CONFIG } from '../../shared/constants/config.js?v=9';
 import { showToast } from '../../shared/utils/helpers.js';
 
-/** Giá bó dâu khi mua cùng một trong ba vòng bán chạy. */
-export const COMBO_BUNDLE_PRICE = 29000;
+import { BOUQUET_DEAL_PRICE } from '../../shared/utils/bouquet-deal.js';
+
+/** Giá bó dâu khi mua kèm bất kỳ SP nào (giữ tên cũ cho import). */
+export const COMBO_BUNDLE_PRICE = BOUQUET_DEAL_PRICE;
 
 const BUNDLE_CATEGORY_ID = 23;
 const selectedByProduct = new Map();

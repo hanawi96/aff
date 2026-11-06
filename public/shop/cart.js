@@ -16,6 +16,12 @@ import { getCTVInfoForOrder, calculateCommission, checkAndSaveReferralFromURL } 
 // Shared API base (Workers URL on production — same as quick-checkout)
 import { CONFIG as SHARED_CONFIG } from './assets/js/shared/constants/config.js';
 import { isOrderFreeShipping, resolveShippingFee } from './assets/js/shared/utils/shipping.js';
+import {
+    bouquetUnitPrice,
+    cartHasCompanionProduct,
+    isBouquetProduct,
+    withBouquetDealPrice
+} from './assets/js/shared/utils/bouquet-deal.js';
 
 // Configuration
 const CONFIG = {
@@ -511,69 +517,47 @@ const cart = {
         }
         
         const html = state.cart.map(item => {
-            const originalPriceHtml = item.originalPrice && item.originalPrice > item.price
-                ? '<span class="item-original-price">' + utils.formatPrice(item.originalPrice) + '</span>'
+            const unitPrice = cart.lineUnitPrice(item);
+            const listForStrike = isBouquetProduct(item) && unitPrice < Number(item.price)
+                ? Number(item.price)
+                : (item.originalPrice && item.originalPrice > unitPrice ? Number(item.originalPrice) : 0);
+            const originalPriceHtml = listForStrike > unitPrice
+                ? '<span class="item-original-price">' + utils.formatPrice(listForStrike) + '</span>'
                 : '';
             
-            // Calculate discount percentage
-            const discountPercent = item.originalPrice && item.originalPrice > item.price
-                ? Math.round((1 - item.price / item.originalPrice) * 100)
+            const discountPercent = listForStrike > unitPrice
+                ? Math.round((1 - unitPrice / listForStrike) * 100)
                 : 0;
             
-            const discountBadgeHtml = discountPercent > 0
-                ? '<span class="item-discount-badge">-' + discountPercent + '%</span>'
-                : '';
+            const discountBadgeHtml = isBouquetProduct(item) && unitPrice < Number(item.price)
+                ? '<span class="item-discount-badge">-10k</span>'
+                : (discountPercent > 0
+                    ? '<span class="item-discount-badge">-' + discountPercent + '%</span>'
+                    : '');
             
-            // Note display
-            let noteHtml = '';
+            const deleteBtnHtml = '<button class="delete-btn" onclick="cart.removeItem(' + item.id + ')" aria-label="Xóa sản phẩm">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
+                '<path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />' +
+                '</svg>' +
+                '</button>';
+
+            let noteSlotHtml = '';
             if (item.note) {
-                noteHtml = '<div class="item-note-row">' +
-                    '<div class="item-note-saved">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block; flex-shrink: 0;">' +
-                    '<path fill-rule="evenodd" d="M5.337 21.718a6.707 6.707 0 0 1-.533-.074.75.75 0 0 1-.44-1.223 3.73 3.73 0 0 0 .814-1.686c.023-.115-.022-.317-.254-.543C3.274 16.587 2.25 14.41 2.25 12c0-5.03 4.428-9 9.75-9s9.75 3.97 9.75 9c0 5.03-4.428 9-9.75 9-.833 0-1.643-.097-2.417-.279a6.721 6.721 0 0 1-4.246.997Z" clip-rule="evenodd" />' +
-                    '</svg>' +
-                    '<div class="item-note-text">' + utils.escapeHtml(item.note) + '</div>' +
-                    '<div class="item-note-actions">' +
-                    '<button class="btn-note-action btn-edit-note" onclick="cart.editItemNote(' + item.id + ')">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Sửa' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>' +
-                    '<button class="delete-btn" onclick="cart.removeItem(' + item.id + ')">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
-                    '<path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />' +
-                    '</svg>' +
-                    '</button>' +
-                    '</div>';
+                noteSlotHtml = '<button type="button" class="item-note-saved" onclick="cart.editItemNote(' + item.id + ')" title="Bấm để sửa lưu ý">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.337 21.718a6.707 6.707 0 0 1-.533-.074.75.75 0 0 1-.44-1.223 3.73 3.73 0 0 0 .814-1.686c.023-.115-.022-.317-.254-.543C3.274 16.587 2.25 14.41 2.25 12c0-5.03 4.428-9 9.75-9s9.75 3.97 9.75 9c0 5.03-4.428 9-9.75 9-.833 0-1.643-.097-2.417-.279a6.721 6.721 0 0 1-4.246.997Z" clip-rule="evenodd" /></svg>' +
+                    '<span class="item-note-text">' + utils.escapeHtml(item.note) + '</span>' +
+                    '</button>';
             } else {
-                noteHtml = '<div class="item-note-row">' +
-                    '<div class="item-note-toggle" onclick="cart.toggleItemNote(' + item.id + ')">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block;">' +
-                    '<path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />' +
-                    '</svg>' +
+                noteSlotHtml = '<button type="button" class="item-note-toggle" onclick="cart.toggleItemNote(' + item.id + ')">' +
+                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M12 3.75a.75.75 0 0 1 .75.75v6.75h6.75a.75.75 0 0 1 0 1.5h-6.75v6.75a.75.75 0 0 1-1.5 0v-6.75H4.5a.75.75 0 0 1 0-1.5h6.75V4.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" /></svg>' +
                     '<span>Thêm lưu ý cho sản phẩm</span>' +
-                    '</div>' +
-                    '<button class="delete-btn" onclick="cart.removeItem(' + item.id + ')">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
-                    '<path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />' +
-                    '</svg>' +
-                    '</button>' +
-                    '</div>' +
-                    '<div class="item-note-input hidden" id="noteInput' + item.id + '">' +
-                    '<textarea class="item-note-textarea" ' +
-                    'id="noteText' + item.id + '" ' +
-                    'placeholder="Ví dụ: Làm size nhỏ hơn, thêm charm hình tim..." ' +
-                    'maxlength="200"></textarea>' +
-                    '<div class="item-note-actions">' +
-                    '<button class="btn-note-action btn-save-item-note" onclick="cart.saveItemNote(' + item.id + ')">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg> Lưu' +
-                    '</button>' +
-                    '<button class="btn-note-action btn-cancel-item-note" onclick="cart.cancelItemNote(' + item.id + ')">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg> Hủy' +
-                    '</button>' +
-                    '</div>' +
-                    '</div>';
+                    '</button>';
             }
+
+            const noteHtml = '<div class="item-note-row">' +
+                '<div class="item-note-slot" id="noteSlot' + item.id + '">' + noteSlotHtml + '</div>' +
+                deleteBtnHtml +
+                '</div>';
             
             // Baby weight badge display - now below image
             let babyWeightHtml = '';
@@ -611,7 +595,7 @@ const cart = {
                 '<div class="item-price-quantity-row">' +
                 '<div class="item-price-group">' +
                 originalPriceHtml +
-                '<span class="item-price">' + utils.formatPrice(item.price) + '</span>' +
+                '<span class="item-price">' + utils.formatPrice(unitPrice) + '</span>' +
                 discountBadgeHtml +
                 '</div>' +
                 '<div class="quantity-selector">' +
@@ -694,10 +678,10 @@ const cart = {
         
         const html = state.bundleProducts.map(product => {
             const isInCart = state.cart.some(item => item.id === product.id);
-            
-            // Calculate discount percent only if originalPrice exists and is greater than price
-            const hasDiscount = product.originalPrice && product.originalPrice > product.price;
-            const discountPercent = hasDiscount ? Math.round((1 - product.price / product.originalPrice) * 100) : 0;
+            const dealProduct = withBouquetDealPrice(product);
+            const listPrice = Number(dealProduct.listPrice || product.price) || 0;
+            const dealPrice = Number(dealProduct.price) || 0;
+            const showDeal = dealProduct.listPrice && dealPrice < listPrice;
             
             return '<div class="bundle-product-card ' + (isInCart ? 'selected' : '') + '">' +
                 '<div class="bundle-product-image-container">' +
@@ -706,9 +690,9 @@ const cart = {
                 '<div class="bundle-product-info">' +
                 '<div class="bundle-product-name">' + utils.escapeHtml(product.name) + '</div>' +
                 '<div class="bundle-product-pricing">' +
-                (hasDiscount ? '<div class="bundle-original-price">' + utils.formatPrice(product.originalPrice) + '</div>' : '') +
-                '<div class="bundle-price">' + utils.formatPrice(product.price) + '</div>' +
-                (hasDiscount ? '<div class="bundle-discount-badge">-' + discountPercent + '%</div>' : '') +
+                (showDeal ? '<div class="bundle-original-price">' + utils.formatPrice(listPrice) + '</div>' : '') +
+                '<div class="bundle-price">' + utils.formatPrice(dealPrice) + '</div>' +
+                (showDeal ? '<div class="bundle-discount-badge">-10k</div>' : '') +
                 '</div>' +
                 '</div>' +
                 '<button class="bundle-add-btn ' + (isInCart ? 'added' : '') + '" ' +
@@ -763,107 +747,80 @@ const cart = {
         }
     },
 
-    // Toggle item note input
-    toggleItemNote: (productId) => {
-        const noteInput = document.getElementById('noteInput' + productId);
-        const toggle = noteInput.previousElementSibling;
-        
-        if (noteInput.classList.contains('hidden')) {
-            noteInput.classList.remove('hidden');
-            toggle.classList.add('active');
-            document.getElementById('noteText' + productId).focus();
-        } else {
-            noteInput.classList.add('hidden');
-            toggle.classList.remove('active');
-        }
+    /** Thay nút/thẻ lưu ý bằng ô nhập ngay tại chỗ */
+    openNoteEditor: (productId, initialValue = '') => {
+        const slot = document.getElementById('noteSlot' + productId);
+        if (!slot || slot.querySelector('.item-note-inline-input')) return;
+
+        const value = String(initialValue || '');
+        slot.innerHTML =
+            '<input type="text" class="item-note-inline-input" id="noteText' + productId + '" ' +
+            'placeholder="Vd: Làm size nhỏ hơn, thêm charm..." maxlength="200" autocomplete="off">';
+
+        const input = document.getElementById('noteText' + productId);
+        if (!input) return;
+        input.value = value;
+
+        let done = false;
+        const finish = (save) => {
+            if (done) return;
+            done = true;
+            if (save) cart.saveItemNote(productId);
+            else cart.render();
+        };
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finish(true);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                finish(false);
+            }
+        });
+        input.addEventListener('blur', () => finish(true));
+
+        input.focus();
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
     },
 
-    // Save item note
+    toggleItemNote: (productId) => {
+        cart.openNoteEditor(productId, '');
+    },
+
     saveItemNote: (productId) => {
-        const noteText = document.getElementById('noteText' + productId).value.trim();
-        
+        const input = document.getElementById('noteText' + productId);
+        const noteText = (input?.value || '').trim();
+        const item = state.cart.find(i => i.id === productId);
+        if (!item) return;
+
         if (!noteText) {
-            utils.showToast('Vui lòng nhập lưu ý', 'error');
+            if (item.note) {
+                delete item.note;
+                storage.saveCart(state.cart);
+            }
+            cart.render();
             return;
         }
-        
-        const item = state.cart.find(i => i.id === productId);
-        if (item) {
+
+        if (item.note !== noteText) {
             item.note = noteText;
             storage.saveCart(state.cart);
-            cart.render();
-            utils.showToast('Đã lưu lưu ý cho sản phẩm', 'success');
+            utils.showToast('Đã lưu lưu ý', 'success');
         }
+        cart.render();
     },
 
-    // Cancel item note
-    cancelItemNote: (productId) => {
-        const noteInput = document.getElementById('noteInput' + productId);
-        const toggle = noteInput.previousElementSibling;
-        const noteText = document.getElementById('noteText' + productId);
-        
-        noteText.value = '';
-        noteInput.classList.add('hidden');
-        toggle.classList.remove('active');
-    },
-
-    // Edit item note
     editItemNote: (productId) => {
         const item = state.cart.find(i => i.id === productId);
-        if (item && item.note) {
-            // Không xóa note, chỉ render lại với textarea
-            const oldNote = item.note;
-            
-            // Tìm container của item này
-            const itemElement = document.querySelector(`[data-item-id="${productId}"]`);
-            if (!itemElement) return;
-            
-            // Tìm phần note row
-            const noteRow = itemElement.querySelector('.item-note-row');
-            if (!noteRow) return;
-            
-            // Thay thế HTML để hiển thị textarea với note cũ
-            noteRow.innerHTML = 
-                '<div class="item-note-toggle active">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg>' +
-                '<span>Đang sửa lưu ý</span>' +
-                '</div>' +
-                '<button class="delete-btn" onclick="cart.removeItem(' + productId + ')">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.9rem; height: 0.9rem; display: inline-block;">' +
-                '<path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />' +
-                '</svg>' +
-                '</button>';
-            
-            // Thêm textarea sau note row
-            const noteInput = document.createElement('div');
-            noteInput.className = 'item-note-input';
-            noteInput.id = 'noteInput' + productId;
-            noteInput.innerHTML = 
-                '<textarea class="item-note-textarea" ' +
-                'id="noteText' + productId + '" ' +
-                'placeholder="Ví dụ: Làm size nhỏ hơn, thêm charm hình tim..." ' +
-                'maxlength="200">' + utils.escapeHtml(oldNote) + '</textarea>' +
-                '<div class="item-note-actions">' +
-                '<button class="btn-note-action btn-save-item-note" onclick="cart.saveItemNote(' + productId + ')">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M19.916 4.626a.75.75 0 0 1 .208 1.04l-9 13.5a.75.75 0 0 1-1.154.114l-6-6a.75.75 0 0 1 1.06-1.06l5.353 5.353 8.493-12.74a.75.75 0 0 1 1.04-.207Z" clip-rule="evenodd" /></svg> Lưu' +
-                '</button>' +
-                '<button class="btn-note-action btn-cancel-item-note" onclick="cart.cancelEditNote(' + productId + ')">' +
-                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg> Hủy' +
-                '</button>' +
-                '</div>';
-            
-            noteRow.parentNode.insertBefore(noteInput, noteRow.nextSibling);
-            
-            // Focus textarea
-            const textarea = document.getElementById('noteText' + productId);
-            if (textarea) {
-                textarea.focus();
-                textarea.setSelectionRange(oldNote.length, oldNote.length);
-            }
-        }
+        cart.openNoteEditor(productId, item?.note || '');
     },
 
-    // Cancel edit note (restore original note)
+    cancelItemNote: (productId) => {
+        cart.render();
+    },
+
     cancelEditNote: (productId) => {
         cart.render();
     },
@@ -904,10 +861,16 @@ const cart = {
     },
 
     // Update summary
+    /** Đơn giá dòng hàng (bó dâu kèm SP khác → giá deal) */
+    lineUnitPrice: (item) => {
+        const hasCompanion = cartHasCompanionProduct(state.cart);
+        return bouquetUnitPrice(item, hasCompanion);
+    },
+
     updateSummary: () => {
-        // Calculate subtotal
+        // Calculate subtotal (áp deal bó dâu khi có SP kèm)
         state.subtotal = state.cart.reduce((sum, item) => {
-            return sum + (item.price * item.quantity);
+            return sum + (cart.lineUnitPrice(item) * item.quantity);
         }, 0);
 
         // Discount (không ảnh hưởng phí ship)
@@ -1117,7 +1080,7 @@ const cart = {
         const cartItems = state.cart.map(item => ({
             id: item.id,
             name: item.name,
-            price: item.price,
+            price: cart.lineUnitPrice(item),
             cost_price: item.cost_price || 0,
             quantity: item.quantity,
             image: item.image,
@@ -1654,6 +1617,8 @@ const discount = {
     renderAvailableCodes: () => {
         const container = document.getElementById('availableCodes');
         const viewAllBtn = document.getElementById('viewAllCodesBtn');
+        const section = document.getElementById('availableCodesSection')
+            || container?.closest('.available-codes');
         
         // Null-safe check - skip silently if not ready
         if (!container) {
@@ -1661,12 +1626,13 @@ const discount = {
         }
         
         if (!state.availableDiscounts || state.availableDiscounts.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #999; padding: 1rem; font-size: 0.9rem;">Không có mã giảm giá khả dụng</div>';
-            if (viewAllBtn) {
-                viewAllBtn.classList.add('hidden');
-            }
+            container.innerHTML = '';
+            if (viewAllBtn) viewAllBtn.classList.add('hidden');
+            section?.classList.add('hidden');
             return;
         }
+
+        section?.classList.remove('hidden');
 
         // Get top 1 best discount (most beneficial)
         const bestDiscounts = discount.getBestDiscounts(1);
@@ -1857,16 +1823,13 @@ const cartPayment = {
             }
         }
         
-        // Update UI - both active class and radio button
+        // Update UI - active class, radio, aria
         document.querySelectorAll('.payment-method-item').forEach(item => {
             const radio = item.querySelector('.payment-method-radio');
-            if (item.dataset.method === method) {
-                item.classList.add('active');
-                if (radio) radio.checked = true;
-            } else {
-                item.classList.remove('active');
-                if (radio) radio.checked = false;
-            }
+            const on = item.dataset.method === method;
+            item.classList.toggle('active', on);
+            item.setAttribute('aria-checked', on ? 'true' : 'false');
+            if (radio) radio.checked = on;
         });
         
         // Show/hide bank transfer info

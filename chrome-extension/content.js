@@ -7452,9 +7452,41 @@ function formatPrice(price) {
   return parseInt(price || 0).toLocaleString('vi-VN');
 }
 
+/** Đồng bộ shop: bó dâu kèm bất kỳ SP → giá deal 29k (giảm 10k). */
+const BOUQUET_DEAL_PRICE = 29000;
+const BOUQUET_PRODUCT_IDS = new Set([133, 134]);
+
+function isBouquetCartProduct(product) {
+  if (!product) return false;
+  const catalogId = parseInt(product.product_id ?? product.id, 10);
+  if (BOUQUET_PRODUCT_IDS.has(catalogId)) return true;
+  const name = String(product.name || '');
+  if (!/bó\s*dâu|dâu\s*tằm/i.test(name)) return false;
+  return productInCategory(product, 23);
+}
+
+function cartHasCompanionProduct(cart = productsData) {
+  if (!Array.isArray(cart)) return false;
+  return cart.some((p) => {
+    const name = String(p?.name || '').trim();
+    const price = parseInt(p?.price, 10);
+    if (!name || !Number.isFinite(price) || price <= 0) return false;
+    return !isBouquetCartProduct(p);
+  });
+}
+
+/** Đơn giá dòng hàng (áp deal bó dâu khi có SP kèm). */
+function getCartUnitPrice(product, cart = productsData) {
+  const current = parseInt(product?.price, 10) || 0;
+  if (!isBouquetCartProduct(product) || !cartHasCompanionProduct(cart)) return current;
+  if (current > BOUQUET_DEAL_PRICE) return BOUQUET_DEAL_PRICE;
+  return current;
+}
+
 function getCartProductsTotal() {
-  return getValidCartProducts().reduce((sum, p) => {
-    return sum + (parseInt(p.price || 0, 10) * parseInt(p.quantity || 1, 10));
+  const cart = getValidCartProducts();
+  return cart.reduce((sum, p) => {
+    return sum + (getCartUnitPrice(p, cart) * parseInt(p.quantity || 1, 10));
   }, 0);
 }
 
@@ -7726,7 +7758,7 @@ function sanitizeCartItemForSubmit(product) {
   const item = {
     name: product.name,
     quantity: parseInt(product.quantity) || 1,
-    price: parseInt(product.price) || 0,
+    price: getCartUnitPrice(product),
     cost_price: parseInt(product.cost_price) || 0,
   };
 
@@ -7926,7 +7958,11 @@ function renderProducts() {
   }
 
   container.innerHTML = validProducts.map((product) => {
-    const totalPrice = parseInt(product.price || 0) * parseInt(product.quantity || 1);
+    const unitPrice = getCartUnitPrice(product, validProducts);
+    const listPrice = parseInt(product.price || 0, 10) || 0;
+    const qty = parseInt(product.quantity || 1, 10) || 1;
+    const totalPrice = unitPrice * qty;
+    const dealApplied = isBouquetCartProduct(product) && unitPrice < listPrice;
     const skipsWeight = cartItemSkipsWeight(product);
     
     return `
@@ -7965,9 +8001,10 @@ function renderProducts() {
             <div class="shopvd-product-meta">
               <span class="shopvd-meta-item shopvd-inline-editable${product.weight ? '' : ' shopvd-meta-item-empty'}" data-inline-field="weight" data-product-id="${product.id}" title="Bấm để sửa cân nặng">● ${product.weight ? escapeHtml(formatWeightSize(product.weight)) : 'Chưa có'}</span>
               <span class="shopvd-product-qty-badge shopvd-inline-editable" data-inline-field="quantity" data-product-id="${product.id}" title="Bấm để sửa số lượng">×${product.quantity}</span>
+              ${dealApplied ? '<span class="shopvd-meta-item shopvd-bouquet-deal-badge" title="Mua kèm SP — giảm 10.000đ">-10k</span>' : ''}
               ${product.notes ? `<span class="shopvd-meta-item shopvd-meta-notes"><svg class="shopvd-meta-notes-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg>${escapeHtml(product.notes)}</span>` : ''}
             </div>
-            <div class="shopvd-product-total shopvd-inline-editable" data-inline-field="price" data-product-id="${product.id}" title="Bấm để sửa giá bán">${formatPrice(totalPrice)} đ</div>
+            <div class="shopvd-product-total shopvd-inline-editable" data-inline-field="price" data-product-id="${product.id}" title="Bấm để sửa giá bán">${dealApplied ? `<span class="shopvd-product-total-old">${formatPrice(listPrice * qty)}đ</span> ` : ''}${formatPrice(totalPrice)} đ</div>
           </div>
         </div>
       </div>
@@ -7976,7 +8013,7 @@ function renderProducts() {
       <div class="shopvd-product-edit-form hidden" data-edit-form="${product.id}">
         <input type="text" placeholder="Tên sản phẩm" value="${escapeHtml(product.name)}" data-field="name" class="shopvd-edit-input">
         <div class="shopvd-edit-row shopvd-edit-row-prices">
-          <input type="number" placeholder="Giá bán" value="${product.price}" data-field="price" min="0" step="1000" class="shopvd-edit-input">
+          <input type="number" placeholder="Giá bán" value="${listPrice}" data-field="price" min="0" step="1000" class="shopvd-edit-input">
           <div class="shopvd-cost-with-mat">
             <input type="number" placeholder="Giá vốn" value="${product.cost_price || 0}" data-field="cost_price" min="0" step="1" class="shopvd-edit-input">
             ${!product.product_id ? `
@@ -10833,7 +10870,7 @@ function setupEventListeners() {
   });
 
   function calculateCartTotal() {
-    const total = productsData.reduce((sum, p) => sum + (p.price * p.quantity), 0);
+    const total = getCartProductsTotal();
     return total;
   }
 

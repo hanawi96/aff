@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="cart.css?v=6">
+    <link rel="stylesheet" href="cart.css?v=9">
     <link rel="stylesheet" href="assets/css/form-validation.css">
     <link rel="stylesheet" href="assets/css/hierarchical-address-selector.css">
     <link rel="stylesheet" href="assets/css/list-address-selector.css">
@@ -233,7 +233,7 @@
                         <div class="bundle-offer-header">
                             <div class="bundle-offer-title">
                                 <h3>Mua kèm bó dâu tằm để giường</h3>
-                                <p>Giúp bảo vệ bé toàn diện hơn — đơn từ 100k miễn phí ship</p>
+                                <p>Giảm ngay 10.000đ khi mua kèm bất kỳ sản phẩm nào</p>
                             </div>
                             <div class="bundle-offer-benefit">
                                 <div class="benefit-tag">
@@ -242,9 +242,9 @@
                                         <path d="M8.25 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0ZM15.75 6.75a.75.75 0 0 0-.75.75v11.25c0 .087.015.17.042.248a3 3 0 0 1 5.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 0 0-3.732-10.104 1.837 1.837 0 0 0-1.47-.725H15.75Z" />
                                         <path d="M19.5 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z" />
                                     </svg>
-                                    <span>ĐƠN ≥100K</span>
+                                    <span>-10.000Đ</span>
                                 </div>
-                                <div class="benefit-text">miễn phí ship</div>
+                                <div class="benefit-text">khi mua kèm</div>
                             </div>
                         </div>
 
@@ -292,7 +292,7 @@
                             </button>
                         </div>
                         <div class="discount-result" id="discountResult"></div>
-                        <div class="available-codes">
+                        <div class="available-codes hidden" id="availableCodesSection">
                             <p class="codes-title">💝 Mã khả dụng cho mẹ:</p>
                             <div class="code-list" id="availableCodes"></div>
                             <button class="btn-view-all-codes hidden" id="viewAllCodesBtn">
@@ -323,20 +323,28 @@
                             </svg>
                             <h3>Phương thức thanh toán</h3>
                         </div>
-                        <div class="payment-methods">
-                            <div class="payment-method-item active" data-method="cod" onclick="cartPayment.selectPaymentMethod('cod')">
-                                <input type="radio" name="payment-method" class="payment-method-radio" checked>
+                        <div class="payment-methods" role="radiogroup" aria-label="Phương thức thanh toán">
+                            <div class="payment-method-item active" data-method="cod" role="radio" aria-checked="true" tabindex="0" onclick="cartPayment.selectPaymentMethod('cod')">
+                                <input type="radio" name="payment-method" class="payment-method-radio" checked tabindex="-1" aria-hidden="true">
+                                <span class="payment-method-icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 3.75a3 3 0 0 0-3 3v.75h21v-.75a3 3 0 0 0-3-3h-15Z" /><path fill-rule="evenodd" d="M22.5 9.75h-21v7.5a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-7.5Zm-18 3.75a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Zm.75 2.25a.75.75 0 0 0 0 1.5h3a.75.75 0 0 0 0-1.5h-3Z" clip-rule="evenodd" /></svg>
+                                </span>
                                 <div class="payment-method-info">
                                     <div class="payment-method-name">Thanh toán khi nhận hàng</div>
-                                    <div class="payment-method-desc">Thanh toán bằng tiền mặt khi nhận hàng</div>
+                                    <div class="payment-method-desc">Trả tiền mặt lúc ship tới</div>
                                 </div>
+                                <span class="payment-method-dot" aria-hidden="true"></span>
                             </div>
-                            <div class="payment-method-item" data-method="bank" onclick="cartPayment.selectPaymentMethod('bank')">
-                                <input type="radio" name="payment-method" class="payment-method-radio">
+                            <div class="payment-method-item" data-method="bank" role="radio" aria-checked="false" tabindex="0" onclick="cartPayment.selectPaymentMethod('bank')">
+                                <input type="radio" name="payment-method" class="payment-method-radio" tabindex="-1" aria-hidden="true">
+                                <span class="payment-method-icon" aria-hidden="true">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M11.584 2.376a.75.75 0 0 1 .832 0l9 6a.75.75 0 1 1-.832 1.248L12 3.901 3.416 9.624a.75.75 0 0 1-.832-1.248l9-6Z" /><path fill-rule="evenodd" d="M20.25 10.332v9.918H21a.75.75 0 0 1 0 1.5H3a.75.75 0 0 1 0-1.5h.75v-9.918a.75.75 0 0 1 .634-.74A49.109 49.109 0 0 1 12 9c2.59 0 5.134.202 7.616.592a.75.75 0 0 1 .634.74Zm-7.5 2.418a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Zm3-.75a.75.75 0 0 1 .75.75v6.75a.75.75 0 0 1-1.5 0v-6.75a.75.75 0 0 1 .75-.75ZM9 12.75a.75.75 0 0 0-1.5 0v6.75a.75.75 0 0 0 1.5 0v-6.75Z" clip-rule="evenodd" /><path d="M12 7.875a1.125 1.125 0 1 0 0-2.25 1.125 1.125 0 0 0 0 2.25Z" /></svg>
+                                </span>
                                 <div class="payment-method-info">
                                     <div class="payment-method-name">Chuyển khoản ngân hàng</div>
-                                    <div class="payment-method-desc">Chuyển khoản trước, giao hàng sau</div>
+                                    <div class="payment-method-desc">Chuyển trước, giao hàng sau</div>
                                 </div>
+                                <span class="payment-method-dot" aria-hidden="true"></span>
                             </div>
                         </div>
                         
@@ -751,7 +759,7 @@
     </script>
 
     <link rel="stylesheet" href="assets/css/faq-modal.css?v=3">
-    <script type="module" src="cart.js?v=7"></script>
+    <script type="module" src="cart.js?v=12"></script>
     <script src="assets/js/faq-modal.js"></script>
     <script type="module">
         // Import and initialize list address selector for cart page
