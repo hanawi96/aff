@@ -18,7 +18,7 @@ export const CONFIG = {
     
     // Checkout Configuration
     SHIPPING_FEE: 21000,
-    FREE_SHIPPING_THRESHOLD: 500000,
+    FREE_SHIPPING_THRESHOLD: 100000,
     
     // Flash Sale Configuration
     FLASH_SALE_ITEMS_PER_PAGE_DESKTOP: 4,

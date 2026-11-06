@@ -15,11 +15,12 @@ import { errorDisplayService } from './assets/js/shared/services/error-display.s
 import { getCTVInfoForOrder, calculateCommission, checkAndSaveReferralFromURL } from './assets/js/shared/utils/ctv-tracking.js';
 // Shared API base (Workers URL on production — same as quick-checkout)
 import { CONFIG as SHARED_CONFIG } from './assets/js/shared/constants/config.js';
+import { isOrderFreeShipping, resolveShippingFee } from './assets/js/shared/utils/shipping.js';
 
 // Configuration
 const CONFIG = {
-    FREE_SHIPPING_THRESHOLD: 500000,
-    SHIPPING_FEE: 30000,
+    FREE_SHIPPING_THRESHOLD: SHARED_CONFIG.FREE_SHIPPING_THRESHOLD,
+    SHIPPING_FEE: SHARED_CONFIG.SHIPPING_FEE,
     STORAGE_KEY: 'cart',
     DISCOUNT_KEY: 'discount',
     DEBOUNCE_DELAY: 300,
@@ -909,51 +910,14 @@ const cart = {
             return sum + (item.price * item.quantity);
         }, 0);
 
-        // Nhận diện "sản phẩm bán kèm" theo 2 cách (đồng bộ với quick-checkout's selectedCrossSells):
-        //  1. item.isBundleProduct = true  → thêm từ phần bundle trong cart page
-        //  2. product ID nằm trong danh sách bundle → thêm từ trang chủ / listing thông thường
-        const bundleProductIds = bundleProductsService.getBundleProductIds();
-        const hasBundleProduct = state.cart.some(item =>
-            item.isBundleProduct === true || bundleProductIds.includes(item.id)
-        );
-
-        // Freeship khi có ít nhất 1 SP (không phải bán kèm cat23, không phải bi-charm cat24)
-        // có số lượng >= 2. Category lấy từ state.productCategoryMap (đã fetch lúc init).
-        const CAT_BI_CHARM = 24;
-        const CAT_BUNDLE = 23;
-        const hasQtyFreeship = state.cart.some(item => {
-            if (item.quantity < 2) return false;
-            // Bundle products không tính vào điều kiện qty >= 2
-            if (item.isBundleProduct === true || bundleProductIds.includes(item.id)) return false;
-            const catId = state.productCategoryMap[item.id] ?? item.category_id ?? null;
-            if (catId === CAT_BI_CHARM) return false;  // bi, charm bạc → loại trừ
-            if (catId === CAT_BUNDLE) return false;     // danh mục bán kèm → không tính
-            return true;
-        });
-
-        // Calculate discount using discountService
+        // Discount (không ảnh hưởng phí ship)
         let discountAmount = 0;
         if (state.discount) {
             discountAmount = discountService.calculateDiscountAmount(state.discount, state.subtotal);
-            
-            // Handle free shipping discount
-            if (state.discount.type === 'freeship') {
-                state.shippingFee = 0;
-            }
         }
 
-        // Calculate shipping fee
-        if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
-            state.shippingFee = 0;
-        } else if (hasBundleProduct) {
-            // Free shipping if cart has at least 1 bundle product (sản phẩm bán kèm)
-            state.shippingFee = 0;
-        } else if (hasQtyFreeship) {
-            // Free shipping if any eligible product (not cat24, not cat23) has qty >= 2
-            state.shippingFee = 0;
-        } else if (!state.discount || state.discount.type !== 'freeship') {
-            state.shippingFee = CONFIG.SHIPPING_FEE;
-        }
+        // Phí ship: miễn khi tiền hàng ≥ 100k (chung với Quickbuy)
+        state.shippingFee = resolveShippingFee(state.subtotal, CONFIG.SHIPPING_FEE);
 
         // Calculate total
         state.total = state.subtotal - discountAmount + state.shippingFee;
@@ -993,27 +957,13 @@ const cart = {
         summaryItemCount.textContent = `(${totalItems} sp)`;
         subtotalElement.textContent = utils.formatPrice(state.subtotal);
         
-        // Always show shipping fee (30k)
         shippingFeeElement.textContent = utils.formatPrice(CONFIG.SHIPPING_FEE);
-        
-        // Show freeship discount row if applicable
+
         if (freeshipRow && freeshipLabel && freeshipAmount) {
-            if (state.shippingFee === 0) {
+            if (isOrderFreeShipping(state.subtotal)) {
                 freeshipRow.classList.remove('hidden');
                 freeshipAmount.textContent = '-' + utils.formatPrice(CONFIG.SHIPPING_FEE);
-                
-                // Set label based on reason
-                if (hasBundleProduct) {
-                    freeshipLabel.textContent = '(Mua kèm)';
-                } else if (hasQtyFreeship) {
-                    freeshipLabel.textContent = '(Mua từ 2+)';
-                } else if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
-                    freeshipLabel.textContent = '(Đơn ≥500k)';
-                } else if (state.discount && state.discount.type === 'freeship') {
-                    freeshipLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle; margin-right: 0.25rem; color: #10b981;"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>(' + state.discount.code + ')';
-                } else {
-                    freeshipLabel.textContent = '';
-                }
+                freeshipLabel.textContent = '(Đơn ≥100k)';
             } else {
                 freeshipRow.classList.add('hidden');
             }
@@ -1456,11 +1406,9 @@ const discount = {
         
         const amount = discountService.calculateDiscountAmount(discountCode, state.subtotal);
         
-        // For freeship, add shipping fee as savings
-        if (discountCode.type === 'freeship' && state.subtotal < CONFIG.FREE_SHIPPING_THRESHOLD) {
-            return amount + CONFIG.SHIPPING_FEE;
-        }
-        
+        // freeship mã giảm không còn trừ ship (ship chỉ theo ngưỡng 100k)
+        if (discountCode.type === 'freeship') return 0;
+
         return amount;
     },
 

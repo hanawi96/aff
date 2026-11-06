@@ -15,6 +15,7 @@ import { FormValidator } from '../../shared/utils/form-validator.js';
 import { checkoutValidationRules, updateValidationRule } from '../../shared/constants/validation-rules.js';
 import { errorDisplayService } from '../../shared/services/error-display.service.js';
 import { getCTVInfoForOrder, calculateCommission } from '../../shared/utils/ctv-tracking.js';
+import { isOrderFreeShipping, resolveShippingFee } from '../../shared/utils/shipping.js';
 
 /**
  * Quick Checkout Manager
@@ -393,13 +394,13 @@ export class QuickCheckout {
         
         const comboNote = this.comboBundleId
             ? 'Bó dâu combo đã được chọn, giá nhẹ hơn'
-            : 'Thêm để được miễn phí ship';
+            : 'Đơn từ 100k được miễn phí ship';
         let html = '<div class="cross-sell-header">';
         html += '<div class="cross-sell-header-text">';
         html += '<span class="cross-sell-title">Mua kèm</span>';
         html += '<span class="cross-sell-subtitle">' + comboNote + '</span>';
         html += '</div>';
-        html += '<span class="cross-sell-freeship-chip">Freeship</span>';
+        html += '<span class="cross-sell-freeship-chip">Đơn ≥100k</span>';
         html += '</div>';
         
         html += '<div class="cross-sell-items-wrapper">';
@@ -455,9 +456,9 @@ export class QuickCheckout {
         let html = '<div class="cross-sell-header">';
         html += '<div class="cross-sell-header-text">';
         html += '<span class="cross-sell-title">Mua kèm</span>';
-        html += '<span class="cross-sell-subtitle">Thêm để được miễn phí ship</span>';
+        html += '<span class="cross-sell-subtitle">Đơn từ 100k được miễn phí ship</span>';
         html += '</div>';
-        html += '<span class="cross-sell-freeship-chip">Freeship</span>';
+        html += '<span class="cross-sell-freeship-chip">Đơn ≥100k</span>';
         html += '</div>';
         html += '<div class="cross-sell-items-wrapper">';
         for (let i = 0; i < 2; i++) {
@@ -1005,13 +1006,10 @@ export class QuickCheckout {
         const subtotal = (this.product.price * this.quantity) + weightSurcharge;
         const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => { const product = this.crossSellProducts.find(p => p.id === item.id); return sum + (product ? product.price * item.quantity : 0); }, 0);
         
-        // Check if free shipping: cross-sell selected, freeship discount, or quantity >= 2
-        const hasFreeShipping = this.quantity >= 2 ||
-                               this.selectedCrossSells.length > 0 || 
-                               (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount));
-        const shippingFee = hasFreeShipping ? 0 : this.shippingFee;
+        const merchandiseTotal = subtotal + crossSellTotal;
+        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee);
         
-        const beforeDiscount = subtotal + crossSellTotal + shippingFee;
+        const beforeDiscount = merchandiseTotal + shippingFee;
         return beforeDiscount - this.discountAmount;
     }
     
@@ -1554,14 +1552,12 @@ export class QuickCheckout {
             orderItemsList.innerHTML = chipsHtml;
         }
         
-        // Calculate shipping (free if qty >= 2, cross-sell selected, or freeship discount)
-        const hasFreeShipping = this.quantity >= 2 ||
-                               this.selectedCrossSells.length > 0 || 
-                               (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount));
-        const shippingFee = hasFreeShipping ? 0 : this.shippingFee;
+        const merchandiseTotal = subtotal + crossSellTotal;
+        const hasFreeShipping = isOrderFreeShipping(merchandiseTotal);
+        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee);
         
         // Calculate total before discount
-        const beforeDiscount = subtotal + crossSellTotal + shippingFee;
+        const beforeDiscount = merchandiseTotal + shippingFee;
         
         // Calculate total after discount
         const total = beforeDiscount - this.discountAmount;
@@ -2140,17 +2136,15 @@ export class QuickCheckout {
             return;
         }
         
-        // Calculate totals
-        const productTotal = this.product.price * this.quantity;
+        // Calculate totals (đồng bộ với updateOrderDetails / calculateTotal)
+        const productTotal = (this.product.price * this.quantity) + this.getCurrentWeightSurcharge();
         const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => { 
             const product = this.crossSellProducts.find(p => p.id === item.id); 
             return sum + (product ? product.price * item.quantity : 0); 
         }, 0);
-        const hasFreeShipping = this.quantity >= 2 ||
-                               this.selectedCrossSells.length > 0 || 
-                               (this.appliedDiscount && discountService.isFreeShipping(this.appliedDiscount));
-        const shippingFee = hasFreeShipping ? 0 : this.shippingFee;
-        const totalAmount = productTotal + crossSellTotal + shippingFee - this.discountAmount;
+        const merchandiseTotal = productTotal + crossSellTotal;
+        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee);
+        const totalAmount = merchandiseTotal + shippingFee - this.discountAmount;
         
         // Prepare cart items (products array)
         const cart = [

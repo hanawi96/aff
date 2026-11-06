@@ -2,7 +2,7 @@
 // PRODUCT GRID COMPONENT
 // ============================================
 
-import { renderProducts } from './product-card.js?v=15';
+import { renderProducts } from './product-card.js?v=16';
 import { warmProductGridImages } from './product-image-cache.js?v=2';
 
 /** Phần trăm giảm đang hiện trên thẻ sản phẩm. Không giảm thì là 0. */

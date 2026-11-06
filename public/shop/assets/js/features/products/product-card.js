@@ -101,7 +101,7 @@ export function createProductCard(product, bestSellerRank = 0, cardIndex = 0) {
                 ${!isOutOfStock ? bestSellerTag(bestSellerRank) : ''}
                 ${isOutOfStock ? `<span class="product-badge out-of-stock">Hết hàng</span>` : ''}
                 ${shouldShowMarketingBadges && discount > 0 ? `<span class="product-badge sale">-${discount}%</span>` : ''}
-                ${product.string_type === 'draw' ? '<span class="product-badge string-draw">Dây rút</span>' : ''}
+                ${product.string_type === 'draw' ? '<span class="product-badge string-draw">Dây nới rộng</span>' : ''}
                 ${product.string_type === 'elastic' ? '<span class="product-badge string-elastic">Dây co giãn</span>' : ''}
                 ${shouldShowMarketingBadges && hasHandmadeBadge ? `<span class="product-badge handmade">Thủ công 100%</span>` : ''}
                 ${shouldShowMarketingBadges && hasChemicalFreeBadge ? `<span class="product-badge chemical-free">Không hóa chất</span>` : ''}
