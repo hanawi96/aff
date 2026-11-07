@@ -1558,15 +1558,11 @@ body {
     margin: 0 0 0.75rem;
     padding: 0.18rem 0.7rem;
     border-radius: 999px;
-    background: linear-gradient(135deg, #f4a261, #e76f51);
+    background: linear-gradient(135deg, #81c784, #43a047);
     color: #fff;
     font-size: 0.75rem;
     font-weight: 700;
     letter-spacing: 0.01em;
-}
-
-.combo-rank-pair {
-    background: linear-gradient(135deg, #81c784, #43a047);
 }
 
 .combo-photos {
