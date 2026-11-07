@@ -683,6 +683,10 @@ const cart = {
                 '<div class="bundle-price">' + utils.formatPrice(dealPrice) + '</div>' +
                 (showDeal ? '<div class="bundle-discount-badge">-10k</div>' : '') +
                 '</div>' +
+                '<span class="bundle-freeship-badge" aria-label="Miễn phí vận chuyển">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>' +
+                '<span>Miễn phí vận chuyển</span>' +
+                '</span>' +
                 '</div>' +
                 '<button class="bundle-add-btn ' + (isInCart ? 'added' : '') + '" ' +
                 'onclick="cart.toggleBundleProduct(' + product.id + ')">' +
@@ -690,7 +694,7 @@ const cart = {
                     ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg>'
                     : '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>'
                 ) +
-                '<span>' + (isInCart ? 'Đã thêm' : 'Thêm vào đơn hàng') + '</span>' +
+                '<span>' + (isInCart ? 'Xóa khỏi giỏ' : 'Thêm vào đơn hàng') + '</span>' +
                 '</button>' +
                 '</div>';
         }).join('');

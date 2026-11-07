@@ -53,9 +53,19 @@
 }
 
 .address-placeholder {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     color: #999;
     font-size: 0.9375rem;
     font-weight: 500;
+}
+
+.address-pin-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
+    color: #e76f51;
 }
 
 .address-dropdown-arrow {
@@ -453,10 +463,19 @@
 }
 
 .address-display-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
     font-size: 0.8125rem;
     font-weight: 600;
     color: #0369a1;
     margin-bottom: 0.5rem;
+}
+
+.address-display-label .address-pin-icon {
+    width: 0.95rem;
+    height: 0.95rem;
+    color: #0369a1;
 }
 
 .address-display-text {

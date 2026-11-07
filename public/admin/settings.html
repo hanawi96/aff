@@ -497,13 +497,22 @@
                                     <p class="text-sm text-slate-600">Danh sách các bản backup đã lưu trên cloud</p>
                                 </div>
                             </div>
-                            <button type="button" onclick="loadBackupHistory()" 
-                                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                                </svg>
-                                <span>Làm mới</span>
-                            </button>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button type="button" id="deleteSelectedBackupsBtn" onclick="deleteSelectedBackups()" disabled
+                                    class="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-700 shadow-sm transition-all hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                    </svg>
+                                    <span>Xóa đã chọn (<span id="selectedBackupCount">0</span>)</span>
+                                </button>
+                                <button type="button" onclick="loadBackupHistory()" 
+                                    class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                    </svg>
+                                    <span>Làm mới</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -511,6 +520,13 @@
                         <table class="w-full">
                             <thead class="border-b border-slate-200 bg-slate-50/50">
                                 <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                    <th class="px-4 py-4 text-center whitespace-nowrap w-12">
+                                        <input type="checkbox" id="selectAllBackups"
+                                            class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                                            onchange="toggleSelectAllBackups(this.checked)"
+                                            title="Chọn tất cả"
+                                            aria-label="Chọn tất cả backup">
+                                    </th>
                                     <th class="px-6 py-4 whitespace-nowrap">Thời gian</th>
                                     <th class="px-6 py-4">Tên File</th>
                                     <th class="px-6 py-4 text-right whitespace-nowrap">Kích thước</th>
@@ -522,7 +538,7 @@
                             <tbody id="backupHistoryTable" class="divide-y divide-slate-100">
                                 <!-- Loading skeleton -->
                                 <tr>
-                                    <td colspan="6" class="px-6 py-8 text-center">
+                                    <td colspan="7" class="px-6 py-8 text-center">
                                         <div class="flex items-center justify-center gap-3 text-slate-500">
                                             <svg class="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -551,7 +567,7 @@
 
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/toast-manager.js"></script>
-    <script src="../assets/js/settings.js?v=2"></script>
+    <script src="../assets/js/settings.js?v=3"></script>
     <script src="../assets/js/auth-check.js"></script>
 </body>
 </html>

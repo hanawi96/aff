@@ -733,6 +733,7 @@ async function loadBackupHistory() {
 function renderBackupHistory(backups) {
     const tbody = document.getElementById('backupHistoryTable');
     const emptyState = document.getElementById('backupHistoryEmpty');
+    const selectAll = document.getElementById('selectAllBackups');
     
     if (!tbody) return;
     
@@ -742,6 +743,11 @@ function renderBackupHistory(backups) {
         if (emptyState) {
             emptyState.classList.remove('hidden');
         }
+        if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+        updateSelectedBackupsUI();
         return;
     }
     
@@ -755,9 +761,17 @@ function renderBackupHistory(backups) {
         const date = formatBackupDateTime(backup.created_at);
         const size = formatBackupFileSize(backup.file_size);
         const isDownloaded = backup.downloaded_at ? true : false;
+        const safeName = String(backup.file_name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         
         return `
             <tr class="transition-colors hover:bg-slate-50/50">
+                <td class="px-4 py-4 text-center whitespace-nowrap">
+                    <input type="checkbox" class="backup-row-checkbox h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                        value="${backup.id}"
+                        data-file-name="${escapeHtmlAttr(backup.file_name || '')}"
+                        onchange="updateSelectedBackupsUI()"
+                        aria-label="Chọn backup ${escapeHtmlAttr(backup.file_name || '')}">
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex flex-col">
                         <span class="text-sm font-medium text-slate-900">${date.date}</span>
@@ -769,8 +783,8 @@ function renderBackupHistory(backups) {
                         <svg class="h-4 w-4 shrink-0 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
                         </svg>
-                        <span class="text-sm text-slate-700 font-mono truncate max-w-xs" title="${backup.file_name}">
-                            ${backup.file_name}
+                        <span class="text-sm text-slate-700 font-mono truncate max-w-xs" title="${escapeHtmlAttr(backup.file_name || '')}">
+                            ${escapeHtmlText(backup.file_name || '')}
                         </span>
                     </div>
                 </td>
@@ -798,7 +812,7 @@ function renderBackupHistory(backups) {
                 <td class="px-6 py-4">
                     <div class="flex items-center justify-center gap-2">
                         <button 
-                            onclick="downloadBackupFromCloud(event, ${backup.id}, '${backup.file_name}')"
+                            onclick="downloadBackupFromCloud(event, ${backup.id}, '${safeName}')"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-teal-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md hover:from-cyan-700 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Tải về từ cloud"
                         >
@@ -808,7 +822,7 @@ function renderBackupHistory(backups) {
                             <span>${isDownloaded ? 'Tải lại' : 'Tải xuống'}</span>
                         </button>
                         <button 
-                            onclick="deleteBackupFromCloud(event, ${backup.id}, '${backup.file_name}')"
+                            onclick="deleteBackupFromCloud(event, ${backup.id}, '${safeName}')"
                             class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-rose-600 to-pink-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:shadow-md hover:from-rose-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Xóa backup"
                         >
@@ -822,6 +836,99 @@ function renderBackupHistory(backups) {
             </tr>
         `;
     }).join('');
+
+    if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+    }
+    updateSelectedBackupsUI();
+}
+
+function escapeHtmlAttr(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function escapeHtmlText(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function getSelectedBackupCheckboxes() {
+    return Array.from(document.querySelectorAll('.backup-row-checkbox:checked'));
+}
+
+function toggleSelectAllBackups(checked) {
+    document.querySelectorAll('.backup-row-checkbox').forEach((cb) => {
+        cb.checked = !!checked;
+    });
+    updateSelectedBackupsUI();
+}
+
+function updateSelectedBackupsUI() {
+    const all = document.querySelectorAll('.backup-row-checkbox');
+    const selected = getSelectedBackupCheckboxes();
+    const count = selected.length;
+    const selectAll = document.getElementById('selectAllBackups');
+    const countEl = document.getElementById('selectedBackupCount');
+    const btn = document.getElementById('deleteSelectedBackupsBtn');
+
+    if (countEl) countEl.textContent = String(count);
+    if (btn) btn.disabled = count === 0;
+    if (selectAll) {
+        selectAll.checked = all.length > 0 && count === all.length;
+        selectAll.indeterminate = count > 0 && count < all.length;
+    }
+}
+
+async function deleteSelectedBackups() {
+    const selected = getSelectedBackupCheckboxes();
+    if (selected.length === 0) return;
+
+    const confirmed = confirm(
+        `⚠️ XÓA ${selected.length} BACKUP\n\n` +
+        `Bạn có chắc muốn xóa ${selected.length} bản đã chọn?\n\n` +
+        `⚠️ Hành động này không thể hoàn tác!`
+    );
+    if (!confirmed) return;
+
+    const btn = document.getElementById('deleteSelectedBackupsBtn');
+    if (btn) btn.disabled = true;
+
+    let ok = 0;
+    let fail = 0;
+    for (const cb of selected) {
+        const id = Number(cb.value);
+        if (!id) {
+            fail++;
+            continue;
+        }
+        try {
+            const response = await backupFetch(`${CONFIG.API_URL}?action=deleteBackup`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            });
+            const data = await response.json();
+            if (!data.success) throw new Error(data.error || 'Xóa thất bại');
+            ok++;
+        } catch (error) {
+            console.error('Bulk delete backup error:', error);
+            fail++;
+        }
+    }
+
+    if (fail === 0) {
+        showToast(`✅ Đã xóa ${ok} backup`, 'success');
+    } else {
+        showToast(`⚠️ Xóa xong ${ok}, lỗi ${fail}`, 'warning');
+    }
+    await loadBackupHistory();
 }
 
 /**
@@ -993,7 +1100,7 @@ function showBackupHistoryError(message) {
     
     tbody.innerHTML = `
         <tr>
-            <td colspan="6" class="px-6 py-8 text-center">
+            <td colspan="7" class="px-6 py-8 text-center">
                 <div class="flex flex-col items-center gap-3">
                     <svg class="h-12 w-12 text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />

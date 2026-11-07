@@ -4,13 +4,19 @@
 
 import { addressService } from '../shared/services/address.service.js?v=2025c';
 
+const ADDRESS_PIN_ICON =
+    '<svg class="address-pin-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">' +
+    '<path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />' +
+    '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />' +
+    '</svg>';
+
 /** Static shell markup (admin m.html template #mOrderAddressShellTpl must stay in sync). */
 export const HIERARCHICAL_ADDRESS_SHELL_HTML =
     '<div class="hierarchical-address-selector">' +
     '<div class="address-chips-wrapper">' +
     '<div class="address-selector-display" id="addressSelectorDisplay" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false">' +
     '<div class="address-chips" id="addressChips">' +
-    '<span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>' +
+    '<span class="address-placeholder">' + ADDRESS_PIN_ICON + ' Chọn địa chỉ giao hàng</span>' +
     '</div>' +
     '<svg class="address-dropdown-arrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">' +
     '<path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 0 1-1.06 0l-7.5-7.5a.75.75 0 0 1 1.06-1.06L12 14.69l6.97-6.97a.75.75 0 1 1 1.06 1.06l-7.5 7.5Z" clip-rule="evenodd" />' +
@@ -32,7 +38,7 @@ export const HIERARCHICAL_ADDRESS_SHELL_HTML =
     '<input type="text" class="checkout-form-input" id="streetInput" placeholder="Nhập số nhà, tên đường" aria-label="Số nhà, tên đường">' +
     '</div>' +
     '<div class="address-display hidden" id="addressDisplay" role="status" aria-live="polite">' +
-    '<div class="address-display-label">📍 Địa chỉ đầy đủ:</div>' +
+    '<div class="address-display-label">' + ADDRESS_PIN_ICON + ' Địa chỉ đầy đủ:</div>' +
     '<div class="address-display-text">Vui lòng chọn địa chỉ</div>' +
     '</div>' +
     '</div>';
@@ -64,7 +70,7 @@ export class HierarchicalAddressSelector {
         this.KEYBOARD_DELAY = 300;
         this.FOCUS_DELAY = 50;
 
-        this.LOCATION_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" /></svg>';
+        this.LOCATION_ICON = ADDRESS_PIN_ICON;
         this.CLOSE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.47 5.47a.75.75 0 0 1 1.06 0L12 10.94l5.47-5.47a.75.75 0 1 1 1.06 1.06L13.06 12l5.47 5.47a.75.75 0 1 1-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 0 1-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" /></svg>';
     }
 
@@ -562,7 +568,9 @@ export class HierarchicalAddressSelector {
                 <button class="chip-remove" data-action="remove-chip" data-level="${level}" aria-label="Xóa ${shortName}">${this.CLOSE_ICON}</button>
             </div>`);
         });
-        chipsContainer.innerHTML = chips.length > 0 ? chips.join('') : '<span class="address-placeholder">📍 Chọn địa chỉ giao hàng</span>';
+        chipsContainer.innerHTML = chips.length > 0
+            ? chips.join('')
+            : `<span class="address-placeholder">${ADDRESS_PIN_ICON} Chọn địa chỉ giao hàng</span>`;
     }
 
     showStreetInput() {

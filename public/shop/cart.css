@@ -5120,6 +5120,32 @@ body {
     font-weight: 800;
 }
 
+.bundle-freeship-badge {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 0.28rem;
+    margin-top: -0.25rem;
+    padding: 0.22rem 0.55rem;
+    border: 0;
+    border-radius: 0.75rem 0.75rem 0.75rem 0.28rem;
+    background: linear-gradient(135deg, #f3fcf6 0%, #e6f8ee 52%, #d7f3e4 100%);
+    color: #166534;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(22, 101, 52, 0.08);
+}
+
+.bundle-freeship-badge svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    flex-shrink: 0;
+    color: #16a34a;
+}
+
 /* ============================================
    PROGRESS BAR - Flash Sale Sold Tracking (Handmade Warm)
    ============================================ */

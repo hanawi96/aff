@@ -462,29 +462,41 @@ export async function deleteBackupFromR2(backupId, env, corsHeaders) {
     }
 }
 
-export async function cleanupOldBackups(keepCount = 30, env) {
+/**
+ * Xóa backup R2 + lịch sử cũ hơn keepDays (mặc định 7 ngày).
+ * Gọi sau cron backup đêm — nhẹ, không cần cron riêng.
+ */
+export async function cleanupOldBackups(env, { keepDays = 7 } = {}) {
     try {
+        const days = Math.max(1, Number(keepDays) || 7);
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
         const result = await env.DB.prepare(`
             SELECT id, file_path, file_name
             FROM backup_history
-            ORDER BY created_at DESC
-            LIMIT -1 OFFSET ?
-        `).bind(keepCount).all();
+            WHERE created_at < ?
+            ORDER BY created_at ASC
+        `).bind(cutoff).all();
         const toDelete = result.results || [];
-        if (toDelete.length === 0) return { success: true, deleted: 0 };
+        if (toDelete.length === 0) return { success: true, deleted: 0, keepDays: days };
 
         const bucket = env.R2_BUCKET || env.R2_EXCEL_BUCKET;
         let deletedCount = 0;
         for (const backup of toDelete) {
             try {
-                if (bucket) await bucket.delete(backup.file_path);
+                if (bucket && backup.file_path) {
+                    try {
+                        await bucket.delete(backup.file_path);
+                    } catch (error) {
+                        console.warn(`R2 delete failed for ${backup.file_name}:`, error.message);
+                    }
+                }
                 await env.DB.prepare(`DELETE FROM backup_history WHERE id = ?`).bind(backup.id).run();
                 deletedCount++;
             } catch (error) {
                 console.error(`Failed to delete ${backup.file_name}:`, error);
             }
         }
-        return { success: true, deleted: deletedCount };
+        return { success: true, deleted: deletedCount, keepDays: days };
     } catch (error) {
         console.error('Cleanup error:', error);
         return { success: false, error: error.message };

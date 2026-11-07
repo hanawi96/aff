@@ -7329,12 +7329,22 @@ body {
     line-height: 1.15;
 }
 
-.real-vong-lead,
-.real-vong-note {
+.real-vong-lead {
     margin: 0.85rem 0 0;
     color: #5c4a3a;
     font-size: 1.1rem;
     line-height: 1.65;
+}
+
+.real-vong-note {
+    margin: 0.85rem 0 0;
+    padding: 0.9rem 1.05rem;
+    color: #5c4a3a;
+    font-size: 0.98rem;
+    line-height: 1.65;
+    border-radius: 16px;
+    border: 2px dashed #d9a882;
+    background: rgba(255, 255, 255, 0.35);
 }
 
 .real-vong-list {

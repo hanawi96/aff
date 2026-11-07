@@ -36,6 +36,132 @@
             100% { background-color: transparent; }
         }
 
+        /* Floating bulk actions — ôm sát nội dung, không dư khoảng trống */
+        #bulkActionsBar {
+            width: max-content;
+            max-width: calc(100vw - 1.25rem);
+        }
+        #bulkActionsBar .bulk-bar-shell {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            max-width: 100%;
+            min-width: 0;
+            padding: 0.55rem 0.7rem;
+        }
+        #bulkActionsBar .bulk-bar-count {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-shrink: 0;
+            padding-right: 0.65rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.28);
+            color: #fff;
+            white-space: nowrap;
+            font-size: 0.8125rem;
+            font-weight: 600;
+        }
+        #bulkActionsBar .bulk-bar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            min-width: 0;
+            flex: 0 1 auto;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+            padding-bottom: 1px;
+        }
+        #bulkActionsBar .bulk-bar-actions::-webkit-scrollbar {
+            height: 4px;
+        }
+        #bulkActionsBar .bulk-bar-actions::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 999px;
+        }
+        #bulkActionsBar .bulk-bar-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            flex-shrink: 0;
+            white-space: nowrap;
+            height: 2.15rem;
+            padding: 0 0.7rem;
+            border-radius: 0.7rem;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+        #bulkActionsBar .bulk-bar-btn:hover {
+            transform: translateY(-1px);
+        }
+        #bulkActionsBar .bulk-bar-btn svg {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+        }
+        #bulkActionsBar .bulk-bar-btn--ghost {
+            background: rgba(255, 255, 255, 0.18);
+        }
+        #bulkActionsBar .bulk-bar-btn--ghost:hover {
+            background: rgba(255, 255, 255, 0.28);
+        }
+        #bulkActionsBar .bulk-bar-btn--priority {
+            background: #eab308;
+            box-shadow: 0 4px 10px rgba(234, 179, 8, 0.28);
+        }
+        #bulkActionsBar .bulk-bar-btn--priority:hover {
+            background: #ca8a04;
+        }
+        #bulkActionsBar .bulk-bar-btn--invoice {
+            background: rgba(16, 185, 129, 0.85);
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25);
+        }
+        #bulkActionsBar .bulk-bar-btn--invoice:hover {
+            background: #10b981;
+        }
+        #bulkActionsBar .bulk-bar-btn--danger {
+            background: #ef4444;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.28);
+        }
+        #bulkActionsBar .bulk-bar-btn--danger:hover {
+            background: #dc2626;
+        }
+        #bulkActionsBar .bulk-bar-btn--close {
+            width: 2.15rem;
+            padding: 0;
+        }
+        @media (max-width: 1100px) {
+            #bulkActionsBar .bulk-bar-btn-label {
+                display: none;
+            }
+            #bulkActionsBar .bulk-bar-btn:not(.bulk-bar-btn--close) {
+                width: 2.15rem;
+                padding: 0;
+            }
+        }
+        @media (max-width: 640px) {
+            #bulkActionsBar {
+                bottom: 0.75rem;
+            }
+            #bulkActionsBar .bulk-bar-shell {
+                padding: 0.45rem 0.55rem;
+                gap: 0.45rem;
+            }
+            #bulkActionsBar .bulk-bar-count {
+                padding-right: 0.45rem;
+                font-size: 0.75rem;
+            }
+            #bulkActionsBar .bulk-bar-count-icon {
+                display: none;
+            }
+        }
+
         .fade-in {
             animation: fadeIn 0.3s ease-out;
         }
@@ -1391,98 +1517,95 @@
 
                 <!-- Floating Bulk Actions Bar (Bottom) -->
                 <div id="bulkActionsBar" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-                    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-2xl px-6 py-4 backdrop-blur-sm border border-white/20">
-                        <div class="flex items-center gap-6">
-                            <!-- Selected Count -->
-                            <div class="flex items-center gap-2 text-white border-r border-white/30 pr-6">
-                                <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-2xl backdrop-blur-sm border border-white/20">
+                        <div class="bulk-bar-shell">
+                            <div class="bulk-bar-count" aria-live="polite">
+                                <div class="bulk-bar-count-icon w-7 h-7 bg-white/20 rounded-full flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
-                                <span class="font-semibold text-sm">
-                                    <span id="selectedCount">0</span> đơn
-                                </span>
+                                <span><span id="selectedCount">0</span> đơn</span>
                             </div>
-                            
-                            <!-- Action Buttons -->
-                            <div class="flex items-center gap-2">
-                                <button onclick="showBulkStatusMenu(event)" 
-                                    class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
+
+                            <div class="bulk-bar-actions" role="toolbar" aria-label="Thao tác hàng loạt">
+                                <button type="button" onclick="showBulkStatusMenu(event)"
+                                    class="bulk-bar-btn bulk-bar-btn--ghost"
                                     title="Sửa trạng thái hàng loạt">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    <span class="text-sm">Sửa trạng thái</span>
-                                </button>
-                                
-                                <button onclick="bulkTogglePriority(true)" 
-                                    class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105 shadow-lg"
-                                    title="Đánh dấu ưu tiên">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                    </svg>
-                                    <span class="text-sm">Ưu tiên</span>
-                                </button>
-                                
-                                <button onclick="bulkTogglePriority(false)" 
-                                    class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
-                                    title="Bỏ đánh dấu ưu tiên">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 20 20" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                    </svg>
-                                    <span class="text-sm">Bỏ ưu tiên</span>
-                                </button>
-                                
-                                <button onclick="bulkExport()" 
-                                    class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
-                                    title="Export đơn hàng đã chọn (SPX)">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <span class="text-sm">Export</span>
-                                </button>
-                                
-                                <button onclick="bulkToggleInvoiceStatus()" 
-                                    class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
-                                    title="Đánh dấu / Bỏ đánh dấu đã xuất HĐĐT">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span class="text-sm">Toggle HĐĐT</span>
+                                    <span class="bulk-bar-btn-label">Trạng thái</span>
                                 </button>
 
-                                <button onclick="bulkExportInvoice()" 
-                                    class="px-4 py-2 bg-emerald-500/80 hover:bg-emerald-500 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105 shadow-md"
+                                <button type="button" onclick="bulkTogglePriority(true)"
+                                    class="bulk-bar-btn bulk-bar-btn--priority"
+                                    title="Đánh dấu ưu tiên">
+                                    <svg fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    <span class="bulk-bar-btn-label">Ưu tiên</span>
+                                </button>
+
+                                <button type="button" onclick="bulkTogglePriority(false)"
+                                    class="bulk-bar-btn bulk-bar-btn--ghost"
+                                    title="Bỏ đánh dấu ưu tiên">
+                                    <svg fill="none" viewBox="0 0 20 20" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    <span class="bulk-bar-btn-label">Bỏ ưu tiên</span>
+                                </button>
+
+                                <button type="button" onclick="bulkExport()"
+                                    class="bulk-bar-btn bulk-bar-btn--ghost"
+                                    title="Export đơn hàng đã chọn (SPX)">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span class="bulk-bar-btn-label">Export</span>
+                                </button>
+
+                                <button type="button" onclick="bulkToggleInvoiceStatus()"
+                                    class="bulk-bar-btn bulk-bar-btn--ghost"
+                                    title="Đánh dấu / Bỏ đánh dấu đã xuất HĐĐT">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span class="bulk-bar-btn-label">HĐĐT</span>
+                                </button>
+
+                                <button type="button" onclick="bulkExportInvoice()"
+                                    class="bulk-bar-btn bulk-bar-btn--invoice"
                                     title="Export hóa đơn điện tử (MauUploadHD)">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
-                                    <span class="text-sm">HĐ Điện Tử</span>
+                                    <span class="bulk-bar-btn-label">Xuất HĐ</span>
                                 </button>
-                                
-                                <button onclick="showExportHistoryModal()"
-                                    class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105"
+
+                                <button type="button" onclick="showExportHistoryModal()"
+                                    class="bulk-bar-btn bulk-bar-btn--ghost"
                                     title="Xem lịch sử export">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span class="text-sm">Lịch sử</span>
+                                    <span class="bulk-bar-btn-label">Lịch sử</span>
                                 </button>
-                                
-                                <button onclick="bulkDelete()" 
-                                    class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 hover:scale-105 shadow-lg"
+
+                                <button type="button" onclick="bulkDelete()"
+                                    class="bulk-bar-btn bulk-bar-btn--danger"
                                     title="Xóa đơn hàng đã chọn">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
-                                    <span class="text-sm">Xóa</span>
+                                    <span class="bulk-bar-btn-label">Xóa</span>
                                 </button>
-                                
-                                <button onclick="clearSelection()" 
-                                    class="w-9 h-9 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium transition-all flex items-center justify-center hover:scale-105"
-                                    title="Bỏ chọn tất cả">
-                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+                                <button type="button" onclick="clearSelection()"
+                                    class="bulk-bar-btn bulk-bar-btn--ghost bulk-bar-btn--close"
+                                    title="Bỏ chọn tất cả"
+                                    aria-label="Bỏ chọn tất cả">
+                                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>

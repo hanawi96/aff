@@ -1,6 +1,8 @@
-import { createAndStoreBackup } from './backup-service.js';
+import { createAndStoreBackup, cleanupOldBackups } from './backup-service.js';
 
-const DRIVE_BACKUP_KEEP = 14;
+/** Drive + R2: giữ ~7 ngày (1 bản/đêm → ~7 file). */
+const BACKUP_KEEP_DAYS = 7;
+const DRIVE_BACKUP_KEEP = BACKUP_KEEP_DAYS;
 
 /**
  * Gửi file SQL đã tạo sang Apps Script trên Google Drive của shop.
@@ -97,6 +99,17 @@ export async function runScheduledDriveBackup(env) {
     } catch (error) {
         console.error('Drive note update failed:', error);
     }
+
+    let cleanup = { deleted: 0 };
+    try {
+        cleanup = await cleanupOldBackups(env, { keepDays: BACKUP_KEEP_DAYS });
+        if (cleanup.deleted) {
+            console.log(`🧹 [BACKUP] Đã xóa ${cleanup.deleted} bản > ${BACKUP_KEEP_DAYS} ngày`);
+        }
+    } catch (error) {
+        console.error('Backup cleanup failed:', error);
+    }
+
     return {
         fileName: backup.fileName,
         tables: backup.tables,
@@ -104,5 +117,6 @@ export async function runScheduledDriveBackup(env) {
         r2: backup.uploaded === true,
         drive: drive.uploaded === true,
         driveError: drive.uploaded ? undefined : drive.reason,
+        cleaned: cleanup.deleted || 0,
     };
 }
