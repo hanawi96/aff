@@ -414,17 +414,8 @@ export class QuickCheckout {
             return;
         }
         
-        const comboNote = this.pairComboId
-            ? 'Combo 2 vòng — −10k + miễn ship (đủ 2 vòng)'
-            : (this.comboBundleId
-                ? 'Bó dâu combo đã chọn — −10k + miễn ship'
-                : 'Thêm bó dâu: −10k + miễn ship');
         let html = '<div class="cross-sell-header">';
-        html += '<div class="cross-sell-header-text">';
-        html += '<span class="cross-sell-title">Mua kèm</span>';
-        html += '<span class="cross-sell-subtitle">' + comboNote + '</span>';
-        html += '</div>';
-        html += '<span class="cross-sell-freeship-chip">Freeship</span>';
+        html += '<p class="cross-sell-header-line">Mua kèm miễn phí vận chuyển</p>';
         html += '</div>';
         
         html += '<div class="cross-sell-items-wrapper">';
@@ -478,11 +469,7 @@ export class QuickCheckout {
      */
     renderCrossSellSkeleton(container) {
         let html = '<div class="cross-sell-header">';
-        html += '<div class="cross-sell-header-text">';
-        html += '<span class="cross-sell-title">Mua kèm</span>';
-        html += '<span class="cross-sell-subtitle">Thêm bó dâu: −10k + miễn ship</span>';
-        html += '</div>';
-        html += '<span class="cross-sell-freeship-chip">Freeship</span>';
+        html += '<p class="cross-sell-header-line">Mua kèm miễn phí vận chuyển</p>';
         html += '</div>';
         html += '<div class="cross-sell-items-wrapper">';
         for (let i = 0; i < 2; i++) {
