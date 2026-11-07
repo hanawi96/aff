@@ -14,7 +14,7 @@ export async function getExportHistory(env) {
         FROM export_history
         WHERE type = 'spx'
         ORDER BY created_at DESC
-        LIMIT 50
+        LIMIT 8
     `).all();
 
     return {
@@ -323,7 +323,7 @@ export async function getInvoiceExportHistory(env) {
         FROM export_history
         WHERE type = 'invoice'
         ORDER BY created_at DESC
-        LIMIT 50
+        LIMIT 8
     `).all();
 
     return {
