@@ -78,7 +78,6 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.75rem;
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.15);
 }
 
 /* ============================================ */
@@ -1654,22 +1653,51 @@ body {
 }
 
 .combo-freeship {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     align-self: center;
     margin: 0 0 0.85rem;
-    padding: 0.38rem 0.85rem;
-    border-radius: 999px;
-    border: 1px dashed rgba(46, 160, 110, 0.4);
-    background: linear-gradient(135deg, #f0fdf6 0%, #e8faf1 100%);
-    color: #15803d;
+    padding: 0.42rem 1rem 0.42rem 0.85rem;
+    border: 0;
+    border-radius: 1.1rem 1.1rem 1.1rem 0.35rem;
+    background:
+        radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.9) 0%, transparent 45%),
+        linear-gradient(135deg, #f3fcf6 0%, #e6f8ee 48%, #d7f3e4 100%);
+    color: #166534;
     font-size: 0.8rem;
     font-weight: 700;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
     line-height: 1.2;
-    box-shadow: 0 2px 8px rgba(21, 128, 61, 0.06);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.75) inset,
+        0 4px 14px rgba(22, 101, 52, 0.1);
+}
+
+.combo-freeship::before,
+.combo-freeship::after {
+    content: '';
+    position: absolute;
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: 50%;
+    background: #4ade80;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.combo-freeship::before {
+    top: 0.28rem;
+    left: 0.4rem;
+}
+
+.combo-freeship::after {
+    bottom: 0.28rem;
+    right: 0.45rem;
+    background: #16a34a;
+    opacity: 0.4;
 }
 
 .combo-freeship svg {
@@ -1683,21 +1711,24 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
     width: 100%;
     margin: -0.25rem 0 0.9rem;
-    padding: 0.4rem 0.7rem;
-    border-radius: 999px;
-    background: linear-gradient(135deg, #f0fdf6, #e7f8ef);
-    color: #15803d;
+    padding: 0.45rem 0.85rem;
+    border: 0;
+    border-radius: 1rem 1rem 1rem 0.35rem;
+    background: linear-gradient(135deg, #f3fcf6, #e3f7eb);
+    color: #166534;
     font-size: 0.82rem;
     font-weight: 700;
+    box-shadow: 0 3px 10px rgba(22, 101, 52, 0.08);
 }
 
 .combo-choice-freeship svg {
     width: 0.95rem;
     height: 0.95rem;
     flex-shrink: 0;
+    color: #16a34a;
 }
 
 .combo-buy {
@@ -1937,7 +1968,6 @@ body.combo-choice-open {
     width: 100%;
     margin: 0 0 0.55rem;
     padding: 0.4rem 0.65rem;
-    border: 1px dashed rgba(231, 111, 81, 0.45);
     border-radius: 999px;
     background: linear-gradient(90deg, #fff7f2, #fff1e4);
     color: #9a3412;
@@ -1954,12 +1984,52 @@ body.combo-choice-open {
 }
 
 .product-combo-hint.product-freeship-hint {
+    position: relative;
     justify-content: center;
+    gap: 0.4rem;
     cursor: default;
-    border-color: rgba(46, 160, 110, 0.4);
-    background: linear-gradient(90deg, #f0fdf6, #e8faf1);
-    color: #15803d;
+    border: 0;
+    border-radius: 1.1rem 1.1rem 1.1rem 0.35rem;
+    background:
+        radial-gradient(circle at 14% 18%, rgba(255, 255, 255, 0.9) 0%, transparent 42%),
+        linear-gradient(135deg, #f3fcf6 0%, #e6f8ee 52%, #d7f3e4 100%);
+    color: #166534;
     font-weight: 700;
+    letter-spacing: 0.02em;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.75) inset,
+        0 4px 12px rgba(22, 101, 52, 0.1);
+}
+
+.product-combo-hint.product-freeship-hint::before,
+.product-combo-hint.product-freeship-hint::after {
+    content: '';
+    position: absolute;
+    width: 0.32rem;
+    height: 0.32rem;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.product-combo-hint.product-freeship-hint::before {
+    top: 0.26rem;
+    left: 0.38rem;
+    background: #4ade80;
+    opacity: 0.55;
+}
+
+.product-combo-hint.product-freeship-hint::after {
+    bottom: 0.26rem;
+    right: 0.42rem;
+    background: #16a34a;
+    opacity: 0.4;
+}
+
+.product-combo-hint.product-freeship-hint svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    flex-shrink: 0;
+    color: #16a34a;
 }
 
 @keyframes combo-glow {
