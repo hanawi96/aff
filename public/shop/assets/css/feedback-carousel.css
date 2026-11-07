@@ -97,7 +97,7 @@
     scroll-snap-align: center;
     min-width: 0;
     border-radius: 1.25rem;
-    border: 1px solid #f3d7be;
+    border: 0;
     box-shadow: 0 10px 24px rgba(120, 72, 48, 0.06);
     overflow: hidden;
     aspect-ratio: 4 / 5;

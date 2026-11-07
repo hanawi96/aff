@@ -19,6 +19,7 @@ import {
     resolveShippingFee
 } from '../../shared/utils/shipping.js';
 import { isBouquetProduct, withBouquetDealPrice } from '../../shared/utils/bouquet-deal.js';
+import { pairComboDiscountAmount } from '../../shared/utils/pair-combo.js';
 import { needsBabyName } from '../../shared/utils/needs-baby-name.js';
 
 /**
@@ -28,6 +29,8 @@ export class QuickCheckout {
     constructor() {
         this.product = null;
         this.quantity = 1;
+        this.comboBundleId = null;
+        this.pairComboId = null;
         this.crossSellProducts = [];
         this.selectedCrossSells = []; // Array of {id, quantity}
         this.addressSelector = null;
@@ -91,13 +94,18 @@ export class QuickCheckout {
      */
     async open(product) {
         this.product = product;
-        this.quantity = 1;
+        const initialQty = Number(product?.quantity);
+        this.quantity = Number.isFinite(initialQty) && initialQty > 0 ? initialQty : 1;
         this.comboBundleId = Number(product?.comboBundleId) || null;
+        this.pairComboId = product?.pairComboId || null;
+        // Combo đôi: không gắn bó dâu sẵn
+        if (this.pairComboId) this.comboBundleId = null;
         // Mua bó dâu: ẩn mua kèm (không gợi ý lại bó dâu)
         if (isBouquetProduct(product)) {
             this.crossSellProducts = [];
             this.selectedCrossSells = [];
             this.comboBundleId = null;
+            this.pairComboId = null;
         } else {
             this.selectedCrossSells = this.comboBundleId
                 ? [{ id: this.comboBundleId, quantity: 1 }]
@@ -259,9 +267,10 @@ export class QuickCheckout {
         
         // Clean URL (remove ?buy parameter)
         const url = new URL(window.location);
-        if (url.searchParams.has('buy') || url.searchParams.has('combo')) {
+        if (url.searchParams.has('buy') || url.searchParams.has('combo') || url.searchParams.has('pair')) {
             url.searchParams.delete('buy');
             url.searchParams.delete('combo');
+            url.searchParams.delete('pair');
             const search = url.searchParams.toString();
             window.history.pushState({}, '', url.pathname + (search ? `?${search}` : ''));
         }
@@ -269,6 +278,7 @@ export class QuickCheckout {
         this.product = null;
         this.quantity = 1;
         this.comboBundleId = null;
+        this.pairComboId = null;
         this.selectedCrossSells = [];
     }
     
@@ -404,9 +414,11 @@ export class QuickCheckout {
             return;
         }
         
-        const comboNote = this.comboBundleId
-            ? 'Bó dâu combo đã chọn — −10k + miễn ship'
-            : 'Thêm bó dâu: −10k + miễn ship';
+        const comboNote = this.pairComboId
+            ? 'Combo 2 vòng — −10k + miễn ship (đủ 2 vòng)'
+            : (this.comboBundleId
+                ? 'Bó dâu combo đã chọn — −10k + miễn ship'
+                : 'Thêm bó dâu: −10k + miễn ship');
         let html = '<div class="cross-sell-header">';
         html += '<div class="cross-sell-header-text">';
         html += '<span class="cross-sell-title">Mua kèm</span>';
@@ -982,7 +994,14 @@ export class QuickCheckout {
      * Reset form
      */
     resetForm() {
-        document.getElementById('checkoutQty').value = 1;
+        const qtyInput = document.getElementById('checkoutQty');
+        if (qtyInput) qtyInput.value = this.quantity || 1;
+        const qtyMinus = document.getElementById('checkoutQtyMinus');
+        const qtyPlus = document.getElementById('checkoutQtyPlus');
+        if (qtyMinus) qtyMinus.disabled = (this.quantity || 1) <= 1;
+        if (qtyPlus && this.product) {
+            qtyPlus.disabled = (this.quantity || 1) >= (this.product.maxQuantity || 99);
+        }
         document.getElementById('checkoutPhone').value = '';
         document.getElementById('checkoutName').value = '';
         document.getElementById('checkoutBabyWeight').value = '';
@@ -1014,13 +1033,26 @@ export class QuickCheckout {
      */
     getShippingCartItems() {
         const items = [];
-        if (this.product) items.push(this.product);
+        if (this.product) {
+            items.push({
+                ...this.product,
+                quantity: this.quantity,
+                pairComboId: this.pairComboId || null
+            });
+        }
         (this.selectedCrossSells || []).forEach((item) => {
             if (item?.id == null) return;
             const product = (this.crossSellProducts || []).find((p) => Number(p.id) === Number(item.id));
-            items.push(product || { id: item.id });
+            items.push({
+                ...(product || { id: item.id }),
+                quantity: item.quantity || 1
+            });
         });
         return items;
+    }
+
+    getPairComboDiscount() {
+        return pairComboDiscountAmount(this.pairComboId, this.quantity);
     }
 
     /**
@@ -1033,7 +1065,7 @@ export class QuickCheckout {
         const subtotal = (this.product.price * this.quantity) + weightSurcharge;
         const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => { const product = this.crossSellProducts.find(p => p.id === item.id); return sum + (product ? product.price * item.quantity : 0); }, 0);
         
-        const merchandiseTotal = subtotal + crossSellTotal;
+        const merchandiseTotal = Math.max(0, subtotal + crossSellTotal - this.getPairComboDiscount());
         const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee, this.getShippingCartItems());
         
         const beforeDiscount = merchandiseTotal + shippingFee;
@@ -1579,7 +1611,8 @@ export class QuickCheckout {
             orderItemsList.innerHTML = chipsHtml;
         }
         
-        const merchandiseTotal = subtotal + crossSellTotal;
+        const pairDiscount = this.getPairComboDiscount();
+        const merchandiseTotal = Math.max(0, subtotal + crossSellTotal - pairDiscount);
         const shippingItems = this.getShippingCartItems();
         const hasFreeShipping = isOrderFreeShipping(merchandiseTotal, shippingItems);
         const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee, shippingItems);
@@ -1590,10 +1623,12 @@ export class QuickCheckout {
         // Calculate total after discount
         const total = beforeDiscount - this.discountAmount;
         
+        const rawMerchandise = subtotal + crossSellTotal;
+
         // Update detailed summary (if exists - old design)
         const subtotalEl = document.getElementById('checkoutSubtotal');
         if (subtotalEl) {
-            subtotalEl.textContent = formatPrice(subtotal + crossSellTotal);
+            subtotalEl.textContent = formatPrice(rawMerchandise);
         }
         
         const shippingElement = document.getElementById('checkoutShipping');
@@ -1610,7 +1645,7 @@ export class QuickCheckout {
         // Update order details summary section
         const orderSubtotal = document.getElementById('orderSubtotal');
         if (orderSubtotal) {
-            orderSubtotal.textContent = formatPrice(subtotal + crossSellTotal);
+            orderSubtotal.textContent = formatPrice(rawMerchandise);
         }
         
         const orderShipping = document.getElementById('orderShipping');
@@ -1626,10 +1661,12 @@ export class QuickCheckout {
         
         const orderDiscountRow = document.getElementById('orderDiscountRow');
         const orderDiscountAmount = document.getElementById('orderDiscountAmount');
+        // Subtotal = giá gốc; giảm combo đôi + mã giảm hiện ở dòng giảm (total đã trừ đủ)
+        const shownDiscount = pairDiscount + (Number(this.discountAmount) || 0);
         if (orderDiscountRow && orderDiscountAmount) {
-            if (this.appliedDiscount && this.discountAmount > 0) {
+            if (shownDiscount > 0) {
                 orderDiscountRow.classList.remove('hidden');
-                orderDiscountAmount.textContent = '-' + formatPrice(this.discountAmount);
+                orderDiscountAmount.textContent = '-' + formatPrice(shownDiscount);
             } else {
                 orderDiscountRow.classList.add('hidden');
             }
@@ -2170,21 +2207,28 @@ export class QuickCheckout {
             const product = this.crossSellProducts.find(p => p.id === item.id); 
             return sum + (product ? product.price * item.quantity : 0); 
         }, 0);
-        const merchandiseTotal = productTotal + crossSellTotal;
+        const pairDiscount = this.getPairComboDiscount();
+        const merchandiseTotal = Math.max(0, productTotal + crossSellTotal - pairDiscount);
         const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee, this.getShippingCartItems());
         const totalAmount = merchandiseTotal + shippingFee - this.discountAmount;
+
+        // Trừ đều −10k vào đơn giá dòng chính (tránh lệch tổng backend)
+        const mainLinePrice = this.quantity > 0
+            ? Math.round(((Number(this.product.price) * this.quantity) - pairDiscount) / this.quantity)
+            : this.product.price;
         
         // Prepare cart items (products array)
         const cart = [
             {
                 id: this.product.id,
                 name: this.product.name,
-                price: this.product.price,
+                price: mainLinePrice,
                 cost_price: this.product.cost_price || 0,
                 quantity: this.quantity,
                 image: this.product.image,
                 size: this.needsBabyWeight ? formData.babyWeight : '', // Only add baby weight if needed
-                notes: this.needsBabyName && formData.babyName ? `Tên bé: ${formData.babyName}` : '' // Add baby name to notes
+                notes: this.needsBabyName && formData.babyName ? `Tên bé: ${formData.babyName}` : '', // Add baby name to notes
+                pairComboId: this.pairComboId || null
             }
         ];
         

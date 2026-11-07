@@ -10,6 +10,13 @@ import { productThumbUrl, CONFIG } from '../../shared/constants/config.js?v=9';
 import { showToast } from '../../shared/utils/helpers.js';
 
 import { BOUQUET_DEAL_PRICE } from '../../shared/utils/bouquet-deal.js';
+import {
+    PAIR_COMBO_DISCOUNT,
+    PAIR_COMBO_QTY,
+    pickPairComboProducts,
+    pairComboTotalNow,
+    pairComboTotalWas
+} from '../../shared/utils/pair-combo.js';
 
 /** Giá bó dâu khi mua kèm bất kỳ SP nào (giữ tên cũ cho import). */
 export const COMBO_BUNDLE_PRICE = BOUQUET_DEAL_PRICE;
@@ -159,6 +166,35 @@ function renderCard(product, rank, bundles) {
     `;
 }
 
+function renderPairCard(def, product) {
+    const image = productThumbUrl(product.image_url || product.image || CONFIG.DEFAULT_IMAGE);
+    const unit = Number(product.price) || 0;
+    const totalNow = pairComboTotalNow(unit);
+    const totalWas = pairComboTotalWas(unit);
+
+    return `
+        <article class="combo-card combo-card-pair" id="combo-pair-${def.id}" data-pair-combo="${escapeHtml(def.id)}" data-combo-product="${product.id}" data-combo-price="${unit}">
+            <p class="combo-rank combo-rank-pair">Tiết kiệm ${formatPrice(PAIR_COMBO_DISCOUNT)}</p>
+            <div class="combo-photos">
+                <img class="combo-photo-main" src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" width="480" height="480" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
+                <span class="combo-plus" aria-hidden="true">+</span>
+                <img class="combo-photo-addon" src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" width="240" height="240" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
+            </div>
+            <h3 class="combo-name">${escapeHtml(def.title)}</h3>
+            <p class="combo-card-kicker">2 vòng · giảm ${formatPrice(PAIR_COMBO_DISCOUNT)}</p>
+            <div class="combo-price-summary">
+                <strong class="combo-total-now">${formatPrice(totalNow)}</strong>
+                <s class="combo-total-was">${formatPrice(totalWas)}</s>
+            </div>
+            <p class="combo-freeship" aria-label="Mua combo được miễn phí vận chuyển">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/></svg>
+                <span>Miễn phí vận chuyển</span>
+            </p>
+            <button type="button" class="combo-buy" data-pair-combo-buy>Mua Combo</button>
+        </article>
+    `;
+}
+
 function choicePanelHtml(bundles) {
     const options = bundles.map((bundle) => {
         const label = choiceLabel(bundle);
@@ -235,6 +271,18 @@ function bindShelf(root) {
     bound = true;
 
     root.addEventListener('click', (event) => {
+        const pairBuy = event.target.closest('[data-pair-combo-buy]');
+        if (pairBuy) {
+            const card = pairBuy.closest('[data-pair-combo]');
+            if (card) {
+                buyPairCombo(
+                    Number(card.dataset.comboProduct),
+                    card.dataset.pairCombo
+                );
+            }
+            return;
+        }
+
         const buy = event.target.closest('[data-combo-buy]');
         if (buy) {
             const card = buy.closest('[data-combo-product]');
@@ -324,6 +372,41 @@ function buyCombo(productId, bundleIdOverride) {
     });
 }
 
+function buyPairCombo(productId, pairComboId) {
+    const product = findBracelet(productId);
+    if (!product) {
+        showToast('Không tìm thấy sản phẩm. Vui lòng tải lại trang và thử lại.', 'error');
+        return;
+    }
+    if (isOutOfStock(product)) {
+        showToast('Sản phẩm hiện đã hết hàng.', 'error');
+        return;
+    }
+    if (!window.quickCheckout) {
+        showToast('Hệ thống đang tải. Vui lòng thử lại sau vài giây.', 'error');
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('buy', String(product.id));
+    url.searchParams.set('pair', String(pairComboId));
+    url.searchParams.delete('combo');
+    window.history.pushState({ productId: product.id, pair: pairComboId }, '', url);
+
+    window.quickCheckout.open({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        originalPrice: product.original_price,
+        image: product.image_url || product.image,
+        maxQuantity: 99,
+        quantity: PAIR_COMBO_QTY,
+        isFlashSale: false,
+        categories: product.categories || [],
+        pairComboId
+    });
+}
+
 export function focusComboCard(productId) {
     const card = document.getElementById(`combo-card-${productId}`);
     const shelf = document.getElementById('comboShelf');
@@ -342,6 +425,7 @@ export function renderComboShelf(products) {
 
     const bundles = getComboBundles();
     const top = pickTopBracelets(products, 3);
+    const pairCombos = pickPairComboProducts(products, isOutOfStock);
     const savings = comboSavingsText();
     if (!top.length || !bundles.length || !savings) {
         root.hidden = true;
@@ -350,16 +434,18 @@ export function renderComboShelf(products) {
         return;
     }
 
+    const comboCount = top.length + pairCombos.length;
     root.hidden = false;
     root.setAttribute('aria-hidden', 'false');
     root.innerHTML = `
         <header class="combo-head">
             <h2 class="combo-title">Combo tiết kiệm nhất <span>cho mẹ</span></h2>
             ${heartRule()}
-            <p class="combo-lead">3 combo được các mẹ mua nhiều nhất</p>
+            <p class="combo-lead">${comboCount} combo được các mẹ mua nhiều nhất</p>
         </header>
         <div class="combo-track">
             ${top.map(({ product, rank }) => renderCard(product, rank, bundles)).join('')}
+            ${pairCombos.map(({ def, product }) => renderPairCard(def, product)).join('')}
         </div>
         <p class="combo-swipe">Vuốt ngang để xem mẫu khác<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" /></svg></p>
         ${choicePanelHtml(bundles)}

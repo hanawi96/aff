@@ -5,7 +5,7 @@
 import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
 import { CONFIG, productGridUrl } from '../../shared/constants/config.js?v=9';
-import { comboSavingsText } from '../combo/combo-shelf.js?v=11';
+import { comboSavingsText } from '../combo/combo-shelf.js?v=12';
 import { isBouquetProduct } from '../../shared/utils/bouquet-deal.js';
 import { isBiCharmSilverProduct } from '../../shared/utils/shipping.js';
 

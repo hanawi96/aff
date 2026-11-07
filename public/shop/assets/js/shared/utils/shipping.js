@@ -4,10 +4,12 @@
 //  1) tiền hàng >= FREE_SHIPPING_THRESHOLD (100k)
 //     — KHÔNG áp dụng nếu mọi SP (trừ bó dâu) thuộc "Bi, charm bạc"
 //  2) OR có SP thường + bó dâu 7/9 cành (mua kèm)
+//  3) OR combo đôi (2 vòng trơn co giãn / dây đỏ) đủ số lượng
 // ============================================
 
 import { CONFIG } from '../constants/config.js';
 import { isBouquetProduct, cartHasCompanionProduct } from './bouquet-deal.js';
+import { cartHasPairComboFreeShip } from './pair-combo.js';
 
 /** Danh mục Bi, charm bạc — SP mới thêm vào đây tự theo rule miễn ship đặc biệt */
 export const BI_CHARM_SILVER_CATEGORY_ID = 24;
@@ -59,6 +61,7 @@ export function cartHasBouquetFreeShip(cartOrItems) {
  */
 export function isOrderFreeShipping(merchandiseTotal, cartOrItems) {
     if (cartHasBouquetFreeShip(cartOrItems)) return true;
+    if (cartHasPairComboFreeShip(cartOrItems)) return true;
     if (Number(merchandiseTotal) < CONFIG.FREE_SHIPPING_THRESHOLD) return false;
     if (cartBlocksThresholdFreeShip(cartOrItems)) return false;
     return true;
@@ -67,10 +70,11 @@ export function isOrderFreeShipping(merchandiseTotal, cartOrItems) {
 /**
  * @param {number} merchandiseTotal
  * @param {Array|null|undefined} [cartOrItems]
- * @returns {'threshold'|'bouquet'|null}
+ * @returns {'threshold'|'bouquet'|'pair-combo'|null}
  */
 export function getFreeShippingReason(merchandiseTotal, cartOrItems) {
     if (cartHasBouquetFreeShip(cartOrItems)) return 'bouquet';
+    if (cartHasPairComboFreeShip(cartOrItems)) return 'pair-combo';
     if (Number(merchandiseTotal) >= CONFIG.FREE_SHIPPING_THRESHOLD
         && !cartBlocksThresholdFreeShip(cartOrItems)) {
         return 'threshold';
