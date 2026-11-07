@@ -2,8 +2,9 @@
 // PRODUCT ACTIONS - Add to Cart, Buy Now, etc.
 // ============================================
 
-import { cartService } from '../../shared/services/cart.service.js';
+import { cartService } from '../../shared/services/cart.service.js?v=2';
 import { showToast } from '../../shared/utils/helpers.js';
+import { needsBabyName } from '../../shared/utils/needs-baby-name.js';
 
 /**
  * Product Actions Handler
@@ -74,35 +75,45 @@ export class ProductActions {
         console.log('   Product data:', product);
         console.log('   BabyWeightModal instance:', this.babyWeightModal);
         
-        // Check if product needs baby weight selection
-        if (this.babyWeightModal && this.babyWeightModal.needsBabyWeight(product)) {
-            console.log('⚖️ ProductActions: Opening baby weight modal for product:', product.name);
-            // Open modal with callback
-            this.babyWeightModal.open(product, (selectedWeight, surcharge = 0) => {
-                console.log('✅ ProductActions: Weight selected:', selectedWeight);
-                console.log('💰 ProductActions: Surcharge:', surcharge);
-                this.addToCartWithWeight(product, selectedWeight, surcharge);
-            });
+        const requireWeight = !!(this.babyWeightModal && this.babyWeightModal.needsBabyWeight(product));
+        const requireName = needsBabyName(product);
+
+        if (this.babyWeightModal && (requireWeight || requireName)) {
+            console.log('⚖️ ProductActions: Opening options modal', { requireWeight, requireName });
+            this.babyWeightModal.open(
+                product,
+                (selectedWeight, surcharge = 0, babyName = '') => {
+                    this.addToCartWithWeight(product, selectedWeight, surcharge, babyName);
+                },
+                { requireWeight, requireName }
+            );
         } else {
-            console.log('➡️ ProductActions: Adding directly without baby weight');
-            // Add directly without baby weight
-            this.addToCartWithWeight(product, null, 0);
+            console.log('➡️ ProductActions: Adding directly without baby weight/name');
+            this.addToCartWithWeight(product, null, 0, '');
         }
     }
     
     /**
      * Add product to cart with weight
      */
-    addToCartWithWeight(product, weight, surcharge = 0) {
+    addToCartWithWeight(product, weight, surcharge = 0, babyName = '') {
         console.log('🎯 addToCartWithWeight called');
         console.log('   Product:', product.name);
         console.log('   Weight received:', weight);
         console.log('   Weight type:', typeof weight);
         console.log('   Surcharge:', surcharge);
+        console.log('   Baby name:', babyName);
         
         // Calculate final price with surcharge
         const finalPrice = product.price + surcharge;
         
+        const categoryIds = [
+            ...(product.categories || []).map((cat) => Number(cat.id || cat.category_id)),
+            ...(product.category_ids || []).map((id) => Number(id)),
+            Number(product.category_id)
+        ].filter((id) => Number.isFinite(id));
+
+        const nameNote = String(babyName || '').trim();
         const cartItem = {
             id: product.id,
             name: product.name,
@@ -113,7 +124,12 @@ export class ProductActions {
             badges: [],
             isFlashSale: false,
             size: weight || '', // Add weight as size
-            weightSurcharge: surcharge // Store surcharge for reference
+            weightSurcharge: surcharge, // Store surcharge for reference
+            note: nameNote ? `Tên bé: ${nameNote}` : '',
+            // Giữ danh mục để rule miễn ship Bi/charm bạc tự áp dụng
+            categories: product.categories || [],
+            category_id: categoryIds[0] ?? product.category_id ?? null,
+            category_ids: categoryIds
         };
         
         console.log('   Cart item size:', cartItem.size);

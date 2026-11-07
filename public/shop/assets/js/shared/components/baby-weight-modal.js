@@ -2,8 +2,9 @@
 // BABY WEIGHT SELECTION MODAL
 // ============================================
 
-import { cartService } from '../services/cart.service.js';
+import { cartService } from '../services/cart.service.js?v=2';
 import { showToast } from '../utils/helpers.js';
+import { needsBabyName } from '../utils/needs-baby-name.js';
 
 /**
  * Baby Weight Modal Component
@@ -13,6 +14,8 @@ export class BabyWeightModal {
         this.currentProduct = null;
         this.selectedWeight = null;
         this.callback = null;
+        this.requireWeight = true;
+        this.requireName = false;
         
         // Price surcharge for weight > 15kg: 15% of product price (rounded down to nearest 1000)
         this.BABY_WEIGHT_THRESHOLD = 15;        // Surcharge applies above 15kg
@@ -150,15 +153,24 @@ export class BabyWeightModal {
     
     /**
      * Open modal
+     * @param {object} product
+     * @param {Function} callback (weight, surcharge, babyName) => void
+     * @param {{ requireWeight?: boolean, requireName?: boolean }} [options]
      */
-    open(product, callback) {
+    open(product, callback, options = {}) {
         console.log('🚀 BabyWeightModal: Opening modal for product:', product.name);
         
         this.currentProduct = product;
         this.selectedWeight = null;
         this.callback = callback;
+        this.requireWeight = options.requireWeight !== false;
+        this.requireName = options.requireName === true || needsBabyName(product);
         
         const isAdult = this.isAdultBracelet(product);
+        const modalContent = document.querySelector('#babyWeightModal .baby-weight-modal');
+        if (modalContent) {
+            modalContent.classList.toggle('is-name-only', !this.requireWeight && this.requireName);
+        }
         
         // Render product info
         const productHtml = `
@@ -182,17 +194,32 @@ export class BabyWeightModal {
         // Update modal title and labels based on product type
         const modalTitle = document.querySelector('#babyWeightModal .baby-weight-modal-title');
         const customLabel = document.querySelector('#babyWeightModal .custom-weight-label');
+        const weightQuick = document.querySelector('#babyWeightModal .baby-weight-quick');
         
-        if (isAdult) {
-            if (modalTitle) modalTitle.textContent = 'Chọn cân nặng người lớn';
+        if (!this.requireWeight && this.requireName) {
+            if (modalTitle) modalTitle.textContent = 'Nhập tên bé cần khắc';
+            if (weightQuick) weightQuick.classList.add('hidden');
+        } else if (isAdult) {
+            if (modalTitle) {
+                modalTitle.textContent = this.requireName
+                    ? 'Chọn cân nặng & tên khắc'
+                    : 'Chọn cân nặng người lớn';
+            }
+            if (weightQuick) weightQuick.classList.remove('hidden');
             if (customLabel) customLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Hoặc nhập cân nặng khác (96kg trở lên):';
         } else {
-            if (modalTitle) modalTitle.textContent = 'Chọn cân nặng bé';
+            if (modalTitle) {
+                modalTitle.textContent = this.requireName
+                    ? 'Chọn cân nặng & tên khắc'
+                    : 'Chọn cân nặng bé';
+            }
+            if (weightQuick) weightQuick.classList.remove('hidden');
             if (customLabel) customLabel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block;"><path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" /><path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" /></svg> Hoặc nhập cân nặng khác (16kg trở lên):';
         }
-        
-        // Render weight options based on product type
-        this.renderWeightOptions(isAdult);
+
+        if (this.requireWeight) {
+            this.renderWeightOptions(isAdult);
+        }
         
         // Reset selections
         document.querySelectorAll('.weight-btn').forEach(btn => btn.classList.remove('selected'));
@@ -207,9 +234,21 @@ export class BabyWeightModal {
         if (customSection) {
             customSection.classList.add('hidden');
         }
+
+        const nameSection = document.getElementById('babyWeightNameSection');
+        const nameInput = document.getElementById('babyWeightNameInput');
+        if (nameSection) {
+            nameSection.classList.toggle('hidden', !this.requireName);
+        }
+        if (nameInput) {
+            nameInput.value = '';
+            if (this.requireName && !nameInput.dataset.bound) {
+                nameInput.dataset.bound = '1';
+                nameInput.addEventListener('input', () => this.updateConfirmEnabled());
+            }
+        }
         
-        const confirmBtn = document.getElementById('confirmWeightBtn');
-        if (confirmBtn) confirmBtn.disabled = true;
+        this.updateConfirmEnabled();
         
         // Show modal
         const modal = this.getModalElement();
@@ -219,7 +258,23 @@ export class BabyWeightModal {
         }
         
         modal.classList.remove('hidden');
+        if (this.requireName && !this.requireWeight && nameInput) {
+            setTimeout(() => nameInput.focus(), 50);
+        }
         console.log('✅ BabyWeightModal: Modal opened successfully');
+    }
+
+    getBabyNameValue() {
+        const nameInput = document.getElementById('babyWeightNameInput');
+        return String(nameInput?.value || '').trim();
+    }
+
+    updateConfirmEnabled() {
+        const confirmBtn = document.getElementById('confirmWeightBtn');
+        if (!confirmBtn) return;
+        const weightOk = !this.requireWeight || !!this.selectedWeight;
+        const nameOk = !this.requireName || this.getBabyNameValue().length > 0;
+        confirmBtn.disabled = !(weightOk && nameOk);
     }
     
     /**
@@ -310,6 +365,12 @@ export class BabyWeightModal {
         this.currentProduct = null;
         this.selectedWeight = null;
         this.callback = null;
+        this.requireWeight = true;
+        this.requireName = false;
+        const modalContent = document.querySelector('#babyWeightModal .baby-weight-modal');
+        modalContent?.classList.remove('is-name-only');
+        const nameInput = document.getElementById('babyWeightNameInput');
+        if (nameInput) nameInput.value = '';
     }
     
     /**
@@ -368,8 +429,7 @@ export class BabyWeightModal {
             this.hideSurchargeInfo();
         }
         
-        // Enable confirm button
-        document.getElementById('confirmWeightBtn').disabled = false;
+        this.updateConfirmEnabled();
     }
     
     /**
@@ -499,12 +559,11 @@ export class BabyWeightModal {
                 this.hideSurchargeInfo();
             }
             
-            // Enable confirm button
-            document.getElementById('confirmWeightBtn').disabled = false;
+            this.updateConfirmEnabled();
         } else {
             this.selectedWeight = null;
             this.hideSurchargeInfo();
-            document.getElementById('confirmWeightBtn').disabled = true;
+            this.updateConfirmEnabled();
         }
     }
     
@@ -512,48 +571,59 @@ export class BabyWeightModal {
      * Confirm and add to cart
      */
     async confirm() {
-        if (!this.selectedWeight || !this.currentProduct) {
+        if (!this.currentProduct) return;
+        if (this.requireWeight && !this.selectedWeight) return;
+
+        const babyName = this.getBabyNameValue();
+        if (this.requireName && !babyName) {
+            showToast('Vui lòng nhập tên bé cần khắc', 'error');
+            document.getElementById('babyWeightNameInput')?.focus();
             return;
         }
-        
-        // Extract weight number from selectedWeight for surcharge calculation
-        let weightKg = 0;
-        
-        if (this.selectedWeight === 'unborn') {
-            weightKg = 0;
-        } else if (this.selectedWeight.includes('-')) {
-            // Range: use upper bound
-            const match = this.selectedWeight.match(/(\d+)-(\d+)kg/);
-            if (match) {
-                weightKg = parseInt(match[2]);
-            }
-        } else {
-            // Single weight
-            const match = this.selectedWeight.match(/(\d+)/);
-            if (match) {
-                weightKg = parseInt(match[1]);
-            }
-        }
-        
-        // Calculate surcharge
-        const surcharge = this.calculateSurcharge(weightKg);
-        const isAdult = this.isAdultBracelet(this.currentProduct);
-        const needsSurchargeConfirm = isAdult
-            ? weightKg > this.ADULT_WEIGHT_THRESHOLD
-            : weightKg > this.BABY_WEIGHT_THRESHOLD;
 
-        // Keep add-to-cart flow consistent with "Mua ngay":
-        // show confirmation dialog before applying surcharge.
-        if (needsSurchargeConfirm && surcharge > 0) {
-            const confirmed = await this.showWeightSurchargeConfirmation(weightKg, surcharge, isAdult);
-            if (!confirmed) {
-                return;
+        let surcharge = 0;
+        let weight = this.requireWeight ? this.selectedWeight : null;
+
+        if (this.requireWeight && this.selectedWeight) {
+            // Extract weight number from selectedWeight for surcharge calculation
+            let weightKg = 0;
+
+            if (this.selectedWeight === 'unborn') {
+                weightKg = 0;
+            } else if (this.selectedWeight.includes('-')) {
+                // Range: use upper bound
+                const match = this.selectedWeight.match(/(\d+)-(\d+)kg/);
+                if (match) {
+                    weightKg = parseInt(match[2]);
+                }
+            } else {
+                // Single weight
+                const match = this.selectedWeight.match(/(\d+)/);
+                if (match) {
+                    weightKg = parseInt(match[1]);
+                }
+            }
+
+            // Calculate surcharge
+            surcharge = this.calculateSurcharge(weightKg);
+            const isAdult = this.isAdultBracelet(this.currentProduct);
+            const needsSurchargeConfirm = isAdult
+                ? weightKg > this.ADULT_WEIGHT_THRESHOLD
+                : weightKg > this.BABY_WEIGHT_THRESHOLD;
+
+            // Keep add-to-cart flow consistent with "Mua ngay":
+            // show confirmation dialog before applying surcharge.
+            if (needsSurchargeConfirm && surcharge > 0) {
+                const confirmed = await this.showWeightSurchargeConfirmation(weightKg, surcharge, isAdult);
+                if (!confirmed) {
+                    return;
+                }
             }
         }
         
-        // Call callback with selected weight and surcharge
+        // Call callback with selected weight, surcharge, baby name
         if (this.callback) {
-            this.callback(this.selectedWeight, surcharge);
+            this.callback(weight, surcharge, babyName);
         }
         
         // Close modal

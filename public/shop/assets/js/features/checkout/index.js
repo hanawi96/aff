@@ -2,4 +2,4 @@
 // CHECKOUT FEATURE - Main Export
 // ============================================
 
-export { QuickCheckout } from './quick-checkout.js?v=2025h';
+export { QuickCheckout } from './quick-checkout.js?v=2025l';

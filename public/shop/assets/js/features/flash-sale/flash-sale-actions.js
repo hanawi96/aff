@@ -2,7 +2,8 @@
 // FLASH SALE ACTIONS
 // ============================================
 
-import { cartService } from '../../shared/services/cart.service.js';
+import { cartService } from '../../shared/services/cart.service.js?v=2';
+import { needsBabyName } from '../../shared/utils/needs-baby-name.js';
 
 /**
  * Flash Sale Actions Handler
@@ -54,24 +55,29 @@ export class FlashSaleActions {
             return;
         }
         
-        // Check if product needs baby weight selection
-        if (this.babyWeightModal && this.babyWeightModal.needsBabyWeight(product)) {
-            // Open modal with callback
-            this.babyWeightModal.open(product, (selectedWeight, surcharge = 0) => {
-                this.addToCartWithWeight(product, flashPrice, selectedWeight, surcharge);
-            });
+        const requireWeight = !!(this.babyWeightModal && this.babyWeightModal.needsBabyWeight(product));
+        const requireName = needsBabyName(product);
+
+        if (this.babyWeightModal && (requireWeight || requireName)) {
+            this.babyWeightModal.open(
+                product,
+                (selectedWeight, surcharge = 0, babyName = '') => {
+                    this.addToCartWithWeight(product, flashPrice, selectedWeight, surcharge, babyName);
+                },
+                { requireWeight, requireName }
+            );
         } else {
-            // Add directly without baby weight
-            this.addToCartWithWeight(product, flashPrice, null, 0);
+            this.addToCartWithWeight(product, flashPrice, null, 0, '');
         }
     }
     
     /**
      * Add flash sale product to cart with weight
      */
-    addToCartWithWeight(product, flashPrice, weight, surcharge = 0) {
+    addToCartWithWeight(product, flashPrice, weight, surcharge = 0, babyName = '') {
         // Calculate final price with surcharge
         const finalPrice = flashPrice + surcharge;
+        const nameNote = String(babyName || '').trim();
         
         const cartItem = {
             id: product.id,
@@ -83,7 +89,9 @@ export class FlashSaleActions {
             badges: ['Flash Sale'],
             isFlashSale: true,
             size: weight || '', // Add weight as size
-            weightSurcharge: surcharge // Store surcharge for reference
+            weightSurcharge: surcharge, // Store surcharge for reference
+            note: nameNote ? `Tên bé: ${nameNote}` : '',
+            categories: product.categories || []
         };
         
         cartService.addItem(cartItem, 1);

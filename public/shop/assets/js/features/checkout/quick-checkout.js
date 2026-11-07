@@ -18,7 +18,8 @@ import {
     isOrderFreeShipping,
     resolveShippingFee
 } from '../../shared/utils/shipping.js';
-import { withBouquetDealPrice } from '../../shared/utils/bouquet-deal.js';
+import { isBouquetProduct, withBouquetDealPrice } from '../../shared/utils/bouquet-deal.js';
+import { needsBabyName } from '../../shared/utils/needs-baby-name.js';
 
 /**
  * Quick Checkout Manager
@@ -92,9 +93,16 @@ export class QuickCheckout {
         this.product = product;
         this.quantity = 1;
         this.comboBundleId = Number(product?.comboBundleId) || null;
-        this.selectedCrossSells = this.comboBundleId
-            ? [{ id: this.comboBundleId, quantity: 1 }]
-            : [];
+        // Mua bó dâu: ẩn mua kèm (không gợi ý lại bó dâu)
+        if (isBouquetProduct(product)) {
+            this.crossSellProducts = [];
+            this.selectedCrossSells = [];
+            this.comboBundleId = null;
+        } else {
+            this.selectedCrossSells = this.comboBundleId
+                ? [{ id: this.comboBundleId, quantity: 1 }]
+                : [];
+        }
         this.appliedDiscount = null;
         this.discountAmount = 0;
         
@@ -204,18 +212,9 @@ export class QuickCheckout {
         }, 500);
     }
     
-    /**
-     * Check if product needs baby name input
-     */
+    /** @see needsBabyName — dùng chung với modal thêm giỏ */
     checkNeedsBabyName(product) {
-        if (!product.categories || !Array.isArray(product.categories)) {
-            return false;
-        }
-        
-        // Check if any category name contains "Mix thẻ tên bé"
-        return product.categories.some(cat => 
-            cat.name && cat.name.toLowerCase().includes('mix thẻ tên bé')
-        );
+        return needsBabyName(product);
     }
     
     /**
@@ -277,6 +276,14 @@ export class QuickCheckout {
      * Load cross-sell products - Using shared service
      */
     async loadCrossSellProducts() {
+        // Đang mua bó dâu → không gợi ý lại bó dâu (tránh trùng)
+        if (isBouquetProduct(this.product)) {
+            this.crossSellProducts = [];
+            this.selectedCrossSells = [];
+            this.renderCrossSellProducts();
+            return;
+        }
+
         const comboId = this.comboBundleId;
         try {
             const list = await bundleProductsService.loadBundleProducts();
@@ -383,6 +390,13 @@ export class QuickCheckout {
     renderCrossSellProducts() {
         const container = document.getElementById('crossSellProducts');
         if (!container) return;
+
+        if (isBouquetProduct(this.product)) {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+            return;
+        }
+        container.classList.remove('hidden');
         
         // If no products loaded yet, show skeleton
         if (this.crossSellProducts.length === 0) {
@@ -995,13 +1009,16 @@ export class QuickCheckout {
     }
     
     /**
-     * Dòng hàng để tính miễn ship (SP chính + mua kèm / combo bó dâu)
+     * Dòng hàng để tính miễn ship (SP chính + mua kèm / combo bó dâu).
+     * Giữ categories để rule Bi/charm bạc tự áp dụng.
      */
     getShippingCartItems() {
         const items = [];
-        if (this.product?.id != null) items.push({ id: this.product.id });
+        if (this.product) items.push(this.product);
         (this.selectedCrossSells || []).forEach((item) => {
-            if (item?.id != null) items.push({ id: item.id });
+            if (item?.id == null) return;
+            const product = (this.crossSellProducts || []).find((p) => Number(p.id) === Number(item.id));
+            items.push(product || { id: item.id });
         });
         return items;
     }

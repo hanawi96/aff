@@ -23,9 +23,11 @@ class CartService {
     }
     
     addItem(product, quantity = 1) {
-        // Find existing item with same ID AND same size (weight)
-        const existingItem = this.cart.find(item => 
-            item.id === product.id && item.size === (product.size || '')
+        // Cùng SP + cân nặng + tên khắc → cộng dồn; khác tên khắc thì tách dòng
+        const existingItem = this.cart.find(item =>
+            item.id === product.id
+            && item.size === (product.size || '')
+            && (item.note || '') === (product.note || '')
         );
         
         if (existingItem) {
@@ -42,8 +44,11 @@ class CartService {
                 badges: product.badges || [],
                 isFlashSale: product.isFlashSale || false,
                 size: product.size || '', // Add baby weight (size)
-                note: product.note || '', // Add product note
-                weightSurcharge: product.weightSurcharge || 0 // Add weight surcharge
+                note: product.note || '', // Add product note (vd. Tên bé khắc)
+                weightSurcharge: product.weightSurcharge || 0, // Add weight surcharge
+                categories: product.categories || [],
+                category_id: product.category_id ?? null,
+                category_ids: product.category_ids || []
             });
         }
         

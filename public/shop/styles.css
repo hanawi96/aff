@@ -6143,6 +6143,58 @@ body {
     margin-bottom: 1.25rem;
 }
 
+.baby-name-field {
+    margin-top: 0.35rem;
+    margin-bottom: 0.25rem;
+    padding: 0.85rem 0.9rem;
+    border-radius: 0.95rem;
+    border: 1.5px solid rgba(244, 162, 97, 0.45);
+    background: linear-gradient(180deg, #fffaf7, #fff4ec);
+}
+
+.baby-name-label {
+    display: block;
+    margin: 0 0 0.45rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #3f3a38;
+}
+
+.baby-name-label .required {
+    color: #dc2626;
+    margin-left: 0.15rem;
+}
+
+.baby-name-input {
+    width: 100%;
+    min-height: 2.6rem;
+    padding: 0.55rem 0.75rem;
+    border: 1.5px solid #f4a261;
+    border-radius: 0.75rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: #3f3a38;
+    background: #fff;
+    outline: none;
+}
+
+.baby-name-input:focus {
+    border-color: #e76f51;
+    box-shadow: 0 0 0 3px rgba(231, 111, 81, 0.12);
+}
+
+.baby-name-hint {
+    margin: 0.4rem 0 0;
+    font-size: 0.78rem;
+    color: #8a7f7a;
+}
+
+.baby-weight-modal.is-name-only .baby-weight-quick,
+.baby-weight-modal.is-name-only .baby-weight-custom,
+.baby-weight-modal.is-name-only .baby-weight-surcharge {
+    display: none !important;
+}
+
 .quick-title,
 .custom-title {
     display: flex;

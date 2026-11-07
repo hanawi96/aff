@@ -16,6 +16,7 @@ import { getCTVInfoForOrder, calculateCommission, checkAndSaveReferralFromURL } 
 // Shared API base (Workers URL on production — same as quick-checkout)
 import { CONFIG as SHARED_CONFIG } from './assets/js/shared/constants/config.js';
 import {
+    cartBlocksThresholdFreeShip,
     getFreeShippingReason,
     resolveShippingFee
 } from './assets/js/shared/utils/shipping.js';
@@ -867,8 +868,12 @@ const cart = {
             discountAmount = discountService.calculateDiscountAmount(state.discount, state.subtotal);
         }
 
-        // Phí ship: ≥100k hoặc mua kèm bó dâu 7/9 cành (chung với Quickbuy)
-        state.shippingFee = resolveShippingFee(state.subtotal, CONFIG.SHIPPING_FEE, state.cart);
+        // Phí ship: ≥100k (trừ đơn chỉ Bi/charm bạc) hoặc mua kèm bó dâu 7/9 cành
+        const cartForShip = state.cart.map((item) => ({
+            ...item,
+            category_id: item.category_id ?? state.productCategoryMap?.[item.id]
+        }));
+        state.shippingFee = resolveShippingFee(state.subtotal, CONFIG.SHIPPING_FEE, cartForShip);
 
         // Calculate total
         state.total = state.subtotal - discountAmount + state.shippingFee;
@@ -911,7 +916,7 @@ const cart = {
         shippingFeeElement.textContent = utils.formatPrice(CONFIG.SHIPPING_FEE);
 
         if (freeshipRow && freeshipLabel && freeshipAmount) {
-            const shipReason = getFreeShippingReason(state.subtotal, state.cart);
+            const shipReason = getFreeShippingReason(state.subtotal, cartForShip);
             if (shipReason) {
                 freeshipRow.classList.remove('hidden');
                 freeshipAmount.textContent = '-' + utils.formatPrice(CONFIG.SHIPPING_FEE);
@@ -993,7 +998,11 @@ const cart = {
         const progressFill = document.getElementById('progressFill');
         const shippingMessage = document.getElementById('shippingMessage');
 
-        const shipReason = getFreeShippingReason(state.subtotal, state.cart);
+        const cartForShipProgress = state.cart.map((item) => ({
+            ...item,
+            category_id: item.category_id ?? state.productCategoryMap?.[item.id]
+        }));
+        const shipReason = getFreeShippingReason(state.subtotal, cartForShipProgress);
         if (shipReason) {
             const reasonText = shipReason === 'bouquet'
                 ? 'Bạn được MIỄN PHÍ SHIP (kèm bó dâu)!'
@@ -1004,7 +1013,9 @@ const cart = {
         } else {
             const remaining = CONFIG.FREE_SHIPPING_THRESHOLD - state.subtotal;
             const progress = (state.subtotal / CONFIG.FREE_SHIPPING_THRESHOLD) * 100;
-            shippingMessage.textContent = 'Thêm ' + utils.formatPrice(remaining) + ' để FREE SHIP · hoặc kèm bó dâu';
+            shippingMessage.textContent = cartBlocksThresholdFreeShip(cartForShipProgress)
+                ? 'Bi/charm bạc: kèm bó dâu để giường để FREE SHIP'
+                : 'Thêm ' + utils.formatPrice(remaining) + ' để FREE SHIP · hoặc kèm bó dâu';
             progressFill.style.width = Math.min(100, Math.max(0, progress)) + '%';
             progressSection.classList.remove('hidden');
         }
