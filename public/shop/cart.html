@@ -19,7 +19,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"></noscript>
-    <link rel="stylesheet" href="cart.css?v=11">
+    <link rel="stylesheet" href="cart.css?v=14">
     <link rel="stylesheet" href="assets/css/form-validation.css">
     <link rel="stylesheet" href="assets/css/hierarchical-address-selector.css?v=4">
 </head>
@@ -123,18 +123,14 @@
                     
                     <!-- Empty State -->
                     <div class="empty-cart hidden" id="emptyCart">
-                        <div class="empty-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 5rem; height: 5rem; display: inline-block;">
-                                <path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" />
+                        <div class="empty-icon" aria-hidden="true">
+                            <svg class="empty-bag" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12A1.875 1.875 0 0 1 18.128 22.5H5.871a1.875 1.875 0 0 1-1.863-2.043l1.263-12A1.875 1.875 0 0 1 7.14 6.75h9.72a1.875 1.875 0 0 1 1.863 1.757Z" />
                             </svg>
-                            <div class="empty-sparkle">✨</div>
                         </div>
                         <h2>Giỏ hàng đang trống</h2>
                         <p>Hãy thêm những món quà yêu thương cho bé nhé mẹ!</p>
-                        <a href="../" class="btn-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block; vertical-align: middle;"><path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" /></svg>
-                            Khám phá sản phẩm
-                        </a>
+                        <a href="../" class="empty-cart-cta">Khám phá sản phẩm</a>
                     </div>
 
                     <!-- Cart Items -->
@@ -174,19 +170,14 @@
                             </label>
                             <div id="cartAddressSelectorContainer"></div>
                         </div>
-                    </div>
 
-                    <!-- Order Note Section -->
-                    <div class="order-note-section hidden" id="orderNoteSection">
-                        <div class="order-note-header">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.3rem; height: 1.3rem; display: inline-block;">
-                                <path fill-rule="evenodd" d="M5.337 21.718a6.707 6.707 0 0 1-.533-.074.75.75 0 0 1-.44-1.223 3.73 3.73 0 0 0 .814-1.686c.023-.115-.022-.317-.254-.543C3.274 16.587 2.25 14.41 2.25 12c0-5.03 4.428-9 9.75-9s9.75 3.97 9.75 9c0 5.03-4.428 9-9.75 9-.833 0-1.643-.097-2.417-.279a6.721 6.721 0 0 1-4.246.997Z" clip-rule="evenodd" />
-                            </svg>
-                            <h3>Lưu ý cho đơn hàng</h3>
-                        </div>
-                        <div class="order-note-content">
-                            <textarea 
-                                id="orderNote" 
+                        <!-- Order note (gộp trong thông tin người nhận) -->
+                        <div class="checkout-form-group order-note-group">
+                            <label class="checkout-form-label" for="orderNote">
+                                Lưu ý cho đơn hàng
+                            </label>
+                            <textarea
+                                id="orderNote"
                                 class="order-note-textarea"
                                 placeholder="Nhập lưu ý cho shop (ví dụ: giao giờ hành chính, gọi trước khi giao...)"
                                 maxlength="500"
@@ -739,7 +730,7 @@
     </script>
 
     <link rel="stylesheet" href="assets/css/faq-modal.css?v=3">
-    <script type="module" src="cart.js?v=18"></script>
+    <script type="module" src="cart.js?v=19"></script>
     <script src="assets/js/faq-modal.js"></script>
     <script type="module">
         import { HierarchicalAddressSelector } from './assets/js/components/hierarchical-address-selector.js?v=2025e';

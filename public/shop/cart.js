@@ -624,7 +624,7 @@ const cart = {
         container.style.opacity = '';
         container.style.transition = '';
 
-        ['customerInfoSection', 'discountSection', 'paymentSection', 'orderNoteSection'].forEach((sectionId) => {
+        ['customerInfoSection', 'discountSection', 'paymentSection'].forEach((sectionId) => {
             const section = document.getElementById(sectionId);
             if (!section) return;
             section.classList.remove('hidden');

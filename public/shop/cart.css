@@ -62,7 +62,6 @@ body > header.sticky {
 .empty-cart,
 .bundle-offer-section,
 .discount-section,
-.order-note-section,
 .payment-section,
 .customer-info-section,
 .cart-summary {
@@ -198,93 +197,67 @@ body {
     margin: 0 auto;
 }
 
-/* Empty Cart - Handmade Style */
+/* Empty Cart — simple */
 .empty-cart {
     text-align: center;
-    padding: 4rem 2rem;
-    background: var(--white);
-    border-radius: 24px;
-    box-shadow: var(--shadow-sm);
-    min-height: 400px;
+    padding: 3rem 1.5rem;
+    min-height: 320px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    border: 2px dashed var(--primary)/20;
-    position: relative;
-    overflow: hidden;
-}
-
-.empty-cart::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, var(--accent)/5 0%, transparent 70%);
-    animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(-20px, -20px) rotate(5deg); }
+    border: 0;
+    border-radius: 20px;
+    background: #fff;
 }
 
 .empty-icon {
-    position: relative;
-    margin-bottom: 1.5rem;
+    margin: 0 0 1rem;
+    display: grid;
+    place-items: center;
 }
 
-.empty-icon i {
-    font-size: 5rem;
-    color: var(--primary);
-    opacity: 0.8;
-    animation: pulse 2s ease-in-out infinite;
-}
-
-.empty-sparkle {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    font-size: 2rem;
-    animation: sparkle 1.5s ease-in-out infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.05);
-    }
-}
-
-@keyframes sparkle {
-    0%, 100% {
-        transform: rotate(0deg) scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: rotate(180deg) scale(1.2);
-        opacity: 0.7;
-    }
+.empty-bag {
+    width: 3.25rem;
+    height: 3.25rem;
+    color: #c4b5a8;
 }
 
 .empty-cart h2 {
-    font-size: 1.75rem;
-    margin-bottom: 0.75rem;
-    color: var(--text-dark);
+    margin: 0 0 0.4rem;
+    color: #3f342c;
+    font-size: 1.35rem;
     font-weight: 700;
+    line-height: 1.3;
 }
 
 .empty-cart p {
-    color: var(--text-light);
-    margin-bottom: 2rem;
-    font-size: 1.05rem;
-    max-width: 400px;
+    margin: 0 0 1.4rem;
+    max-width: 16rem;
+    color: #8a7a70;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.empty-cart-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.6rem;
+    padding: 0.65rem 1.4rem;
+    border-radius: 999px;
+    border: 0;
+    background: linear-gradient(135deg, #f4a261, #e76f51);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.empty-cart-cta:hover {
+    filter: brightness(1.03);
+    color: #fff;
 }
 
 /* Cart Items - Redesigned Compact Layout */
@@ -727,73 +700,44 @@ body {
     color: var(--white);
 }
 
-/* Order Note Section */
-.order-note-section {
-    background: var(--white);
-    border-radius: 20px;
-    padding: 1.5rem;
-    margin-top: 1rem;
-    margin-bottom: 0;
-    box-shadow: var(--shadow-sm);
-    border: 2px solid var(--primary)/10;
-}
-
-.order-note-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.order-note-header i {
-    font-size: 1.3rem;
-    color: var(--primary);
-}
-
-.order-note-header h3 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-dark);
-}
-
-.order-note-content {
-    position: relative;
+/* Order note — nằm trong thông tin người nhận */
+.order-note-group {
+    margin-top: 0.25rem;
 }
 
 .order-note-textarea {
     width: 100%;
-    padding: 1rem;
-    border: 2px solid var(--primary)/20;
-    border-radius: 14px;
-    font-size: 1rem;
-    font-family: 'Quicksand', sans-serif;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
     resize: vertical;
     min-height: 80px;
-    transition: var(--transition);
-    background: linear-gradient(135deg, var(--warm), rgba(233, 196, 106, 0.05));
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    background: #fff;
+    color: var(--text-dark);
 }
 
 .order-note-textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px var(--primary)/10;
-    background: linear-gradient(135deg, var(--warm), rgba(233, 196, 106, 0.05));
+    box-shadow: 0 0 0 3px rgba(244, 162, 97, 0.15);
 }
 
 .order-note-textarea::placeholder {
     color: var(--text-light);
-    font-style: italic;
 }
 
 .order-note-footer {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    margin-top: 0.75rem;
+    margin-top: 0.45rem;
 }
 
 .char-count {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-light);
     font-weight: 600;
 }
@@ -3009,7 +2953,6 @@ body {
 .empty-cart,
 .bundle-offer-section,
 .discount-section,
-.order-note-section,
 .payment-section,
 .customer-info-section,
 .cart-summary {
@@ -3022,7 +2965,6 @@ body {
 .empty-cart:not(.hidden),
 .bundle-offer-section:not(.hidden),
 .discount-section:not(.hidden),
-.order-note-section:not(.hidden),
 .payment-section:not(.hidden),
 .customer-info-section:not(.hidden),
 .cart-summary:not(.hidden) {
@@ -3035,7 +2977,6 @@ body {
 .empty-cart.hidden,
 .bundle-offer-section.hidden,
 .discount-section.hidden,
-.order-note-section.hidden,
 .payment-section.hidden,
 .customer-info-section.hidden,
 .cart-summary.hidden {
@@ -5921,12 +5862,6 @@ body {
         background: var(--warm);
     }
     
-    .order-note-section {
-
-    padding: 1rem;
-
-    }
-
     .customer-info-section{
         padding: 1rem;
     }
@@ -6672,36 +6607,24 @@ body {
 
     /* Empty Cart Mobile */
     .empty-cart {
-        padding: 2.5rem 1.25rem;
-        min-height: 320px;
+        padding: 2.25rem 1.1rem;
+        min-height: 280px;
         margin-bottom: 1rem;
-        border-radius: 20px;
+        border-radius: 16px;
     }
 
-    .empty-icon i {
-        font-size: 3.5rem;
-    }
-
-    .empty-sparkle {
-        font-size: 1.5rem;
-        top: -8px;
-        right: -8px;
+    .empty-bag {
+        width: 2.85rem;
+        height: 2.85rem;
     }
 
     .empty-cart h2 {
-        font-size: 1.4rem;
-        margin-bottom: 0.625rem;
+        font-size: 1.2rem;
     }
 
     .empty-cart p {
-        font-size: 0.95rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .empty-cart .btn-primary {
-        padding: 0.875rem 1.75rem;
-        font-size: 0.95rem;
-        border-radius: 50px;
+        font-size: 0.9rem;
+        margin-bottom: 1.2rem;
     }
 
     /* Modal Mobile */
@@ -7301,42 +7224,16 @@ body {
 
     /* Empty Cart Extra Small */
     .empty-cart {
-        padding: 2rem 1rem;
-        min-height: 280px;
-        border-radius: 16px;
-    }
-
-    .empty-icon {
-        margin-bottom: 1.25rem;
-    }
-
-    .empty-icon i {
-        font-size: 3rem;
-    }
-
-    .empty-sparkle {
-        font-size: 1.25rem;
-        top: -6px;
-        right: -6px;
+        padding: 1.75rem 0.9rem;
+        min-height: 250px;
     }
 
     .empty-cart h2 {
-        font-size: 1.25rem;
-        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
     }
 
     .empty-cart p {
-        font-size: 0.875rem;
-        margin-bottom: 1.25rem;
-    }
-
-    .empty-cart .btn-primary {
-        padding: 0.75rem 1.5rem;
-        font-size: 0.875rem;
-    }
-
-    .empty-cart .btn-primary i {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
 
     /* Modal Extra Small */
@@ -7480,21 +7377,8 @@ body {
     }
 
     .empty-cart {
-        padding: 1.5rem 1rem;
-        min-height: 240px;
-    }
-
-    .empty-icon i {
-        font-size: 2.5rem;
-    }
-
-    .empty-cart h2 {
-        font-size: 1.15rem;
-    }
-
-    .empty-cart p {
-        font-size: 0.8rem;
-        margin-bottom: 1rem;
+        padding: 1.5rem 0.85rem;
+        min-height: 230px;
     }
 }
 
