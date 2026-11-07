@@ -137,87 +137,80 @@
     flex-shrink: 0;
 }
 
-.reviews-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    margin-top: 2.4rem;
-    padding: 1.15rem 0.35rem;
+.reviews-note {
     position: relative;
+    margin: 2rem 0 0;
+    padding: 1.55rem 1.35rem 1.25rem;
+    text-align: center;
+    color: #3d4a3f;
+    border-radius: 22px;
+    border: 1.5px dashed #9ccc9a;
     background:
-        radial-gradient(120% 80% at 50% 0%, rgba(255, 255, 255, 0.95) 0%, transparent 55%),
-        linear-gradient(165deg, #fffdf9 0%, #fff3e8 48%, #ffeada 100%);
-    border-radius: 28px;
+        radial-gradient(120% 90% at 50% 0%, #ffffff 0%, transparent 58%),
+        linear-gradient(168deg, #f7fcf6 0%, #eef8ec 52%, #e4f3e1 100%);
     box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.85) inset,
-        0 10px 28px rgba(224, 122, 61, 0.08);
-    overflow: hidden;
+        0 1px 0 rgba(255, 255, 255, 0.92) inset,
+        0 12px 28px rgba(76, 140, 78, 0.08);
 }
 
-.reviews-stats::before {
+.reviews-note::before {
     content: '';
     position: absolute;
-    inset: 8px;
-    border-radius: 22px;
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    inset: 7px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.72);
     pointer-events: none;
 }
 
-.reviews-stat {
-    position: relative;
-    z-index: 1;
-    text-align: center;
-    padding: 0.55rem 0.65rem 0.65rem;
-    background: transparent;
-    border: 0;
-}
-
-.reviews-stat:not(:last-child)::after {
-    content: '';
+.reviews-note-seal {
     position: absolute;
-    top: 16%;
-    right: 0;
-    bottom: 16%;
-    width: 1px;
-    background: linear-gradient(180deg, transparent, #efc7a6 30%, #efc7a6 70%, transparent);
-}
-
-.reviews-stat-icon {
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.85rem;
-    height: 1.85rem;
-    margin-bottom: 0.35rem;
+    width: 2.15rem;
+    height: 2.15rem;
     border-radius: 999px;
-    color: #e76f51;
-    background: linear-gradient(145deg, #fff8f1, #ffe8d6);
-    box-shadow: 0 2px 8px rgba(231, 111, 81, 0.14);
+    color: #4caf50;
+    background: linear-gradient(145deg, #f4fbf3, #d9f0d6);
+    border: 1.5px solid #b6dfb4;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.18);
 }
 
-.reviews-stat-icon svg {
-    width: 0.95rem;
-    height: 0.95rem;
+.reviews-note-seal svg {
+    width: 1rem;
+    height: 1rem;
     display: block;
 }
 
-.reviews-stat strong {
-    display: block;
-    color: #e76f51;
+.reviews-note-kicker {
+    position: relative;
+    z-index: 1;
+    margin: 0.15rem 0 0.55rem;
+    color: #43a047;
     font-size: 1.55rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
 }
 
-.reviews-stat > span:last-child {
-    display: block;
-    margin-top: 0.28rem;
-    color: #6b5344;
-    font-size: 0.86rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+.reviews-note-body {
+    position: relative;
+    z-index: 1;
+    margin: 0 auto;
+    max-width: 46rem;
+    font-size: 1.02rem;
+    font-weight: 500;
+    line-height: 1.72;
+    color: #455348;
+}
+
+.reviews-note-body em {
+    font-style: normal;
+    font-weight: 700;
+    color: #2e7d32;
 }
 
 /* Tablet — 2 feedback */
@@ -261,43 +254,24 @@
         font-size: 1rem;
     }
 
-    .reviews-stats {
-        grid-template-columns: 1fr 1fr;
-        gap: 0.15rem 0;
-        margin-top: 1.8rem;
-        padding: 0.85rem 0.2rem;
-        border-radius: 22px;
-    }
-
-    .reviews-stats::before {
-        inset: 6px;
+    .reviews-note {
+        margin-top: 1.65rem;
+        padding: 1.45rem 1rem 1.1rem;
         border-radius: 18px;
     }
 
-    .reviews-stat {
-        padding: 0.7rem 0.45rem;
+    .reviews-note::before {
+        inset: 5px;
+        border-radius: 13px;
     }
 
-    .reviews-stat:nth-child(2n)::after {
-        display: none;
-    }
-
-    .reviews-stat:nth-child(-n+2)::before {
-        content: '';
-        position: absolute;
-        left: 14%;
-        right: 14%;
-        bottom: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, #efc7a6, transparent);
-    }
-
-    .reviews-stat strong {
+    .reviews-note-kicker {
         font-size: 1.35rem;
     }
 
-    .reviews-stat > span:last-child {
-        font-size: 0.8rem;
+    .reviews-note-body {
+        font-size: 0.95rem;
+        line-height: 1.68;
     }
 }
 
