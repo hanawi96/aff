@@ -93,31 +93,58 @@
 }
 
 .feedback-slide {
+    position: relative;
     scroll-snap-align: center;
     min-width: 0;
     border-radius: 1.25rem;
-    background: #fff;
     border: 1px solid #f3d7be;
     box-shadow: 0 10px 24px rgba(120, 72, 48, 0.06);
     overflow: hidden;
     aspect-ratio: 4 / 5;
+    background: #f6efe8;
+}
+
+.feedback-slide::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        110deg,
+        #f6efe8 0%,
+        #f6efe8 38%,
+        #fff8f1 50%,
+        #f6efe8 62%,
+        #f6efe8 100%
+    );
+    background-size: 200% 100%;
+    animation: feedback-shimmer 1.2s ease-in-out infinite;
+    pointer-events: none;
 }
 
 .feedback-image {
+    position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
     display: block;
     object-fit: cover;
     object-position: center;
-    background: #f6efe8;
+    opacity: 0;
+    transition: opacity 0.25s ease;
 }
 
-.feedback-image.lazy:not(.loaded) {
-    opacity: 0.35;
-}
-
-.feedback-image.lazy.loaded {
+.feedback-image.is-loaded {
     opacity: 1;
+}
+
+.feedback-slide:has(.feedback-image.is-loaded)::before {
+    content: none;
+    animation: none;
+}
+
+@keyframes feedback-shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
 }
 
 .feedback-swipe {
@@ -278,5 +305,13 @@
 @media (prefers-reduced-motion: reduce) {
     .feedback-carousel {
         scroll-behavior: auto;
+    }
+
+    .feedback-slide::before {
+        animation: none;
+    }
+
+    .feedback-image {
+        transition: none;
     }
 }

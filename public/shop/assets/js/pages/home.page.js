@@ -4,7 +4,7 @@
 
 import { apiService } from '../shared/services/api.service.js?v=5';
 import { cartService } from '../shared/services/cart.service.js?v=2';
-import { ProductGrid, ProductActions } from '../features/products/index.js?v=36';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=37';
 import { renderCategories, CategoryActions } from '../features/categories/index.js?v=8';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=3';
 import { QuickCheckout } from '../features/checkout/index.js?v=2025m';
