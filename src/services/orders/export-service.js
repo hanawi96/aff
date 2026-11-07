@@ -333,6 +333,41 @@ export async function getInvoiceExportHistory(env) {
 }
 
 /**
+ * Lazy: file HĐĐT gần nhất chứa 1 đơn (chỉ gọi khi click badge — không gắn vào list).
+ * @param {number|string} orderId db id của orders
+ * @param {object} env
+ */
+export async function getLastInvoiceExportForOrder(orderId, env) {
+    const id = Number(orderId);
+    if (!Number.isFinite(id) || id <= 0) {
+        return { success: false, error: 'Thiếu orderId' };
+    }
+
+    const row = await env.DB.prepare(`
+        SELECT
+            eh.id,
+            eh.file_name,
+            eh.downloaded_at
+        FROM export_history eh
+        WHERE eh.type = 'invoice'
+          AND eh.status = 'downloaded'
+          AND EXISTS (
+              SELECT 1 FROM json_each(eh.order_ids) WHERE CAST(value AS INTEGER) = ?
+          )
+        ORDER BY eh.downloaded_at DESC
+        LIMIT 1
+    `).bind(id).first();
+
+    return {
+        success: true,
+        export: row || null,
+        last_invoice_export_id: row?.id ?? null,
+        last_invoice_export_file_name: row?.file_name ?? null,
+        last_invoice_downloaded_at: row?.downloaded_at ?? null
+    };
+}
+
+/**
  * Merge multiple invoice exports into one workbook data.
  * @param {number[]} exportIds
  * @param {object} env

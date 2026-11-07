@@ -99,7 +99,8 @@ import {
 import { 
     getExportHistory, 
     downloadExport,
-    getInvoiceExportHistory
+    getInvoiceExportHistory,
+    getLastInvoiceExportForOrder
 } from '../services/orders/export-service.js';
 
 // Discounts
@@ -704,6 +705,12 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getInvoiceExportHistory':
             return await getInvoiceExportHistory(env).then(data => jsonResponse(data, 200, corsHeaders));
+
+        case 'getLastInvoiceExportForOrder': {
+            const orderIdParam = url.searchParams.get('orderId');
+            const data = await getLastInvoiceExportForOrder(orderIdParam, env);
+            return jsonResponse(data, data.success ? 200 : 400, corsHeaders);
+        }
 
         case 'downloadExport':
             const exportId = url.searchParams.get('id');

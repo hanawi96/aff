@@ -192,9 +192,10 @@ function getInvoiceExportedBadge(order) {
 
         return `
             <button type="button"
-                onclick="event.stopPropagation(); openInvoiceHistoryForExport(${exportId})"
+                onclick="event.stopPropagation(); openInvoiceHistoryForExport(${exportId}, ${Number(order.id) || 0})"
                 title="${titleAttr}"
                 data-invoice-exported="1"
+                data-order-id="${Number(order.id) || 0}"
                 data-last-export-id="${exportId}"
                 class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
                 <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -219,9 +220,10 @@ function getInvoiceExportedBadge(order) {
         return `
             <div class="inline-flex items-center gap-0.5">
                 <button type="button"
-                    onclick="event.stopPropagation(); openInvoiceHistoryForExport(${exportId})"
+                    onclick="event.stopPropagation(); openInvoiceHistoryForExport(${exportId}, ${Number(order.id) || 0})"
                     title="${titleAttr}"
                     data-invoice-exported="1"
+                    data-order-id="${Number(order.id) || 0}"
                     data-last-export-id="${exportId}"
                     class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-colors">
                     <svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -255,14 +257,37 @@ function getInvoiceExportedBadge(order) {
 
 /**
  * Mở modal DS HDDT và highlight đúng file.
+ * Nếu list không có last_invoice_export_id → lazy fetch 1 lần theo orderId.
  * @param {number} exportId
+ * @param {number} [orderId]
  */
-async function openInvoiceHistoryForExport(exportId) {
-    if (!exportId) {
+async function openInvoiceHistoryForExport(exportId, orderId) {
+    let id = Number(exportId) || 0;
+    const oid = Number(orderId) || 0;
+
+    if (!id && oid) {
+        try {
+            const res = await fetch(`${CONFIG.API_URL}?action=getLastInvoiceExportForOrder&orderId=${oid}`);
+            const data = await res.json();
+            if (data?.success && data.last_invoice_export_id) {
+                id = Number(data.last_invoice_export_id) || 0;
+                const row = allOrdersData?.find((o) => Number(o.id) === oid);
+                if (row) {
+                    row.last_invoice_export_id = id;
+                    row.last_invoice_export_file_name = data.last_invoice_export_file_name || null;
+                    row.last_invoice_downloaded_at = data.last_invoice_downloaded_at || null;
+                }
+            }
+        } catch (err) {
+            console.warn('Lazy load last invoice export failed:', err);
+        }
+    }
+
+    if (!id) {
         await showInvoiceHistoryModal();
         return;
     }
-    await showInvoiceHistoryModal({ highlightExportId: exportId });
+    await showInvoiceHistoryModal({ highlightExportId: id });
 }
 
 // ============================================

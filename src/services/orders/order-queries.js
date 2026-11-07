@@ -92,6 +92,19 @@ export async function getOrdersByPhone(phone, env, corsHeaders) {
     }
 }
 
+/** Cột HĐĐT cho list — chỉ từ cờ trên orders (không quét export_history/json_each). */
+const ORDER_INVOICE_LIST_COLS = `
+    CASE
+      WHEN COALESCE(orders.manual_invoice_exported, 0) = 1
+        OR COALESCE(orders.invoice_exported_at, 0) > 0
+      THEN 1 ELSE 0
+    END AS invoice_exported_count,
+    NULL AS last_invoice_downloaded_at,
+    NULL AS last_invoice_export_id,
+    NULL AS last_invoice_export_file_name,
+    COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
+`;
+
 // Lấy đơn hàng mới nhất
 export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
     try {
@@ -110,14 +123,8 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
         // giảm) → giảm payload đáng kể. Khi mở SỬA đơn, mobile gọi getOrderById để lấy full.
         // (Lưu ý: vẫn GIỮ address gộp, commission, commission_rate, referral_code, shipping_fee
         //  vì chi tiết + tìm kiếm + tính lại hoa hồng ở chi tiết có dùng.)
-        // Thông tin HĐĐT đã xuất (chỉ tính các file đã tải về = status='downloaded'):
-        //   - invoice_exported_count         : số file HĐ đã bao gồm đơn này và đã tải
-        //   - last_invoice_export_id         : id file gần nhất (để click badge mở đúng file)
-        //   - last_invoice_export_file_name  : tên file gần nhất (hiển thị tooltip)
-        //   - last_invoice_downloaded_at     : mốc thời gian tải (sắp xếp/tooltip)
-        // order_ids được lưu dạng JSON array → json_each để khớp với orders.id.
-        // Dùng subquery tương quan cho file_name/export_id (1 row / đơn) thay vì JOIN
-        // để tránh phá GROUP BY hiện tại và đảm bảo đúng "gần nhất".
+        // HĐĐT trên list: chỉ dùng cờ orders (invoice_exported_at / manual_invoice_exported).
+        // Không json_each(export_history) — tránh hàng triệu rows read. File HĐ lazy khi click badge.
         const sql = lite
             ? `SELECT
                    orders.id, orders.order_id, orders.customer_name, orders.customer_phone,
@@ -137,36 +144,13 @@ export async function getRecentOrders(limit, env, corsHeaders, lite = false) {
             : `SELECT
                    orders.*,
                    ctv.commission_rate as ctv_commission_rate,
-                   -- TÍNH product_cost từ subquery riêng để tránh nhân đôi khi JOIN với export_history
                    COALESCE(
                        (SELECT SUM(oi.product_cost * oi.quantity) 
                         FROM order_items oi 
                         WHERE oi.order_id = orders.id),
                        0
                    ) as product_cost,
-                   -- Đếm file HĐĐT đã tải từ export_history + manual_invoice_exported (nếu đã tick thủ công)
-                   (CASE WHEN COALESCE(orders.manual_invoice_exported, 0) = 1 THEN 1 ELSE 0 END)
-                   + (SELECT COUNT(DISTINCT eh.id) 
-                      FROM export_history eh
-                      WHERE eh.type='invoice' 
-                        AND eh.status='downloaded'
-                        AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
-                     ) AS invoice_exported_count,
-                   (SELECT MAX(eh.downloaded_at)
-                    FROM export_history eh
-                    WHERE eh.type='invoice' 
-                      AND eh.status='downloaded'
-                      AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
-                   ) AS last_invoice_downloaded_at,
-                   (SELECT eh2.id FROM export_history eh2
-                       WHERE eh2.type='invoice' AND eh2.status='downloaded'
-                         AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
-                       ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_id,
-                   (SELECT eh2.file_name FROM export_history eh2
-                       WHERE eh2.type='invoice' AND eh2.status='downloaded'
-                         AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
-                       ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name,
-                   COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
+                   ${ORDER_INVOICE_LIST_COLS}
                FROM orders
                LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
                ORDER BY orders.created_at_unix DESC
@@ -201,26 +185,7 @@ const ORDER_FULL_SELECT = `
              WHERE oi.order_id = orders.id),
             0
         ) as product_cost,
-        (CASE WHEN COALESCE(orders.manual_invoice_exported, 0) = 1 THEN 1 ELSE 0 END)
-        + (SELECT COUNT(DISTINCT eh.id)
-           FROM export_history eh
-           WHERE eh.type='invoice' AND eh.status='downloaded'
-             AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
-          ) AS invoice_exported_count,
-        (SELECT MAX(eh.downloaded_at)
-         FROM export_history eh
-         WHERE eh.type='invoice' AND eh.status='downloaded'
-           AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
-        ) AS last_invoice_downloaded_at,
-        (SELECT eh2.id FROM export_history eh2
-            WHERE eh2.type='invoice' AND eh2.status='downloaded'
-              AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
-            ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_id,
-        (SELECT eh2.file_name FROM export_history eh2
-            WHERE eh2.type='invoice' AND eh2.status='downloaded'
-              AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
-            ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name,
-        COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
+        ${ORDER_INVOICE_LIST_COLS}
     FROM orders
     LEFT JOIN ctv ON orders.referral_code = ctv.referral_code`;
 
@@ -591,28 +556,7 @@ export async function searchOrders(query, limit, offset, env, corsHeaders) {
                      WHERE oi.order_id = orders.id),
                     0
                 ) as product_cost,
-                (CASE WHEN COALESCE(orders.manual_invoice_exported, 0) = 1 THEN 1 ELSE 0 END)
-                + (SELECT COUNT(DISTINCT eh.id)
-                   FROM export_history eh
-                   WHERE eh.type='invoice'
-                     AND eh.status='downloaded'
-                     AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
-                  ) AS invoice_exported_count,
-                (SELECT MAX(eh.downloaded_at)
-                 FROM export_history eh
-                 WHERE eh.type='invoice'
-                   AND eh.status='downloaded'
-                   AND EXISTS (SELECT 1 FROM json_each(eh.order_ids) WHERE value = orders.id)
-                ) AS last_invoice_downloaded_at,
-                (SELECT eh2.id FROM export_history eh2
-                    WHERE eh2.type='invoice' AND eh2.status='downloaded'
-                      AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
-                    ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_id,
-                (SELECT eh2.file_name FROM export_history eh2
-                    WHERE eh2.type='invoice' AND eh2.status='downloaded'
-                      AND EXISTS (SELECT 1 FROM json_each(eh2.order_ids) WHERE value = orders.id)
-                    ORDER BY eh2.downloaded_at DESC LIMIT 1) AS last_invoice_export_file_name,
-                COALESCE(orders.invoice_exported_at, 0) AS invoice_exported_at
+                ${ORDER_INVOICE_LIST_COLS}
             FROM orders
             LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
             WHERE
