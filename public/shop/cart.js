@@ -15,7 +15,10 @@ import { errorDisplayService } from './assets/js/shared/services/error-display.s
 import { getCTVInfoForOrder, calculateCommission, checkAndSaveReferralFromURL } from './assets/js/shared/utils/ctv-tracking.js';
 // Shared API base (Workers URL on production — same as quick-checkout)
 import { CONFIG as SHARED_CONFIG } from './assets/js/shared/constants/config.js';
-import { isOrderFreeShipping, resolveShippingFee } from './assets/js/shared/utils/shipping.js';
+import {
+    getFreeShippingReason,
+    resolveShippingFee
+} from './assets/js/shared/utils/shipping.js';
 import {
     bouquetUnitPrice,
     cartHasCompanionProduct,
@@ -864,8 +867,8 @@ const cart = {
             discountAmount = discountService.calculateDiscountAmount(state.discount, state.subtotal);
         }
 
-        // Phí ship: miễn khi tiền hàng ≥ 100k (chung với Quickbuy)
-        state.shippingFee = resolveShippingFee(state.subtotal, CONFIG.SHIPPING_FEE);
+        // Phí ship: ≥100k hoặc mua kèm bó dâu 7/9 cành (chung với Quickbuy)
+        state.shippingFee = resolveShippingFee(state.subtotal, CONFIG.SHIPPING_FEE, state.cart);
 
         // Calculate total
         state.total = state.subtotal - discountAmount + state.shippingFee;
@@ -908,10 +911,13 @@ const cart = {
         shippingFeeElement.textContent = utils.formatPrice(CONFIG.SHIPPING_FEE);
 
         if (freeshipRow && freeshipLabel && freeshipAmount) {
-            if (isOrderFreeShipping(state.subtotal)) {
+            const shipReason = getFreeShippingReason(state.subtotal, state.cart);
+            if (shipReason) {
                 freeshipRow.classList.remove('hidden');
                 freeshipAmount.textContent = '-' + utils.formatPrice(CONFIG.SHIPPING_FEE);
-                freeshipLabel.textContent = '(Đơn ≥100k)';
+                freeshipLabel.textContent = shipReason === 'bouquet'
+                    ? '(Kèm bó dâu)'
+                    : '(Đơn ≥100k)';
             } else {
                 freeshipRow.classList.add('hidden');
             }
@@ -987,15 +993,19 @@ const cart = {
         const progressFill = document.getElementById('progressFill');
         const shippingMessage = document.getElementById('shippingMessage');
 
-        if (state.subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD) {
-            shippingMessage.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg> Bạn được MIỄN PHÍ SHIP!';
+        const shipReason = getFreeShippingReason(state.subtotal, state.cart);
+        if (shipReason) {
+            const reasonText = shipReason === 'bouquet'
+                ? 'Bạn được MIỄN PHÍ SHIP (kèm bó dâu)!'
+                : 'Bạn được MIỄN PHÍ SHIP!';
+            shippingMessage.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg> ' + reasonText;
             progressFill.style.width = '100%';
             progressSection.classList.remove('hidden');
         } else {
             const remaining = CONFIG.FREE_SHIPPING_THRESHOLD - state.subtotal;
             const progress = (state.subtotal / CONFIG.FREE_SHIPPING_THRESHOLD) * 100;
-            shippingMessage.textContent = 'Thêm ' + utils.formatPrice(remaining) + ' để FREE SHIP';
-            progressFill.style.width = progress + '%';
+            shippingMessage.textContent = 'Thêm ' + utils.formatPrice(remaining) + ' để FREE SHIP · hoặc kèm bó dâu';
+            progressFill.style.width = Math.min(100, Math.max(0, progress)) + '%';
             progressSection.classList.remove('hidden');
         }
     },

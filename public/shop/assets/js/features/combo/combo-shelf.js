@@ -1,5 +1,7 @@
 // ============================================
 // COMBO SHELF — 3 vòng bán chạy + bó dâu để phòng
+// Card gọn: ảnh giữ nguyên → giá gộp → Mua Combo
+// Chọn 7/9 cành trong panel nhỏ khi bấm Mua Combo
 // ============================================
 
 import { bundleProductsService } from '../../shared/services/bundle-products.service.js';
@@ -15,6 +17,7 @@ export const COMBO_BUNDLE_PRICE = BOUQUET_DEAL_PRICE;
 const BUNDLE_CATEGORY_ID = 23;
 const selectedByProduct = new Map();
 let bound = false;
+let pendingProductId = null;
 
 function isOutOfStock(product) {
     const raw = product?.stock_quantity ?? product?.stockQuantity;
@@ -127,28 +130,14 @@ function renderCard(product, rank, bundles) {
     const previewImage = productThumbUrl(preview.image || CONFIG.DEFAULT_IMAGE);
     const listPrice = Number(preview.price) || 0;
     const save = comboSavingsAmount(listPrice);
+    const ringPrice = Number(product.price) || 0;
+    const totalNow = ringPrice + (save > 0 ? COMBO_BUNDLE_PRICE : listPrice);
+    const totalWas = ringPrice + listPrice;
     const chosen = selectedByProduct.get(Number(product.id));
-    const chosenStillThere = bundles.some((bundle) => Number(bundle.id) === chosen);
-    const activeId = chosenStillThere ? chosen : null;
-
-    const pills = bundles.map((bundle) => {
-        const label = choiceLabel(bundle);
-        const on = activeId === Number(bundle.id);
-        return `
-            <button type="button" class="combo-pill${on ? ' is-selected' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" data-combo-bundle="${bundle.id}">
-                <span class="combo-pill-title">${escapeHtml(label.title)}</span>
-                <span class="combo-pill-sub">${escapeHtml(label.sub)}</span>
-            </button>
-        `;
-    }).join('');
-
-    const activeBundle = bundles.find((bundle) => Number(bundle.id) === activeId);
-    const hint = activeBundle
-        ? `Đã chọn bó ${choiceLabel(activeBundle).title}`
-        : 'Mẹ chọn bó 7 cành hoặc 9 cành';
+    const activeBundle = bundles.find((bundle) => Number(bundle.id) === chosen);
 
     return `
-        <article class="combo-card" id="combo-card-${product.id}" data-combo-product="${product.id}" data-combo-price="${Number(product.price) || 0}">
+        <article class="combo-card" id="combo-card-${product.id}" data-combo-product="${product.id}" data-combo-price="${ringPrice}">
             <p class="combo-rank">Bán chạy số ${rank}</p>
             <div class="combo-photos">
                 <img class="combo-photo-main" src="${escapeHtml(image)}" alt="${escapeHtml(product.name)}" width="480" height="480" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
@@ -156,37 +145,122 @@ function renderCard(product, rank, bundles) {
                 <img class="combo-photo-addon" src="${escapeHtml(activeBundle ? productThumbUrl(activeBundle.image) : previewImage)}" alt="${escapeHtml(activeBundle ? activeBundle.name : 'Bó dâu để phòng')}" width="240" height="240" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
             </div>
             <h3 class="combo-name">${escapeHtml(product.name)}</h3>
-            <p class="combo-card-kicker">Kèm bó dâu để phòng</p>
-            <div class="combo-pills" role="radiogroup" aria-label="Chọn bó dâu để phòng">${pills}</div>
-            <p class="combo-hint">${escapeHtml(hint)}</p>
-            <div class="combo-prices">
-                <div><span>Vòng</span><strong>${formatPrice(product.price)}</strong></div>
-                <div>
-                    <span>Bó dâu</span>
-                    <strong>${save > 0 ? `<s>${formatPrice(listPrice)}</s>` : ''}<span class="combo-deal-price">${formatPrice(save > 0 ? COMBO_BUNDLE_PRICE : listPrice)}</span></strong>
-                </div>
+            <p class="combo-card-kicker">Kèm bó dâu · ${save > 0 ? `tiết kiệm ${formatPrice(save)}` : 'để phòng'}</p>
+            <div class="combo-price-summary">
+                <strong class="combo-total-now">${formatPrice(totalNow)}</strong>
+                ${save > 0 ? `<s class="combo-total-was">${formatPrice(totalWas)}</s>` : ''}
             </div>
-            ${save > 0 ? `<p class="combo-save">Rẻ hơn ${formatPrice(save)}</p>` : ''}
-            <button type="button" class="combo-buy${activeId ? '' : ' is-waiting'}" data-combo-buy aria-disabled="${activeId ? 'false' : 'true'}">Mua Combo</button>
+            <p class="combo-freeship" aria-label="Mua combo được miễn phí vận chuyển">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 1 1 6 0h3a.75.75 0 0 0 .75-.75V15Z"/><path d="M8.25 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0ZM15.75 6.75a.75.75 0 0 0-.75.75v11.25c0 .087.015.17.042.248a3 3 0 0 1 5.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 0 0-3.732-10.104 1.837 1.837 0 0 0-1.47-.725H15.75Z"/><path d="M19.5 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z"/></svg>
+                <span>Miễn phí vận chuyển</span>
+            </p>
+            <button type="button" class="combo-buy" data-combo-buy>Mua Combo</button>
         </article>
     `;
+}
+
+function choicePanelHtml(bundles) {
+    const options = bundles.map((bundle) => {
+        const label = choiceLabel(bundle);
+        const thumb = productThumbUrl(bundle.image || CONFIG.DEFAULT_IMAGE);
+        return `
+            <button type="button" class="combo-choice-option" data-combo-choice="${bundle.id}">
+                <img src="${escapeHtml(thumb)}" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeHtml(CONFIG.DEFAULT_IMAGE)}'">
+                <span class="combo-choice-option-text">
+                    <strong>${escapeHtml(label.title)}</strong>
+                    <em>${escapeHtml(label.sub)}</em>
+                </span>
+                <svg class="combo-choice-option-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5"/></svg>
+            </button>
+        `;
+    }).join('');
+
+    return `
+        <div class="combo-choice-panel" id="comboChoicePanel" hidden>
+            <button type="button" class="combo-choice-backdrop" data-combo-choice-close aria-label="Đóng"></button>
+            <div class="combo-choice-sheet" role="dialog" aria-modal="true" aria-labelledby="comboChoiceTitle">
+                <div class="combo-choice-handle" aria-hidden="true"></div>
+                <h3 id="comboChoiceTitle">Mẹ chọn bó dâu</h3>
+                <p class="combo-choice-sub" id="comboChoiceSub">Kèm theo vòng vừa chọn</p>
+                <p class="combo-choice-freeship" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 1 1 6 0h3a.75.75 0 0 0 .75-.75V15Z"/><path d="M8.25 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0ZM15.75 6.75a.75.75 0 0 0-.75.75v11.25c0 .087.015.17.042.248a3 3 0 0 1 5.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 0 0-3.732-10.104 1.837 1.837 0 0 0-1.47-.725H15.75Z"/><path d="M19.5 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z"/></svg>
+                    Chọn bó dâu là được miễn ship
+                </p>
+                <div class="combo-choice-options">${options}</div>
+                <button type="button" class="combo-choice-cancel" data-combo-choice-close>Để sau</button>
+            </div>
+        </div>
+    `;
+}
+
+function getChoicePanel() {
+    return document.getElementById('comboChoicePanel');
+}
+
+function openChoicePanel(productId) {
+    const product = findBracelet(productId);
+    if (!product) {
+        showToast('Không tìm thấy sản phẩm. Vui lòng tải lại trang và thử lại.', 'error');
+        return;
+    }
+    if (isOutOfStock(product)) {
+        showToast('Sản phẩm hiện đã hết hàng.', 'error');
+        return;
+    }
+
+    pendingProductId = Number(productId);
+    const panel = getChoicePanel();
+    const sub = document.getElementById('comboChoiceSub');
+    if (sub) sub.textContent = `Kèm theo “${product.name}”`;
+    if (!panel) return;
+
+    panel.hidden = false;
+    document.body.classList.add('combo-choice-open');
+    requestAnimationFrame(() => panel.classList.add('is-open'));
+}
+
+function closeChoicePanel() {
+    const panel = getChoicePanel();
+    pendingProductId = null;
+    if (!panel) return;
+    panel.classList.remove('is-open');
+    document.body.classList.remove('combo-choice-open');
+    window.setTimeout(() => {
+        if (!panel.classList.contains('is-open')) panel.hidden = true;
+    }, 220);
 }
 
 function bindShelf(root) {
     if (bound) return;
     bound = true;
+
     root.addEventListener('click', (event) => {
-        const pill = event.target.closest('[data-combo-bundle]');
-        if (pill) {
-            const card = pill.closest('[data-combo-product]');
-            if (card) applyChoice(card, Number(pill.dataset.comboBundle));
-            return;
-        }
         const buy = event.target.closest('[data-combo-buy]');
         if (buy) {
             const card = buy.closest('[data-combo-product]');
-            if (card) buyCombo(Number(card.dataset.comboProduct));
+            if (card) openChoicePanel(Number(card.dataset.comboProduct));
+            return;
         }
+
+        const choice = event.target.closest('[data-combo-choice]');
+        if (choice) {
+            const productId = pendingProductId;
+            const bundleId = Number(choice.dataset.comboChoice);
+            if (!productId || !bundleId) return;
+            const card = document.getElementById(`combo-card-${productId}`);
+            if (card) applyChoice(card, bundleId);
+            closeChoicePanel();
+            buyCombo(productId, bundleId);
+            return;
+        }
+
+        if (event.target.closest('[data-combo-choice-close]')) {
+            closeChoicePanel();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && pendingProductId != null) closeChoicePanel();
     });
 }
 
@@ -195,23 +269,10 @@ function applyChoice(card, bundleId) {
     const bundle = getComboBundles().find((item) => Number(item.id) === bundleId);
     if (!bundle) return;
     selectedByProduct.set(productId, bundleId);
-    card.classList.remove('needs-choice');
-    card.querySelectorAll('.combo-pill').forEach((button) => {
-        const on = Number(button.dataset.comboBundle) === bundleId;
-        button.classList.toggle('is-selected', on);
-        button.setAttribute('aria-checked', on ? 'true' : 'false');
-    });
     const addon = card.querySelector('.combo-photo-addon');
     if (addon) {
         addon.src = productThumbUrl(bundle.image || CONFIG.DEFAULT_IMAGE);
         addon.alt = bundle.name;
-    }
-    const hint = card.querySelector('.combo-hint');
-    if (hint) hint.textContent = `Đã chọn bó ${choiceLabel(bundle).title}`;
-    const buy = card.querySelector('[data-combo-buy]');
-    if (buy) {
-        buy.classList.remove('is-waiting');
-        buy.setAttribute('aria-disabled', 'false');
     }
 }
 
@@ -225,13 +286,10 @@ function findBracelet(productId) {
     return null;
 }
 
-function buyCombo(productId) {
-    const bundleId = selectedByProduct.get(Number(productId));
-    const card = document.getElementById(`combo-card-${productId}`);
+function buyCombo(productId, bundleIdOverride) {
+    const bundleId = bundleIdOverride || selectedByProduct.get(Number(productId));
     if (!bundleId) {
-        card?.classList.remove('needs-choice');
-        void card?.offsetWidth;
-        card?.classList.add('needs-choice');
+        openChoicePanel(productId);
         return;
     }
     const product = findBracelet(productId);
@@ -298,12 +356,13 @@ export function renderComboShelf(products) {
         <header class="combo-head">
             <h2 class="combo-title">Combo tiết kiệm nhất <span>cho mẹ</span></h2>
             ${heartRule()}
-            <p class="combo-lead">Ba mẫu vòng bán chạy, kèm bó dâu để phòng. Mua cùng, bó dâu ${escapeHtml(savings)}.</p>
+            <p class="combo-lead">3 vòng bán chạy + bó dâu. Mua cùng, bó dâu ${escapeHtml(savings)}.</p>
         </header>
         <div class="combo-track">
             ${top.map(({ product, rank }) => renderCard(product, rank, bundles)).join('')}
         </div>
         <p class="combo-swipe">Vuốt ngang để xem mẫu khác<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5.25 4.5 7.5 7.5-7.5 7.5m6-15 7.5 7.5-7.5 7.5" /></svg></p>
+        ${choicePanelHtml(bundles)}
     `;
     bindShelf(root);
 }

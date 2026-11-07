@@ -5,7 +5,8 @@
 import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
 import { CONFIG, productGridUrl } from '../../shared/constants/config.js?v=9';
-import { comboSavingsText, isComboAnchor } from '../combo/combo-shelf.js?v=7';
+import { comboSavingsText } from '../combo/combo-shelf.js?v=9';
+import { isBouquetProduct } from '../../shared/utils/bouquet-deal.js';
 
 /**
  * Create product card HTML
@@ -73,6 +74,19 @@ export function createProductCard(product, cardIndex = 0) {
     const showSilverMiniBadge = !hasExcludedCategory && !isExcludedProduct && !plainLoopWithoutSilver;
     
     const shouldShowMarketingBadges = !isOutOfStock;
+    const unitPrice = Number(product.price) || 0;
+    const freeShipByThreshold = unitPrice >= (CONFIG.FREE_SHIPPING_THRESHOLD || 100000);
+    const bouquetSavings = comboSavingsText();
+    const showComboHint = !isOutOfStock && !isBouquetProduct(product) && (freeShipByThreshold || !!bouquetSavings);
+    const comboHintHtml = !showComboHint
+        ? ''
+        : freeShipByThreshold
+            ? `<span class="product-combo-hint product-freeship-hint">
+                    <span>Miễn phí vận chuyển</span>
+               </span>`
+            : `<button type="button" class="product-combo-hint" onclick="window.comboShelf&&window.comboShelf.focusCard(${product.id})">
+                    <span>Miễn ship khi mua kèm bó dâu để giường</span>
+               </button>`;
 
     return `
         <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${product.id}">
@@ -96,7 +110,7 @@ export function createProductCard(product, cardIndex = 0) {
                 ${shouldShowMarketingBadges && hasHandmadeBadge ? `<span class="product-badge handmade">Thủ công 100%</span>` : ''}
                 ${shouldShowMarketingBadges && hasChemicalFreeBadge ? `<span class="product-badge chemical-free">Không hóa chất</span>` : ''}
                 ${shouldShowMarketingBadges && hasSilverBadge ? `<span class="product-badge silver-guarantee"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 0.875rem; height: 0.875rem; display: inline-block; vertical-align: middle; margin-right: 0.25rem;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" /></svg>Bạc thật 100%</span>` : ''}
-                ${shouldShowMarketingBadges ? `<span class="freeship-tag" aria-label="Đơn từ 100 nghìn được miễn phí ship"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 1 1 6 0h3a.75.75 0 0 0 .75-.75V15Z" /><path d="M8.25 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0ZM15.75 6.75a.75.75 0 0 0-.75.75v11.25c0 .087.015.17.042.248a3 3 0 0 1 5.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 0 0-3.732-10.104 1.837 1.837 0 0 0-1.47-.725H15.75Z" /><path d="M19.5 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z" /></svg>Đơn 100k miễn ship</span>` : ''}
+                ${shouldShowMarketingBadges ? `<span class="freeship-tag" aria-label="Miễn ship từ đơn trên 100k"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25ZM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 1 1 6 0h3a.75.75 0 0 0 .75-.75V15Z" /><path d="M8.25 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0ZM15.75 6.75a.75.75 0 0 0-.75.75v11.25c0 .087.015.17.042.248a3 3 0 0 1 5.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 0 0-3.732-10.104 1.837 1.837 0 0 0-1.47-.725H15.75Z" /><path d="M19.5 19.5a1.5 1.5 0 1 0-3 0 1.5 1.5 0 0 0 3 0Z" /></svg>Miễn ship từ đơn trên 100k</span>` : ''}
             </div>
             <div class="product-info">
                 <h3 class="product-name" onclick="window.openProductDetail(${product.id})" style="cursor: pointer;">${escapeHtml(product.name)}</h3>
@@ -114,12 +128,7 @@ export function createProductCard(product, cardIndex = 0) {
                             : ''}
                     </div>
                 </div>
-                ${!isOutOfStock && isComboAnchor(product.id) && comboSavingsText() ? `
-                    <button type="button" class="product-combo-hint" onclick="window.comboShelf&&window.comboShelf.focusCard(${product.id})">
-                        <span>Thêm bó dâu để phòng</span>
-                        <strong>${escapeHtml(comboSavingsText())}</strong>
-                    </button>
-                ` : ''}
+                ${comboHintHtml}
                 <div class="product-button-actions">
                     <button class="bundle-btn-primary" ${isOutOfStock ? 'disabled aria-disabled="true"' : ''} onclick="window.productActions.buyNow(${product.id})" ${isOutOfStock ? 'title="Hết hàng"' : ''}>
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" style="width: 1.125rem; height: 1.125rem; display: inline-block; vertical-align: middle;"><path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 0 0 4.25 22.5h15.5a1.875 1.875 0 0 0 1.865-2.071l-1.263-12a1.875 1.875 0 0 0-1.865-1.679H16.5V6a4.5 4.5 0 1 0-9 0ZM12 3a3 3 0 0 0-3 3v.75h6V6a3 3 0 0 0-3-3Zm-3 8.25a3 3 0 1 0 6 0v-.75a.75.75 0 0 1 1.5 0v.75a4.5 4.5 0 1 1-9 0v-.75a.75.75 0 0 1 1.5 0v.75Z" clip-rule="evenodd" /></svg>

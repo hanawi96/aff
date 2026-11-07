@@ -4,14 +4,14 @@
 
 import { apiService } from '../shared/services/api.service.js?v=5';
 import { cartService } from '../shared/services/cart.service.js';
-import { ProductGrid, ProductActions } from '../features/products/index.js?v=27';
+import { ProductGrid, ProductActions } from '../features/products/index.js?v=34';
 import { renderCategories, CategoryActions } from '../features/categories/index.js?v=8';
 import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=2';
-import { QuickCheckout } from '../features/checkout/index.js?v=2025g';
+import { QuickCheckout } from '../features/checkout/index.js?v=2025h';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
 import { bundleProductsService } from '../shared/services/bundle-products.service.js';
-import { renderComboShelf } from '../features/combo/combo-shelf.js?v=7';
+import { renderComboShelf } from '../features/combo/combo-shelf.js?v=9';
 
 /**
  * Home Page Manager

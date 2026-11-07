@@ -14,7 +14,10 @@ import { FormValidator } from '../../shared/utils/form-validator.js';
 import { checkoutValidationRules, updateValidationRule } from '../../shared/constants/validation-rules.js';
 import { errorDisplayService } from '../../shared/services/error-display.service.js';
 import { getCTVInfoForOrder, calculateCommission } from '../../shared/utils/ctv-tracking.js';
-import { isOrderFreeShipping, resolveShippingFee } from '../../shared/utils/shipping.js';
+import {
+    isOrderFreeShipping,
+    resolveShippingFee
+} from '../../shared/utils/shipping.js';
 import { withBouquetDealPrice } from '../../shared/utils/bouquet-deal.js';
 
 /**
@@ -388,14 +391,14 @@ export class QuickCheckout {
         }
         
         const comboNote = this.comboBundleId
-            ? 'Bó dâu combo đã chọn — giảm 10.000đ'
-            : 'Thêm bó dâu giảm ngay 10.000đ';
+            ? 'Bó dâu combo đã chọn — −10k + miễn ship'
+            : 'Thêm bó dâu: −10k + miễn ship';
         let html = '<div class="cross-sell-header">';
         html += '<div class="cross-sell-header-text">';
         html += '<span class="cross-sell-title">Mua kèm</span>';
         html += '<span class="cross-sell-subtitle">' + comboNote + '</span>';
         html += '</div>';
-        html += '<span class="cross-sell-freeship-chip">-10k</span>';
+        html += '<span class="cross-sell-freeship-chip">Freeship</span>';
         html += '</div>';
         
         html += '<div class="cross-sell-items-wrapper">';
@@ -451,9 +454,9 @@ export class QuickCheckout {
         let html = '<div class="cross-sell-header">';
         html += '<div class="cross-sell-header-text">';
         html += '<span class="cross-sell-title">Mua kèm</span>';
-        html += '<span class="cross-sell-subtitle">Thêm bó dâu giảm ngay 10.000đ</span>';
+        html += '<span class="cross-sell-subtitle">Thêm bó dâu: −10k + miễn ship</span>';
         html += '</div>';
-        html += '<span class="cross-sell-freeship-chip">-10k</span>';
+        html += '<span class="cross-sell-freeship-chip">Freeship</span>';
         html += '</div>';
         html += '<div class="cross-sell-items-wrapper">';
         for (let i = 0; i < 2; i++) {
@@ -992,6 +995,18 @@ export class QuickCheckout {
     }
     
     /**
+     * Dòng hàng để tính miễn ship (SP chính + mua kèm / combo bó dâu)
+     */
+    getShippingCartItems() {
+        const items = [];
+        if (this.product?.id != null) items.push({ id: this.product.id });
+        (this.selectedCrossSells || []).forEach((item) => {
+            if (item?.id != null) items.push({ id: item.id });
+        });
+        return items;
+    }
+
+    /**
      * Calculate total
      */
     calculateTotal() {
@@ -1002,7 +1017,7 @@ export class QuickCheckout {
         const crossSellTotal = this.selectedCrossSells.reduce((sum, item) => { const product = this.crossSellProducts.find(p => p.id === item.id); return sum + (product ? product.price * item.quantity : 0); }, 0);
         
         const merchandiseTotal = subtotal + crossSellTotal;
-        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee);
+        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee, this.getShippingCartItems());
         
         const beforeDiscount = merchandiseTotal + shippingFee;
         return beforeDiscount - this.discountAmount;
@@ -1548,8 +1563,9 @@ export class QuickCheckout {
         }
         
         const merchandiseTotal = subtotal + crossSellTotal;
-        const hasFreeShipping = isOrderFreeShipping(merchandiseTotal);
-        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee);
+        const shippingItems = this.getShippingCartItems();
+        const hasFreeShipping = isOrderFreeShipping(merchandiseTotal, shippingItems);
+        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee, shippingItems);
         
         // Calculate total before discount
         const beforeDiscount = merchandiseTotal + shippingFee;
@@ -2138,7 +2154,7 @@ export class QuickCheckout {
             return sum + (product ? product.price * item.quantity : 0); 
         }, 0);
         const merchandiseTotal = productTotal + crossSellTotal;
-        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee);
+        const shippingFee = resolveShippingFee(merchandiseTotal, this.shippingFee, this.getShippingCartItems());
         const totalAmount = merchandiseTotal + shippingFee - this.discountAmount;
         
         // Prepare cart items (products array)
