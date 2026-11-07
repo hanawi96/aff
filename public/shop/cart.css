@@ -5260,20 +5260,21 @@ body {
 }
 
 .bundle-btn-primary {
-    flex: 1;
-    padding: 0.625rem 1rem;
+    flex: 1.65 1 0;
+    min-width: 0;
+    padding: 0.7rem 1rem;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: var(--white);
     border: none;
-    border-radius: 12px;
+    border-radius: 999px;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     cursor: pointer;
     transition: var(--transition);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
     box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
     white-space: nowrap;
 }
@@ -5288,33 +5289,42 @@ body {
 }
 
 .bundle-btn-cart {
-    flex: 0 0 44px;
-    width: 44px;
-    height: 44px;
-    padding: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    height: auto;
+    padding: 0.7rem 0.65rem;
     background: var(--white);
-    color: var(--primary);
-    border: 2px solid var(--primary);
-    border-radius: 12px;
-    font-size: 1rem;
+    color: #c45c26;
+    border: 1.5px solid #f3d7be;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
     cursor: pointer;
     transition: var(--transition);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(244, 162, 97, 0.2);
+    gap: 0.28rem;
+    box-shadow: none;
+    white-space: nowrap;
 }
 
 .bundle-btn-cart svg {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 0.95rem;
+    height: 0.95rem;
+    flex-shrink: 0;
+}
+
+.bundle-btn-cart span {
+    line-height: 1.2;
 }
 
 .bundle-btn-cart:hover {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: var(--white);
-    transform: translateY(-2px) rotate(5deg);
-    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.3);
+    background: #fff7f1;
+    color: #e76f51;
+    border-color: #e76f51;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(244, 162, 97, 0.18);
 }
 
 .bundle-btn-primary:disabled,
@@ -5922,11 +5932,11 @@ body {
     }
 
     .bundle-btn-primary {
-        flex: 1;
+        flex: 1.7 1 0;
         min-width: 0;
-        padding: 0.625rem 0.75rem;
-        font-size: 0.8rem;
-        gap: 0.35rem;
+        padding: 0.65rem 0.7rem;
+        font-size: 0.82rem;
+        gap: 0.3rem;
     }
     
     .bundle-btn-primary svg {
@@ -5934,15 +5944,12 @@ body {
     }
 
     .bundle-btn-cart {
-        flex: 0 0 40px;
-        width: 40px;
-        height: 40px;
-        padding: 0.5rem;
-    }
-    
-    .bundle-btn-cart svg {
-        width: 1rem;
-        height: 1rem;
+        flex: 1 1 0;
+        min-width: 0;
+        width: auto;
+        height: auto;
+        padding: 0.65rem 0.45rem;
+        font-size: 0.72rem;
     }
 
     .container {

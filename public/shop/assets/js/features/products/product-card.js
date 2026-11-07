@@ -5,7 +5,7 @@
 import { formatPrice, escapeHtml } from '../../shared/utils/formatters.js';
 import { calculateDiscount } from '../../shared/utils/helpers.js';
 import { CONFIG, productGridUrl } from '../../shared/constants/config.js?v=9';
-import { comboSavingsText } from '../combo/combo-shelf.js?v=12';
+import { comboSavingsText } from '../combo/combo-shelf.js?v=13';
 import { isBouquetProduct } from '../../shared/utils/bouquet-deal.js';
 import { isBiCharmSilverProduct } from '../../shared/utils/shipping.js';
 
@@ -139,7 +139,8 @@ export function createProductCard(product, cardIndex = 0) {
                         <span>Mua ngay</span>
                     </button>
                     <button class="bundle-btn-cart" ${isOutOfStock ? 'disabled aria-disabled="true"' : ''} onclick="window.productActions.addToCart(${product.id})" title="${isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ hàng'}">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                        <span>Thêm giỏ</span>
                     </button>
                 </div>
             </div>

@@ -1747,6 +1747,16 @@ body {
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 8px 16px rgba(231, 111, 81, 0.22);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.combo-buy svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex-shrink: 0;
 }
 
 .combo-buy:hover {

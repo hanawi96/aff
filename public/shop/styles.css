@@ -1499,16 +1499,20 @@ body {
 }
 
 #products .product-card .bundle-btn-primary {
+    flex: 1.65 1 0;
     border-radius: 999px;
     background: linear-gradient(135deg, #f4a261, #e76f51);
     box-shadow: none;
 }
 
 #products .product-card .bundle-btn-cart {
+    flex: 1 1 0;
     border-radius: 999px;
     border-color: #f3d7be;
     color: #c45c26;
     box-shadow: none;
+    font-size: 0.78rem;
+    font-weight: 700;
 }
 
 #products .product-card .bundle-btn-primary:hover,

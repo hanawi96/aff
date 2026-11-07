@@ -2,7 +2,7 @@
 // FLASH SALE FEATURE - Main Export
 // ============================================
 
-export { createFlashSaleCard } from './flash-sale-card.js?v=2';
+export { createFlashSaleCard } from './flash-sale-card.js?v=5';
 export { FlashSaleCarousel } from './flash-sale-carousel.js';
 export { FlashSaleActions } from './flash-sale-actions.js?v=2';
 export { FlashSaleTimer } from './flash-sale-timer.js';
