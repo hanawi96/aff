@@ -10,6 +10,7 @@
 
   var LANDING_KEY = 'vd_landing_page';
   var CACHE_KEY = 'vd_marketing_tracking_v1';
+  var DURABLE_CACHE_KEY = 'vd_marketing_tracking_durable_v1';
   var CACHE_TTL_MS = 5 * 60 * 1000;
   var readyResolve;
   var readyPromise = new Promise(function (resolve) {
@@ -62,9 +63,22 @@
     }
   }
 
+  function readDurableCache() {
+    try {
+      var raw = localStorage.getItem(DURABLE_CACHE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return (parsed && parsed.tracking) ? parsed.tracking : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   function writeCache(tracking) {
     try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), tracking: tracking }));
+      var payload = JSON.stringify({ at: Date.now(), tracking: tracking || {} });
+      sessionStorage.setItem(CACHE_KEY, payload);
+      localStorage.setItem(DURABLE_CACHE_KEY, payload);
     } catch (e) { /* ignore */ }
   }
 
@@ -132,6 +146,7 @@
   function injectMetaPixel(pixelId) {
     if (!pixelId || global.__vdMetaInjected) return;
     global.__vdMetaInjected = true;
+    global.__vdMetaPixelId = String(pixelId);
 
     if (!global.fbq) {
       /* eslint-disable */
@@ -149,13 +164,35 @@
         t.async = !0;
         t.src = v;
         s = b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t, s);
+        if (s && s.parentNode) s.parentNode.insertBefore(t, s);
+        else (b.head || b.documentElement).appendChild(t);
       })(global, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
       /* eslint-enable */
     }
 
-    global.fbq('init', pixelId);
-    global.fbq('track', 'PageView');
+    try {
+      global.fbq('init', pixelId);
+      global.fbq('track', 'PageView');
+    } catch (e) {
+      console.warn('[marketing-loader] meta init failed', e);
+    }
+
+    // noscript fallback — Meta khuyến nghị; giúp một số tool nhận diện Pixel rõ hơn
+    function addNoscriptPixel() {
+      if (document.getElementById('vd-meta-pixel-noscript')) return;
+      var ns = document.createElement('noscript');
+      ns.id = 'vd-meta-pixel-noscript';
+      ns.innerHTML = '<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=' +
+        encodeURIComponent(pixelId) +
+        '&ev=PageView&noscript=1" alt="" />';
+      if (document.body) document.body.appendChild(ns);
+      else document.addEventListener('DOMContentLoaded', function () {
+        if (document.body && !document.getElementById('vd-meta-pixel-noscript')) {
+          document.body.appendChild(ns);
+        }
+      });
+    }
+    addNoscriptPixel();
   }
 
   function injectGoogleAds(adsId) {
@@ -198,24 +235,33 @@
   }
 
   async function fetchTracking(apiBase) {
-    var cached = readCache();
-    if (cached) return cached;
-
     var url = apiBase + '?action=getPublicMarketingTracking&timestamp=' + Date.now();
-    var res = await fetch(url);
-    var data = await res.json();
-    if (!data || !data.success) throw new Error((data && data.error) || 'load tracking failed');
-    writeCache(data.tracking || {});
-    return data.tracking || {};
+    try {
+      var res = await fetch(url);
+      var data = await res.json();
+      if (!data || !data.success) throw new Error((data && data.error) || 'load tracking failed');
+      writeCache(data.tracking || {});
+      return data.tracking || {};
+    } catch (err) {
+      var fallback = readCache() || readDurableCache();
+      if (fallback) return fallback;
+      throw err;
+    }
   }
 
   async function boot() {
     var pageKey = detectPageKey();
     if (pageKey) rememberPageKey(pageKey);
 
+    // Gắn ngay từ cache (session/local) trước khi chờ API — tránh Helper báo "hasn't fired"
+    var early = readCache() || readDurableCache();
+    if (early) applyTracking(early, pageKey);
+
     try {
       var tracking = await fetchTracking(resolveApiBase());
+      // Chỉ gắn thêm kênh chưa inject (applyTracking có guard __vd*Injected)
       applyTracking(tracking, pageKey);
+      writeCache(tracking);
     } catch (err) {
       console.warn('[marketing-loader]', err && err.message ? err.message : err);
     } finally {
