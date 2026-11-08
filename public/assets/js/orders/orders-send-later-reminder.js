@@ -229,8 +229,6 @@ function applySendLaterUrgentFilterFromBadge() {
     }
 
     _clearSearchForNotificationFilter();
-    missingSizeFilterActive = false;
-    if (typeof _setMissingSizeFilterUI === 'function') _setMissingSizeFilterUI(false);
 
     sendLaterUrgentFilterActive = true;
     sendLaterUrgentFilterIds = new Set(urgent.map((u) => Number(u.order.id)));

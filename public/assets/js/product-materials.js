@@ -18,6 +18,33 @@ function resetMaterialCostAutoSync() {
     costPriceManualOverride = false;
 }
 
+/**
+ * Nhóm chi phí không phải NL cấu thành SP → ẩn khỏi modal chọn nguyên liệu.
+ * Đồng bộ với materials.js / chrome-extension (Đóng gói, Chi phí vận hành, Khác).
+ */
+const COST_CATEGORY_KEYWORDS = ['dong goi', 'van hanh', 'khac'];
+
+function normalizeCostCategoryKey(s) {
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function isCostCategoryMaterial(m) {
+    if (!m) return false;
+    const name = normalizeCostCategoryKey(m.category_name);
+    const display = normalizeCostCategoryKey(m.category_display_name);
+    return COST_CATEGORY_KEYWORDS.some((kw) => name.includes(kw) || display.includes(kw));
+}
+
+function getBomMaterialsForProduct() {
+    return (allMaterialsForProduct || []).filter((m) => !isCostCategoryMaterial(m));
+}
+
 // Utility functions (use from window if available, otherwise define fallback)
 function getFormatCurrency() {
     return window.formatCurrency || function(amount) {
@@ -227,9 +254,11 @@ async function showAddMaterialModal() {
     if (selectedMaterials.length === 0) {
         const requiredMaterials = allMaterialsForProduct.filter(m => m.category_id === 8);
         requiredMaterials.forEach(material => {
+            const isHatDauTam = material.item_name === 'hat_dau_tam'
+                || /h[aạ]t\s*d[aâ]u\s*t[aằ]m/i.test(material.display_name || '');
             tempSelectedMaterials.push({
                 material_name: material.item_name,
-                quantity: 1,
+                quantity: isHatDauTam ? 10 : 1,
                 unit: 'viên',
                 notes: ''
             });
@@ -258,12 +287,8 @@ async function showAddMaterialModal() {
         }
     }
 
-    // Filter out already selected materials AND packaging costs (category "Khác")
-    // Note: Packaging costs (túi zip, hộp carton, etc.) are managed in Materials page
-    // but should NOT appear in product formula selection
-    const availableMaterials = allMaterialsForProduct.filter(m => 
-        m.category_name !== 'khac' // Lọc bỏ chi phí đóng gói
-    );
+    // Ẩn chi phí đóng gói / vận hành / khác — chỉ giữ NL cấu thành SP
+    const availableMaterials = getBomMaterialsForProduct();
 
     // Group by category
     const groupedMaterials = {};
@@ -462,7 +487,7 @@ async function showReplaceMaterialModal(index) {
         selectedMaterials.map((m, i) => (i !== index ? m.material_name : null)).filter(Boolean)
     );
 
-    const availableMaterials = allMaterialsForProduct.filter(m => m.category_name !== 'khac');
+    const availableMaterials = getBomMaterialsForProduct();
 
     const groupedMaterials = {};
     availableMaterials.forEach(material => {

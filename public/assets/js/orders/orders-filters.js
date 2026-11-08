@@ -8,8 +8,6 @@
 // ============================================
 let customDatePickerModal = null;
 let currentDateMode = 'single'; // 'single' or 'range'
-/** Chỉ hiện đơn có ít nhất 1 sản phẩm thiếu cân/size (dùng getOrderProductsMissingSizeWeight) */
-let missingSizeFilterActive = false;
 /** Chỉ hiện đơn có ≥1 SP thuộc DM 21, tên/lưu ý SP có "thẻ", hoặc lưu ý đơn có "thẻ" */
 let theTenBeFilterActive = false;
 /** Chỉ hiện đơn gửi sau cần làm (từ badge thông báo) */
@@ -312,15 +310,6 @@ function filterOrdersData(preservePage = false) {
         // ============================================
         const matchesSearch = cachedOrderMatchesSearch(cached, searchRaw, searchScope);
 
-        // Bộ lọc "Chưa có size" — chỉ đơn Chưa gửi / Chờ gửi lại / Gửi sau có SP thiếu cân/size
-        let matchesMissingSize = true;
-        if (missingSizeFilterActive) {
-            matchesMissingSize = typeof orderHasActionableMissingSize === 'function'
-                ? orderHasActionableMissingSize(order)
-                : (getOrderProductsMissingSizeWeight(order).length > 0
-                    && orderStatusEligibleForMissingSizeBadge(order));
-        }
-
         // Bộ lọc "Thẻ tên bé" — DM 21, tên/lưu ý SP hoặc lưu ý đơn chứa "thẻ tên" / "thẻ"
         const matchesTheTenBe = !theTenBeFilterActive || orderHasTheTenBeProduct(order);
 
@@ -420,7 +409,7 @@ function filterOrdersData(preservePage = false) {
             matchesInvoiceStatus = !(order.invoice_exported_at > 0) && !(order.manual_invoice_exported === 1);
         }
 
-        return matchesSearch && matchesMissingSize && matchesTheTenBe && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCustomerSource && matchesCTV && matchesDate && matchesInvoiceStatus;
+        return matchesSearch && matchesTheTenBe && matchesSendLaterUrgent && matchesStatus && matchesPayment && matchesCustomerSource && matchesCTV && matchesDate && matchesInvoiceStatus;
     });
 
     console.log('[DEBUG] filterOrdersData — filteredOrdersData.length:', filteredOrdersData.length, '| first item:', JSON.stringify(filteredOrdersData[0]));
@@ -446,10 +435,6 @@ function filterOrdersData(preservePage = false) {
 
     if (typeof updateQuickSelectDayChips === 'function') {
         updateQuickSelectDayChips();
-    }
-
-    if (typeof updateMissingSizeBadge === 'function') {
-        updateMissingSizeBadge();
     }
 
     if (typeof updateTheTenBePanelBanner === 'function') {
@@ -484,7 +469,7 @@ function orderCustomerSourceFilterKey(order) {
 }
 
 function closeOrderFilterDropdownMenus(exceptId) {
-    ['searchScopeMenu', 'statusFilterMenu', 'paymentFilterMenu', 'customerSourceFilterMenu', 'ctvFilterMenu', 'dateFilterMenu'].forEach((id) => {
+    ['searchScopeMenu', 'statusFilterMenu', 'invoiceStatusFilterMenu', 'paymentFilterMenu', 'customerSourceFilterMenu', 'ctvFilterMenu', 'dateFilterMenu'].forEach((id) => {
         if (exceptId === id) return;
         document.getElementById(id)?.remove();
     });
@@ -758,10 +743,11 @@ function toggleInvoiceStatusFilter(event) {
         return;
     }
 
+    // dotClass chuỗi đầy đủ để Tailwind nhận diện (không ghép động).
     const statuses = [
-        { value: 'all', label: 'Tất cả HĐĐT', icon: '📄' },
-        { value: 'exported', label: 'Đã xuất HĐĐT', icon: '✅' },
-        { value: 'not_exported', label: 'Chưa xuất HĐĐT', icon: '⏳' }
+        { value: 'all', label: 'Tất cả HĐĐT', dotClass: 'bg-gray-400' },
+        { value: 'exported', label: 'Đã xuất HĐĐT', dotClass: 'bg-emerald-500' },
+        { value: 'not_exported', label: 'Chưa xuất HĐĐT', dotClass: 'bg-amber-500' }
     ];
 
     const currentValue = document.getElementById('invoiceStatusFilter')?.value || 'all';
@@ -777,8 +763,8 @@ function toggleInvoiceStatusFilter(event) {
             onclick="selectInvoiceStatusFilter('${s.value}', '${s.label}')"
             class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
         >
-            <span class="text-lg flex-shrink-0">${s.icon}</span>
-            <span class="text-base text-gray-700 flex-1">${s.label}</span>
+            <div class="w-3 h-3 rounded-full ${s.dotClass} flex-shrink-0"></div>
+            <span class="text-sm text-gray-700 flex-1">${s.label}</span>
             ${s.value === currentValue ? `
                 <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -914,12 +900,14 @@ function toggleCustomerSourceFilter(event) {
     const button = event.currentTarget;
     const wrap = button.parentElement;
 
+    // dotClass phải là chuỗi class đầy đủ (không ghép bg-${color}-500) để Tailwind/CDN
+    // nhận diện được — TikTok trước dùng slate động nên chấm tròn bị mất.
     const sources = [
-        { value: 'all', label: 'Tất cả nguồn', color: 'gray' },
-        { value: 'facebook', label: 'Facebook', color: 'blue' },
-        { value: 'zalo', label: 'Zalo', color: 'green' },
-        { value: 'tiktok', label: 'TikTok', color: 'slate' },
-        { value: 'web', label: 'Web', color: 'violet' }
+        { value: 'all', label: 'Tất cả nguồn', dotClass: 'bg-gray-400' },
+        { value: 'facebook', label: 'Facebook', dotClass: 'bg-blue-500' },
+        { value: 'zalo', label: 'Zalo', dotClass: 'bg-green-500' },
+        { value: 'tiktok', label: 'TikTok', dotClass: 'bg-slate-900' },
+        { value: 'web', label: 'Web', dotClass: 'bg-violet-500' }
     ];
 
     const menu = document.createElement('div');
@@ -931,7 +919,7 @@ function toggleCustomerSourceFilter(event) {
             onclick="selectCustomerSourceFilter('${s.value}', '${s.label}')"
             class="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${s.value === currentValue ? 'bg-blue-50' : ''}"
         >
-            <div class="w-3 h-3 rounded-full bg-${s.color}-500 flex-shrink-0"></div>
+            <div class="w-3 h-3 rounded-full ${s.dotClass} flex-shrink-0"></div>
             <span class="text-sm text-gray-700 flex-1">${s.label}</span>
             ${s.value === currentValue ? `
                 <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -1424,53 +1412,6 @@ function updateCustomDateLabel(startDate, endDate) {
 // PRIORITY FILTER
 // ============================================
 
-/**
- * Cập nhật badge số lượng đơn "Chưa có size" trên nút lọc.
- * Đếm theo computeOrdersWithMissingSize() — chỉ đơn Chưa gửi hàng / Chờ gửi lại / Gửi sau.
- * Nhẹ: 1 lượt quét allOrdersData; ẩn badge khi = 0.
- */
-function updateMissingSizeBadge() {
-    const el = document.getElementById('missingSizeCountBadge');
-    if (!el) return;
-    if (typeof isOrderCatalogReadyForMissingSizeCheck === 'function'
-        && !isOrderCatalogReadyForMissingSizeCheck()) {
-        el.textContent = '';
-        el.style.display = 'none';
-        return;
-    }
-    let count = 0;
-    try {
-        if (typeof computeOrdersWithMissingSize === 'function') {
-            count = computeOrdersWithMissingSize().length;
-        }
-    } catch (e) { count = 0; }
-    if (count > 0) {
-        el.textContent = count > 99 ? '99+' : String(count);
-        el.style.display = 'inline-flex';
-    } else {
-        el.textContent = '';
-        el.style.display = 'none';
-    }
-}
-
-function _setMissingSizeFilterUI(active) {
-    const button = document.getElementById('missingSizeFilterBtn');
-    if (!button) return;
-    const icon = button.querySelector('svg');
-
-    if (active) {
-        button.classList.remove('border-gray-300', 'hover:bg-amber-50', 'hover:border-amber-300');
-        button.classList.add('bg-amber-50', 'border-amber-500', 'ring-1', 'ring-amber-200');
-        icon?.classList.remove('text-gray-500');
-        icon?.classList.add('text-amber-600');
-    } else {
-        button.classList.remove('bg-amber-50', 'border-amber-500', 'ring-1', 'ring-amber-200');
-        button.classList.add('border-gray-300', 'hover:bg-amber-50', 'hover:border-amber-300');
-        icon?.classList.remove('text-amber-600');
-        icon?.classList.add('text-gray-500');
-    }
-}
-
 function setSendLaterUrgentChipUI(active) {
     const btn = document.getElementById('sendLaterUrgentEyeBtn');
     if (!btn) return;
@@ -1516,15 +1457,6 @@ function scrollToOrdersTable() {
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     });
-}
-
-function toggleMissingSizeFilter() {
-    missingSizeFilterActive = !missingSizeFilterActive;
-    _setMissingSizeFilterUI(missingSizeFilterActive);
-    if (missingSizeFilterActive) {
-        clearSendLaterUrgentTableFilter();
-    }
-    filterOrdersData();
 }
 
 function toggleTheTenBeFilter() {

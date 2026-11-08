@@ -47,7 +47,6 @@ function _shippedCursor(order) {
 function _isDefaultNewestShippedView() {
     if ((document.getElementById('statusFilter')?.value || '') !== 'shipped') return false;
     if ((document.getElementById('searchInput')?.value || '').trim()) return false;
-    if (typeof missingSizeFilterActive !== 'undefined' && missingSizeFilterActive) return false;
     if (typeof theTenBeFilterActive !== 'undefined' && theTenBeFilterActive) return false;
     if (typeof sendLaterUrgentFilterActive !== 'undefined' && sendLaterUrgentFilterActive) return false;
     if (typeof amountSortOrder !== 'undefined' && amountSortOrder !== 'none') return false;
@@ -168,8 +167,7 @@ function shouldUseHistoryMode() {
     const searchRaw = (document.getElementById('searchInput')?.value || '').trim();
     if (searchRaw) return false;
 
-    // 3 bộ lọc đặc biệt (parse JSON products ở client) — không đưa lên SQL được
-    if (typeof missingSizeFilterActive !== 'undefined' && missingSizeFilterActive) return false;
+    // Bộ lọc đặc biệt (parse JSON products ở client) — không đưa lên SQL được
     if (typeof theTenBeFilterActive !== 'undefined' && theTenBeFilterActive) return false;
     if (typeof sendLaterUrgentFilterActive !== 'undefined' && sendLaterUrgentFilterActive) return false;
 
