@@ -201,8 +201,9 @@ const ORDER_FULL_SELECT = `
 export async function getUnshippedOrders(env, corsHeaders) {
     const startTime = Date.now();
     try {
+        // Equality trên status (đã normalize ở write + migration 091) → dùng idx_orders_status_created_at.
         const sql = `${ORDER_FULL_SELECT}
-            WHERE LOWER(TRIM(orders.status)) IN ('pending', 'awaiting_reship', 'send_later', 'processing')
+            WHERE orders.status IN ('pending', 'awaiting_reship', 'send_later', 'processing')
             ORDER BY orders.created_at_unix DESC`;
 
         const { results: orders } = await env.DB.prepare(sql).all();
@@ -251,7 +252,7 @@ function buildDueInvoiceFilter(params, { applyDefaultCreatedFrom = false } = {})
     }
     const dueThreshold = Date.now() - remindDays * 86400000;
     const where = [
-        `LOWER(TRIM(orders.status)) = 'shipped'`,
+        `orders.status = 'shipped'`,
         `COALESCE(orders.invoice_exported_at, 0) = 0`,
         `COALESCE(orders.manual_invoice_exported, 0) = 0`,
         `orders.shipped_at_unix IS NOT NULL`,
@@ -372,17 +373,20 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
 
         const parsedLimit = Math.min(Math.max(parseInt(limit, 10) || 30, 1), 200);
         const dir = sortDir === 'asc' ? 'ASC' : 'DESC';
-        // Cột sort/cursor: đơn đã gửi ưu tiên theo thời điểm gửi, còn lại theo thời điểm tạo.
+        // Hot path shipped: sort cột thật (index idx_orders_status_shipped_at) — không COALESCE.
+        // status=all + dateField=shipped: vẫn COALESCE vì đơn chưa gửi có thể NULL shipped_at_unix.
         const sortCol = dateField === 'shipped'
-            ? 'COALESCE(orders.shipped_at_unix, orders.created_at_unix)'
+            ? (statusFilter === 'shipped'
+                ? 'orders.shipped_at_unix'
+                : 'COALESCE(orders.shipped_at_unix, orders.created_at_unix)')
             : 'orders.created_at_unix';
 
         const where = [];
         const binds = [];
 
-        // --- Trạng thái ---
+        // --- Trạng thái (equality — status đã normalize ở write + migration 091) ---
         if (statusFilter === 'shipped') {
-            where.push(`LOWER(TRIM(orders.status)) = 'shipped'`);
+            where.push(`orders.status = 'shipped'`);
         }
         // 'all' → không thêm điều kiện status
 
@@ -450,10 +454,28 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
         const whereClause = where.length ? `WHERE ${where.join(' AND ')}` : '';
         // Lấy dư 1 dòng để biết còn trang sau không (hasMore) mà không cần COUNT.
         const fetchLimit = parsedLimit + 1;
-        const sql = `${ORDER_FULL_SELECT}
-            ${whereClause}
-            ORDER BY ${sortCol} ${dir}, orders.id ${dir}
-            LIMIT ?`;
+        // LIMIT-first: filter+sort+LIMIT trên orders (dùng index), rồi mới JOIN ctv + product_cost
+        // cho ~LIMIT dòng — tránh quét toàn bộ shipped (~9K rows read) trước khi LIMIT.
+        const sql = `
+            SELECT
+                orders.*,
+                ctv.commission_rate as ctv_commission_rate,
+                COALESCE(
+                    (SELECT SUM(oi.product_cost * oi.quantity)
+                     FROM order_items oi
+                     WHERE oi.order_id = orders.id),
+                    0
+                ) as product_cost,
+                ${ORDER_INVOICE_LIST_COLS}
+            FROM (
+                SELECT orders.*
+                FROM orders
+                ${whereClause}
+                ORDER BY ${sortCol} ${dir}, orders.id ${dir}
+                LIMIT ?
+            ) AS orders
+            LEFT JOIN ctv ON orders.referral_code = ctv.referral_code
+            ORDER BY ${sortCol} ${dir}, orders.id ${dir}`;
         binds.push(fetchLimit);
 
         const { results } = await env.DB.prepare(sql).bind(...binds).all();
@@ -464,7 +486,7 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
         if (cursorSort == null || cursorId == null) {
             const countWhere = filterWhere.length ? `WHERE ${filterWhere.join(' AND ')}` : '';
             const countRow = await env.DB.prepare(
-                `SELECT COUNT(*) AS c FROM orders LEFT JOIN ctv ON orders.referral_code = ctv.referral_code ${countWhere}`
+                `SELECT COUNT(*) AS c FROM orders ${countWhere}`
             ).bind(...filterBinds).first();
             totalCount = countRow ? Number(countRow.c) : 0;
         }
@@ -477,7 +499,9 @@ export async function getOrdersHistoryPage(params, env, corsHeaders) {
         if (hasMore && orders.length > 0) {
             const last = orders[orders.length - 1];
             const lastSort = dateField === 'shipped'
-                ? (last.shipped_at_unix ?? last.created_at_unix)
+                ? (statusFilter === 'shipped'
+                    ? last.shipped_at_unix
+                    : (last.shipped_at_unix ?? last.created_at_unix))
                 : last.created_at_unix;
             nextCursor = { sort: Number(lastSort), id: Number(last.id) };
         }

@@ -82,7 +82,7 @@ export async function createOrder(data, env, corsHeaders) {
             snap.productsJson,
             snap.totalAmountNumber,
             data.paymentMethod || 'cod',
-            data.status || 'pending',
+            incomingStatus || 'pending',
             snap.validReferralCode,
             snap.finalCommission,
             snap.finalCommissionRate,
@@ -307,7 +307,7 @@ export async function updateOrderFull(data, env, corsHeaders) {
             snap.productsJson,
             snap.totalAmountNumber,
             data.paymentMethod || 'cod',
-            data.status || 'pending',
+            incomingStatus || 'pending',
             snap.validReferralCode,
             snap.finalCommission,
             snap.finalCommissionRate,
@@ -1121,8 +1121,9 @@ export async function updateOrderStatus(data, env, corsHeaders) {
 
         // Validate status (send_later chỉ đặt qua tạo/sửa đơn đầy đủ, không qua API này)
         // awaiting_reship = "Chờ gửi lại": đơn hoàn đã có sản phẩm, chỉ in mã & gửi lại (export thêm tiền tố [GỬI LẠI]).
+        const nextStatus = String(data.status).toLowerCase().trim();
         const validStatuses = ['pending', 'processing', 'shipped', 'in_transit', 'delivered', 'failed', 'cancelled', 'awaiting_reship'];
-        if (!validStatuses.includes(data.status)) {
+        if (!validStatuses.includes(nextStatus)) {
             return jsonResponse({
                 success: false,
                 error: 'Trạng thái không hợp lệ'
@@ -1152,7 +1153,7 @@ export async function updateOrderStatus(data, env, corsHeaders) {
                 END
             WHERE id = ?3
             RETURNING shipped_at_unix, is_priority
-        `).bind(data.status, nowMs, data.orderId).first();
+        `).bind(nextStatus, nowMs, data.orderId).first();
 
         if (!row) {
             return jsonResponse({
@@ -1161,7 +1162,7 @@ export async function updateOrderStatus(data, env, corsHeaders) {
             }, 404, corsHeaders);
         }
 
-        console.log('✅ Updated order status in database:', data.orderId, '->', data.status);
+        console.log('✅ Updated order status in database:', data.orderId, '->', nextStatus);
 
         return jsonResponse({
             success: true,
