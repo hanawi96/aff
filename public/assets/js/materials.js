@@ -1,8 +1,55 @@
 // Materials Management JavaScript
 let allMaterials = [];
-let filteredMaterials = [];
+let filteredMaterials = []; // BOM (nguyên liệu cấu thành SP)
+let filteredCosts = [];     // Chi phí (đóng gói / vận hành / khác)
 let allCategories = [];
 const changedMaterialNames = new Set();
+
+/**
+ * Cùng rule với chrome-extension/custom-cost-materials.js:
+ * nhóm "Đóng gói" / "Chi phí vận hành" / "Khác" → tab Chi phí.
+ */
+const COST_CATEGORY_KEYWORDS = ['dong goi', 'van hanh', 'khac'];
+
+function normalizeCatKey(s) {
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function isCostCategoryMeta(cat) {
+    if (!cat) return false;
+    const name = normalizeCatKey(cat.name || cat.category_name);
+    const display = normalizeCatKey(cat.display_name || cat.category_display_name);
+    return COST_CATEGORY_KEYWORDS.some((kw) => name.includes(kw) || display.includes(kw));
+}
+
+function isCostMaterial(m) {
+    if (!m) return false;
+    return isCostCategoryMeta({
+        name: m.category_name,
+        display_name: m.category_display_name
+    });
+}
+
+function getBomMaterials() {
+    return allMaterials.filter((m) => !isCostMaterial(m));
+}
+
+function getCostMaterials() {
+    return allMaterials.filter(isCostMaterial);
+}
+
+function matchesMaterialSearch(material, searchTerm) {
+    if (!searchTerm) return true;
+    const displayName = (material.display_name || formatMaterialName(material.item_name)).toLowerCase();
+    const itemName = String(material.item_name || '').toLowerCase();
+    return displayName.includes(searchTerm) || itemName.includes(searchTerm);
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function () {
@@ -29,6 +76,8 @@ function initializeTabFromURL() {
     const hash = window.location.hash.slice(1); // Remove #
     if (hash === 'categories') {
         switchTab('categories');
+    } else if (hash === 'costs') {
+        switchTab('costs');
     } else {
         switchTab('materials');
     }
@@ -38,7 +87,9 @@ function initializeTabFromURL() {
 function handleHashChange() {
     const hash = window.location.hash.slice(1);
     if (hash === 'categories') {
-        switchTab('categories', false); // false = don't update URL again
+        switchTab('categories', false);
+    } else if (hash === 'costs') {
+        switchTab('costs', false);
     } else {
         switchTab('materials', false);
     }
@@ -69,12 +120,15 @@ async function loadMaterials() {
 
         if (data.success) {
             allMaterials = data.materials || [];
-            filteredMaterials = [...allMaterials];
+            applyMaterialsSearch();
+            applyCostsSearch();
 
-            console.log('📦 Loaded materials:', allMaterials.length);
+            console.log('📦 Loaded materials:', allMaterials.length,
+                '| BOM:', getBomMaterials().length,
+                '| Chi phí:', getCostMaterials().length);
 
             renderMaterials();
-            updateStats();
+            renderCosts();
             hideLoading();
         } else {
             throw new Error(data.error || 'Failed to load materials');
@@ -86,65 +140,73 @@ async function loadMaterials() {
     }
 }
 
-// Render materials table
-function renderMaterials() {
-    const tbody = document.getElementById('materialsTableBody');
-    const table = document.getElementById('materialsTable');
-    const emptyState = document.getElementById('emptyState');
+/** Render bảng list (dùng chung cho tab Nguyên liệu / Chi phí) */
+function renderGroupedMaterialList(list, { tbodyId, tableId, emptyId }) {
+    const tbody = document.getElementById(tbodyId);
+    const table = document.getElementById(tableId);
+    const emptyState = document.getElementById(emptyId);
 
-    if (!tbody) return;
+    if (!tbody || !table || !emptyState) return;
 
-    if (filteredMaterials.length === 0) {
+    if (!list || list.length === 0) {
         table.classList.add('hidden');
         emptyState.classList.remove('hidden');
+        tbody.innerHTML = '';
         return;
     }
 
     table.classList.remove('hidden');
     emptyState.classList.add('hidden');
 
-    // Group materials by category
-    const groupedMaterials = {};
-    filteredMaterials.forEach(material => {
+    const grouped = {};
+    list.forEach((material) => {
         const categoryName = material.category_display_name || 'Chưa phân loại';
-        if (!groupedMaterials[categoryName]) {
-            groupedMaterials[categoryName] = {
+        if (!grouped[categoryName]) {
+            grouped[categoryName] = {
                 icon: material.category_icon || '📦',
                 materials: []
             };
         }
-        groupedMaterials[categoryName].materials.push(material);
+        grouped[categoryName].materials.push(material);
     });
 
-    // Render grouped materials
     let html = '';
-    Object.keys(groupedMaterials).forEach(categoryName => {
-        const group = groupedMaterials[categoryName];
-        
-        // Category header row
+    Object.keys(grouped).forEach((categoryName) => {
+        const group = grouped[categoryName];
         html += `
-            <tr class="bg-gradient-to-r from-indigo-50 to-purple-50 border-t-2 border-indigo-200">
+            <tr class="bg-indigo-50/80">
                 <td colspan="6" class="px-6 py-3">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-                            </svg>
-                        </div>
-                        <span class="text-lg font-bold text-indigo-900">${categoryName}</span>
-                        <span class="text-sm text-indigo-600">(${group.materials.length} nguyên liệu)</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">${group.icon || '📦'}</span>
+                        <span class="text-lg font-bold text-indigo-900">${escapeHtml(categoryName)}</span>
+                        <span class="text-sm text-indigo-600">(${group.materials.length})</span>
                     </div>
                 </td>
-            </tr>
-        `;
-
-        // Materials in this category
-        group.materials.forEach(material => {
+            </tr>`;
+        group.materials.forEach((material) => {
             html += createMaterialRow(material);
         });
     });
 
     tbody.innerHTML = html;
+}
+
+// Render materials table (BOM only)
+function renderMaterials() {
+    renderGroupedMaterialList(filteredMaterials, {
+        tbodyId: 'materialsTableBody',
+        tableId: 'materialsTable',
+        emptyId: 'emptyState'
+    });
+}
+
+// Render costs table
+function renderCosts() {
+    renderGroupedMaterialList(filteredCosts, {
+        tbodyId: 'costsTableBody',
+        tableId: 'costsTable',
+        emptyId: 'costsEmptyState'
+    });
 }
 
 // Create material row HTML
@@ -254,63 +316,50 @@ function formatMaterialName(itemName) {
     return names[itemName] || itemName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
-// Update statistics
-function updateStats() {
-    document.getElementById('totalMaterials').textContent = allMaterials.length;
-
-    if (allMaterials.length > 0) {
-        const prices = allMaterials.map(m => m.item_cost || 0);
-        const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
-        const maxPrice = Math.max(...prices);
-        const minPrice = Math.min(...prices);
-
-        document.getElementById('avgPrice').textContent = formatCurrency(avgPrice);
-        document.getElementById('maxPrice').textContent = formatCurrency(maxPrice);
-        document.getElementById('minPrice').textContent = formatCurrency(minPrice);
-    } else {
-        document.getElementById('avgPrice').textContent = '0đ';
-        document.getElementById('maxPrice').textContent = '0đ';
-        document.getElementById('minPrice').textContent = '0đ';
-    }
+function applyMaterialsSearch() {
+    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
+    filteredMaterials = getBomMaterials().filter((m) => matchesMaterialSearch(m, searchTerm));
 }
 
-// Search materials
+function applyCostsSearch() {
+    const searchTerm = document.getElementById('searchCostsInput')?.value.toLowerCase().trim() || '';
+    filteredCosts = getCostMaterials().filter((m) => matchesMaterialSearch(m, searchTerm));
+}
+
+// Search materials (BOM tab)
 function searchMaterials() {
-    const searchInput = document.getElementById('searchInput');
-    const searchTerm = searchInput?.value.toLowerCase().trim() || '';
-
-    if (!searchTerm) {
-        filteredMaterials = [...allMaterials];
-    } else {
-        filteredMaterials = allMaterials.filter(material => {
-            const displayName = (material.display_name || formatMaterialName(material.item_name)).toLowerCase();
-            const itemName = material.item_name.toLowerCase();
-            return displayName.includes(searchTerm) || itemName.includes(searchTerm);
-        });
-    }
-
+    applyMaterialsSearch();
     renderMaterials();
 }
 
-// Show add material modal
-function showAddMaterialModal() {
+// Search costs tab
+function searchCosts() {
+    applyCostsSearch();
+    renderCosts();
+}
+
+function openMaterialFormModal({ title, categories, gradientClass }) {
+    if (!categories || categories.length === 0) {
+        showToast('Chưa có danh mục phù hợp. Hãy tạo danh mục trước ở tab Danh mục.', 'warning');
+        return;
+    }
+
     const modal = document.createElement('div');
     modal.id = 'materialModal';
     modal.className = 'fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[110] p-4';
 
-    // Generate category options
-    const categoryOptions = allCategories.map(cat => 
-        `<option value="${cat.id}">${cat.icon} ${cat.display_name}</option>`
+    const categoryOptions = categories.map(cat =>
+        `<option value="${cat.id}">${cat.icon || '📦'} ${escapeHtml(cat.display_name)}</option>`
     ).join('');
 
     modal.innerHTML = `
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full">
-            <div class="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+            <div class="bg-gradient-to-r ${gradientClass} px-6 py-4 flex items-center justify-between rounded-t-2xl">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                     </div>
-                    <h3 class="text-xl font-bold text-white">Thêm nguyên liệu mới</h3>
+                    <h3 class="text-xl font-bold text-white">${escapeHtml(title)}</h3>
                 </div>
                 <button onclick="closeMaterialModal()" class="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
                     <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -349,6 +398,24 @@ function showAddMaterialModal() {
     `;
 
     document.body.appendChild(modal);
+}
+
+function showAddMaterialModal() {
+    const bomCats = allCategories.filter((c) => !isCostCategoryMeta(c));
+    openMaterialFormModal({
+        title: 'Thêm nguyên liệu mới',
+        categories: bomCats,
+        gradientClass: 'from-purple-600 to-pink-600'
+    });
+}
+
+function showAddCostModal() {
+    const costCats = allCategories.filter(isCostCategoryMeta);
+    openMaterialFormModal({
+        title: 'Thêm chi phí',
+        categories: costCats,
+        gradientClass: 'from-emerald-600 to-teal-600'
+    });
 }
 
 // Close material modal
@@ -572,10 +639,14 @@ function showLoading() {
     document.getElementById('loadingState')?.classList.remove('hidden');
     document.getElementById('materialsTable')?.classList.add('hidden');
     document.getElementById('emptyState')?.classList.add('hidden');
+    document.getElementById('costsLoadingState')?.classList.remove('hidden');
+    document.getElementById('costsTable')?.classList.add('hidden');
+    document.getElementById('costsEmptyState')?.classList.add('hidden');
 }
 
 function hideLoading() {
     document.getElementById('loadingState')?.classList.add('hidden');
+    document.getElementById('costsLoadingState')?.classList.add('hidden');
 }
 
 function formatCurrency(amount) {
@@ -786,9 +857,6 @@ async function saveQuickEdit(itemName) {
             // tổng số SP outdated thật từ server (tránh badge bị ghi đè khi sửa
             // liên tiếp nhiều nguyên liệu khác nhau).
             applyOutdatedProductsBadge(data.affected_products || 0, true);
-            
-            // Update stats
-            updateStats();
         } else {
             throw new Error(data.error || 'Không thể cập nhật giá');
         }
@@ -1188,6 +1256,8 @@ function switchTab(tabName, updateURL = true) {
     if (updateURL) {
         if (tabName === 'categories') {
             window.history.pushState(null, '', '#categories');
+        } else if (tabName === 'costs') {
+            window.history.pushState(null, '', '#costs');
         } else {
             window.history.pushState(null, '', '#materials');
         }
@@ -1215,9 +1285,12 @@ function switchTab(tabName, updateURL = true) {
         activeContent.classList.remove('hidden');
     }
     
-    // Load data when switching to categories tab
     if (tabName === 'categories') {
         renderCategoriesTab();
+    } else if (tabName === 'costs') {
+        renderCosts();
+    } else if (tabName === 'materials') {
+        renderMaterials();
     }
 }
 
