@@ -139,6 +139,20 @@ export class ProductActions {
         // Badges removed per user request
         cartService.addItem(cartItem, 1);
         this.updateCartUI();
+
+        try {
+            if (window.ShopvdMarketing && typeof ShopvdMarketing.trackAddToCart === 'function') {
+                ShopvdMarketing.trackAddToCart({
+                    value: Number(finalPrice) || 0,
+                    currency: 'VND',
+                    contents: [{
+                        id: product.id,
+                        quantity: 1,
+                        item_price: Number(finalPrice) || 0
+                    }]
+                });
+            }
+        } catch (e) { /* ignore tracking errors */ }
     }
     
     /**

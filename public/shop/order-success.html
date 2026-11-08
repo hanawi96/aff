@@ -3,15 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18459160193"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'AW-18459160193');
-    </script>
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/marketing-loader.js?v=2"></script>
     <title>Cảm ơn mẹ - Vòng dâu tằm by Ánh</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -218,7 +211,8 @@
                 if (!data || !data.orderId) return null;
                 return {
                     orderId: String(data.orderId),
-                    total: typeof data.total === 'number' ? data.total : parseTotal(data.total)
+                    total: typeof data.total === 'number' ? data.total : parseTotal(data.total),
+                    contents: Array.isArray(data.contents) ? data.contents : []
                 };
             } catch (e) {
                 return null;
@@ -229,11 +223,29 @@
             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
         }
 
+        function firePurchasePixel(payload) {
+            if (!payload || !window.ShopvdMarketing || typeof ShopvdMarketing.trackPurchase !== 'function') return;
+            const value = payload.total != null ? Number(payload.total) : 0;
+            ShopvdMarketing.trackPurchase({
+                order_id: payload.orderId,
+                value: Number.isFinite(value) ? value : 0,
+                currency: 'VND',
+                contents: payload.contents || []
+            }).catch(function () { /* ignore */ });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             const orderId = params.get('orderId') || params.get('order_id');
             const total = parseTotal(params.get('total'));
-            const payload = (orderId ? { orderId: String(orderId), total } : null) || loadFromStorage();
+            const stored = loadFromStorage();
+            const payload = orderId
+                ? {
+                    orderId: String(orderId),
+                    total: total != null ? total : (stored && stored.orderId === String(orderId) ? stored.total : null),
+                    contents: stored && stored.orderId === String(orderId) ? (stored.contents || []) : []
+                }
+                : stored;
             const orderIdEl = document.getElementById('orderId');
             const totalRow = document.getElementById('totalRow');
             const orderTotalEl = document.getElementById('orderTotal');
@@ -244,6 +256,7 @@
                     totalRow.style.display = 'flex';
                     orderTotalEl.textContent = formatPrice(payload.total);
                 }
+                firePurchasePixel(payload);
             }
 
             const copyBtn = document.getElementById('copyOrderBtn');

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vòng dâu tằm by Ánh</title>
+    <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/marketing-loader.js?v=2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #1c1917;
+            --muted: #78716c;
+            --cream: #faf7f2;
+            --sand: #efe6d8;
+            --accent: #b45309;
+            --accent-deep: #92400e;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; min-height: 100%; }
+        body {
+            font-family: "Source Sans 3", system-ui, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(ellipse 90% 60% at 10% -10%, rgba(180, 83, 9, 0.12), transparent 55%),
+                radial-gradient(ellipse 70% 50% at 100% 0%, rgba(120, 113, 108, 0.08), transparent 45%),
+                var(--cream);
+        }
+        .wrap {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            max-width: 72rem;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .brand {
+            font-family: Fraunces, Georgia, serif;
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+            color: var(--ink);
+            text-decoration: none;
+        }
+        .top a.home {
+            font-size: 0.875rem;
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .top a.home:hover { color: var(--accent-deep); }
+        .hero {
+            flex: 1;
+            display: grid;
+            gap: 1.75rem;
+            align-items: center;
+            max-width: 72rem;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 3rem;
+            width: 100%;
+        }
+        @media (min-width: 900px) {
+            .hero {
+                grid-template-columns: 1.05fr 0.95fr;
+                gap: 3rem;
+                padding-top: 2.5rem;
+            }
+        }
+        .kicker {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+        h1 {
+            font-family: Fraunces, Georgia, serif;
+            font-weight: 700;
+            font-size: clamp(2rem, 4.5vw, 3.25rem);
+            line-height: 1.12;
+            letter-spacing: -0.03em;
+            margin: 0 0 1rem;
+        }
+        .sub {
+            font-size: 1.0625rem;
+            line-height: 1.55;
+            color: var(--muted);
+            margin: 0 0 1.75rem;
+            max-width: 34rem;
+        }
+        .cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 3rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 999px;
+            background: var(--ink);
+            color: #fff;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .cta:hover { background: var(--accent-deep); transform: translateY(-1px); }
+        .visual {
+            position: relative;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            background: var(--sand);
+            min-height: 16rem;
+            aspect-ratio: 4 / 5;
+            max-height: 34rem;
+        }
+        .visual img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .visual-fallback {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            padding: 2rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+        .state {
+            max-width: 28rem;
+            margin: 20vh auto;
+            padding: 2rem 1.25rem;
+            text-align: center;
+        }
+        .state h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .hidden { display: none !important; }
+        .foot {
+            padding: 1rem 1.25rem 1.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #a8a29e;
+        }
+    </style>
+</head>
+<body>
+    <div id="lpLoading" class="state">
+        <p class="sub" style="margin:0">Đang tải trang…</p>
+    </div>
+
+    <div id="lpError" class="state hidden">
+        <h1>Trang không khả dụng</h1>
+        <p class="sub">Link có thể sai hoặc trang đã được tắt.</p>
+        <a class="cta" href="/">Về trang chủ</a>
+    </div>
+
+    <div id="lpRoot" class="wrap hidden">
+        <header class="top">
+            <a class="brand" href="/">Vòng dâu tằm by Ánh</a>
+            <a class="home" href="/">Cửa hàng</a>
+        </header>
+        <main class="hero">
+            <div>
+                <span class="kicker" id="lpKicker">Ưu đãi</span>
+                <h1 id="lpHeadline">—</h1>
+                <p class="sub" id="lpSub"></p>
+                <a class="cta" id="lpCta" href="/#products">Xem sản phẩm</a>
+            </div>
+            <div class="visual" id="lpVisual">
+                <div class="visual-fallback" id="lpVisualFallback">Hình ảnh sản phẩm thủ công</div>
+            </div>
+        </main>
+        <footer class="foot">Vòng dâu tằm by Ánh</footer>
+    </div>
+
+    <script>
+    (function () {
+        function apiBase() {
+            if (window.CONFIG && CONFIG.API_URL) return CONFIG.API_URL;
+            var host = location.hostname;
+            if (host === 'localhost' || host === '127.0.0.1') return 'http://127.0.0.1:8787';
+            return 'https://ctv-api.yendev96.workers.dev';
+        }
+
+        function slugFromLocation() {
+            var params = new URLSearchParams(location.search);
+            var q = (params.get('page') || params.get('lp') || '').trim();
+            if (q) return q.toLowerCase();
+            var parts = location.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+            if (parts[0] === 'p' && parts[1] && parts[1] !== 'index.html') {
+                return decodeURIComponent(parts[1]).toLowerCase();
+            }
+            return '';
+        }
+
+        function show(el) { el.classList.remove('hidden'); }
+        function hide(el) { el.classList.add('hidden'); }
+
+        async function boot() {
+            var slug = slugFromLocation();
+            var loading = document.getElementById('lpLoading');
+            var err = document.getElementById('lpError');
+            var root = document.getElementById('lpRoot');
+
+            if (!slug) {
+                hide(loading);
+                show(err);
+                return;
+            }
+
+            try {
+                if (window.ShopvdMarketing && ShopvdMarketing.setLandingPageKey) {
+                    ShopvdMarketing.setLandingPageKey(slug);
+                } else {
+                    sessionStorage.setItem('vd_landing_page', slug);
+                }
+
+                var res = await fetch(apiBase() + '?action=getPublicLandingPage&slug=' + encodeURIComponent(slug) + '&timestamp=' + Date.now());
+                var data = await res.json();
+                if (!data.success || !data.page) throw new Error(data.error || 'not found');
+
+                var p = data.page;
+                document.title = (p.headline || p.name || 'Vòng dâu tằm') + ' | by Ánh';
+                document.getElementById('lpHeadline').textContent = p.headline || p.name;
+                document.getElementById('lpSub').textContent = p.subheadline || '';
+                document.getElementById('lpKicker').textContent = p.name || 'Ưu đãi';
+
+                var cta = document.getElementById('lpCta');
+                cta.textContent = p.cta_text || 'Xem sản phẩm';
+                var href = p.cta_url || '/#products';
+                if (href.charAt(0) === '/') {
+                    cta.href = href;
+                } else {
+                    cta.href = href;
+                }
+
+                if (p.hero_image_url) {
+                    var img = document.createElement('img');
+                    img.src = p.hero_image_url;
+                    img.alt = p.headline || p.name || '';
+                    img.loading = 'eager';
+                    img.decoding = 'async';
+                    document.getElementById('lpVisualFallback').remove();
+                    document.getElementById('lpVisual').appendChild(img);
+                }
+
+                if (window.ShopvdMarketing && ShopvdMarketing.trackEvent) {
+                    ShopvdMarketing.trackEvent('vd_landing_view', { page_key: slug, page_name: p.name });
+                }
+
+                hide(loading);
+                show(root);
+            } catch (e) {
+                console.warn(e);
+                hide(loading);
+                show(err);
+            }
+        }
+
+        boot();
+    })();
+    </script>
+</body>
+</html>

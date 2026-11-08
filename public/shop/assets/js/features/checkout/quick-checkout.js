@@ -125,6 +125,23 @@ export class QuickCheckout {
         
         // Render product info immediately (synchronous)
         this.render();
+
+        try {
+            if (window.ShopvdMarketing && typeof ShopvdMarketing.trackBeginCheckout === 'function') {
+                const unit = Number(product?.price) || 0;
+                const qty = Number(this.quantity) || 1;
+                ShopvdMarketing.trackBeginCheckout({
+                    value: unit * qty,
+                    currency: 'VND',
+                    num_items: qty,
+                    contents: product?.id != null ? [{
+                        id: product.id,
+                        quantity: qty,
+                        item_price: unit
+                    }] : []
+                });
+            }
+        } catch (e) { /* ignore tracking errors */ }
         
         // Initialize form validator
         this.initializeValidator();
@@ -2235,8 +2252,17 @@ export class QuickCheckout {
             }
         });
         
-        // Build notes: only custom note (baby weight is in order_items.size)
-        const orderNotes = formData.note || null;
+        // Build notes: custom note + landing page tag (nếu vào từ /p/?page=…)
+        let orderNotes = formData.note || null;
+        try {
+            const lp = (window.ShopvdMarketing && ShopvdMarketing.getLandingPageKey)
+                ? ShopvdMarketing.getLandingPageKey()
+                : (sessionStorage.getItem('vd_landing_page') || '');
+            if (lp) {
+                const tag = `[lp:${lp}]`;
+                orderNotes = orderNotes ? `${orderNotes} ${tag}` : tag;
+            }
+        } catch (e) { /* ignore */ }
         
         // Get CTV info from cookie (if exists)
         console.log('📞 [Quick Checkout] Getting CTV info...');
@@ -2349,6 +2375,11 @@ export class QuickCheckout {
                         localStorage.setItem('shop_last_success_order', JSON.stringify({
                             orderId: String(orderId),
                             total: totalAmount ?? null,
+                            contents: (cart || []).map((item) => ({
+                                id: item.id,
+                                quantity: item.quantity || 1,
+                                item_price: item.price || 0
+                            })),
                             savedAt: Date.now()
                         }));
                     } catch (e) {}

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketing — Mã theo dõi &amp; Trang bán</title>
+    <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="../assets/css/admin.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'admin-primary': '#6366f1',
+                        'admin-secondary': '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { background-color: #f1f5f9; }
+        .ctv-page-bg {
+            background-color: #f1f5f9;
+            background-image:
+                radial-gradient(ellipse 120% 80% at 100% -20%, rgba(59, 130, 246, 0.07), transparent 50%),
+                radial-gradient(ellipse 90% 60% at 0% 100%, rgba(99, 102, 241, 0.05), transparent 45%);
+        }
+        .mkt-tab {
+            border-radius: 0.625rem;
+            padding: 0.5rem 0.875rem;
+            font-size: 0.875rem;
+            color: #64748b;
+            transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+        }
+        .mkt-tab--active {
+            background: #fff;
+            color: #0f172a;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        }
+        .mkt-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+        .mkt-field label {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.375rem;
+        }
+        .mkt-field input[type="text"],
+        .mkt-field textarea {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 0.625rem 0.875rem;
+            font-size: 0.875rem;
+            color: #0f172a;
+            background: #fff;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .mkt-field input:focus,
+        .mkt-field textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        .mkt-field .hint {
+            margin-top: 0.375rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+        .mkt-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.75rem 0.875rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            background: #f8fafc;
+        }
+        .mkt-switch span { font-size: 0.8125rem; font-weight: 500; color: #334155; }
+        .mkt-page-card {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1.125rem 1.25rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 1rem;
+            background: #fff;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        @media (min-width: 640px) {
+            .mkt-page-card {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+        .mkt-page-card:hover {
+            border-color: #c7d2fe;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.06);
+        }
+        .mkt-page-card-main { min-width: 0; flex: 1; }
+        .mkt-page-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .mkt-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 0.125rem 0.5rem;
+            font-size: 0.6875rem;
+            font-weight: 600;
+        }
+        .mkt-badge--on { background: #ecfdf5; color: #047857; }
+        .mkt-badge--off { background: #f1f5f9; color: #64748b; }
+        .mkt-page-link-row {
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            max-width: 100%;
+        }
+        .mkt-page-url {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.75rem;
+            color: #475569;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.375rem 0.625rem;
+        }
+        .mkt-icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #64748b;
+            cursor: pointer;
+        }
+        .mkt-icon-btn:hover { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+        .mkt-btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, #4f46e5, #6366f1);
+            color: #fff;
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.625rem 1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(79, 70, 229, 0.25);
+        }
+        .mkt-btn-primary:hover { filter: brightness(1.05); }
+        .mkt-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .mkt-btn-ghost {
+            border-radius: 0.625rem;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            color: #334155;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            padding: 0.4375rem 0.75rem;
+            cursor: pointer;
+        }
+        .mkt-btn-ghost:hover { background: #f8fafc; }
+        .mkt-btn-danger { color: #b91c1c; }
+        .mkt-btn-danger:hover { background: #fef2f2; border-color: #fecaca; }
+        .mkt-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 1rem;
+        }
+        @media (min-width: 640px) {
+            .mkt-modal { align-items: center; }
+        }
+        .mkt-modal.hidden { display: none; }
+        .mkt-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(2px);
+        }
+        .mkt-modal-panel {
+            position: relative;
+            width: 100%;
+            max-width: 34rem;
+            max-height: min(92vh, 44rem);
+            overflow: auto;
+            background: #fff;
+            border-radius: 1.25rem;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+        }
+    </style>
+</head>
+<body class="ctv-page-bg min-h-screen antialiased">
+    <div id="adminSidebarMount"></div>
+
+    <div class="ml-64 min-h-screen w-[calc(100%-16rem)] min-w-0 max-w-none">
+        <main class="w-full min-w-0 px-6 py-8 lg:px-8">
+            <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Marketing</h1>
+                    <p class="mt-1 text-sm text-slate-500">Dán ID Pixel / GTM một lần · Tạo trang bán chạy ads · Copy link là xong</p>
+                </div>
+                <a href="ads.html" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">← Hiệu quả QC</a>
+            </div>
+
+            <div class="mb-6 inline-flex rounded-xl bg-slate-100 p-1 gap-0.5" role="tablist">
+                <button type="button" data-mkt-tab="tracking" class="mkt-tab mkt-tab--active" role="tab" aria-selected="true">Mã theo dõi</button>
+                <button type="button" data-mkt-tab="pages" class="mkt-tab" role="tab" aria-selected="false">Trang bán</button>
+            </div>
+
+            <!-- Tracking -->
+            <section id="mktPanelTracking" class="space-y-5">
+                <div class="mkt-card p-5 sm:p-6">
+                    <div class="mb-5 flex items-start justify-between gap-3">
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-900">Mã theo dõi toàn site</h2>
+                            <p class="mt-1 text-sm text-slate-500">Chỉ nhập ID — site tự gắn vào trang khách. Không dán script HTML.</p>
+                        </div>
+                        <span id="mktTrackingStatus" class="text-xs text-slate-400 shrink-0">—</span>
+                    </div>
+
+                    <form id="mktTrackingForm" class="space-y-5">
+                        <div class="mkt-field">
+                            <label for="mktGtmId">Google Tag Manager ID</label>
+                            <input type="text" id="mktGtmId" placeholder="GTM-XXXXXX" autocomplete="off" spellcheck="false">
+                            <p class="hint">Khuyến nghị: dùng GTM rồi gắn Facebook/Google bên trong GTM.</p>
+                        </div>
+                        <div class="mkt-switch">
+                            <span>Bật Google Tag Manager</span>
+                            <input type="checkbox" id="mktGtmEnabled" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        </div>
+
+                        <div class="border-t border-slate-100 pt-5 grid gap-5 sm:grid-cols-2">
+                            <div class="mkt-field">
+                                <label for="mktMetaId">Meta Pixel ID</label>
+                                <input type="text" id="mktMetaId" placeholder="123456789012345" inputmode="numeric" autocomplete="off" spellcheck="false">
+                                <p class="hint">Chỉ số, lấy từ Events Manager.</p>
+                            </div>
+                            <div class="mkt-field">
+                                <label for="mktAdsId">Google Ads ID</label>
+                                <input type="text" id="mktAdsId" placeholder="AW-123456789" autocomplete="off" spellcheck="false">
+                                <p class="hint" id="mktAdsHint">—</p>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="mkt-switch">
+                                <span>Bật Meta Pixel</span>
+                                <input type="checkbox" id="mktMetaEnabled" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            </div>
+                            <div class="mkt-switch">
+                                <span>Bật Google Ads (trực tiếp)</span>
+                                <input type="checkbox" id="mktAdsEnabled" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-2">
+                            <button type="submit" id="mktSaveTrackingBtn" class="mkt-btn-primary">Lưu cấu hình</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-600">
+                    <strong class="font-semibold text-slate-800">Gợi ý:</strong>
+                    Có GTM thì ưu tiên quản lý thẻ trong GTM. Pixel/Ads ID ở đây dùng khi chưa gắn GTM hoặc cần fallback.
+                </div>
+            </section>
+
+            <!-- Landing pages -->
+            <section id="mktPanelPages" class="hidden space-y-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900">Trang bán chạy ads</h2>
+                        <p class="mt-0.5 text-sm text-slate-500">Mỗi trang một link riêng · Chung một Pixel/GTM · Dễ đo theo URL</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span id="mktPagesStatus" class="text-xs text-slate-400">—</span>
+                        <button type="button" id="mktCreatePageBtn" class="mkt-btn-primary">+ Tạo trang</button>
+                    </div>
+                </div>
+
+                <div id="mktPagesEmpty" class="mkt-card hidden px-6 py-12 text-center">
+                    <p class="text-base font-medium text-slate-800">Chưa có trang bán nào</p>
+                    <p class="mt-1 text-sm text-slate-500">Tạo trang đầu tiên, copy link đưa vào Facebook/Google Ads.</p>
+                </div>
+                <div id="mktPagesList" class="space-y-3"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Page modal -->
+    <div id="mktPageModal" class="mkt-modal hidden" role="dialog" aria-modal="true" aria-labelledby="mktPageModalTitle">
+        <div id="mktPageModalBackdrop" class="mkt-modal-backdrop"></div>
+        <div class="mkt-modal-panel">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                <h3 id="mktPageModalTitle" class="text-lg font-semibold text-slate-900">Tạo trang bán</h3>
+                <button type="button" id="mktPageModalClose" class="mkt-icon-btn" aria-label="Đóng">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form id="mktPageForm" class="space-y-4 px-5 py-4">
+                <div class="mkt-field">
+                    <label for="mktPageName">Tên trang (nội bộ)</label>
+                    <input type="text" id="mktPageName" required placeholder="Landing Tết 2026" maxlength="120">
+                </div>
+                <div class="mkt-field">
+                    <label for="mktPageSlug">Đường dẫn (slug)</label>
+                    <input type="text" id="mktPageSlug" required placeholder="tet-2026" maxlength="64" spellcheck="false">
+                    <p class="hint">Link public: <span id="mktSlugPreview" class="font-medium text-slate-600">—</span></p>
+                </div>
+                <div class="mkt-field">
+                    <label for="mktPageHeadline">Tiêu đề lớn trên trang</label>
+                    <input type="text" id="mktPageHeadline" placeholder="Vòng dâu tằm bảo vệ bé yêu" maxlength="160">
+                </div>
+                <div class="mkt-field">
+                    <label for="mktPageSub">Mô tả ngắn</label>
+                    <textarea id="mktPageSub" rows="2" placeholder="Thủ công · An toàn · Giao nhanh" maxlength="280"></textarea>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="mkt-field">
+                        <label for="mktPageCtaText">Nút CTA</label>
+                        <input type="text" id="mktPageCtaText" placeholder="Xem sản phẩm" maxlength="40">
+                    </div>
+                    <div class="mkt-field">
+                        <label for="mktPageCtaUrl">Link nút CTA</label>
+                        <input type="text" id="mktPageCtaUrl" placeholder="/#products" maxlength="200">
+                    </div>
+                </div>
+                <div class="mkt-field">
+                    <label for="mktPageImage">Ảnh hero (URL, tuỳ chọn)</label>
+                    <input type="text" id="mktPageImage" placeholder="https://…" maxlength="500">
+                </div>
+                <div class="mkt-field">
+                    <label for="mktPageNotes">Ghi chú nội bộ</label>
+                    <input type="text" id="mktPageNotes" placeholder="FB ads · ngân sách X" maxlength="200">
+                </div>
+                <div class="mkt-switch">
+                    <span>Đang bật (hiển thị public)</span>
+                    <input type="checkbox" id="mktPageActive" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" checked>
+                </div>
+                <div class="flex justify-end gap-2 border-t border-slate-100 pt-4 pb-1">
+                    <button type="button" class="mkt-btn-ghost" id="mktPageModalClose2" onclick="document.getElementById('mktPageModalClose').click()">Huỷ</button>
+                    <button type="submit" id="mktSavePageBtn" class="mkt-btn-primary">Lưu trang</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/toast-manager.js"></script>
+    <script src="../assets/js/marketing-admin.js?v=1"></script>
+    <script src="../assets/js/auth-check.js"></script>
+    <script>
+    (async function mountSidebar() {
+        try {
+            const res = await fetch('_sidebar.html', { cache: 'no-store' });
+            const html = await res.text();
+            const mount = document.getElementById('adminSidebarMount');
+            if (!mount) return;
+            mount.outerHTML = '<!-- ADMIN_SIDEBAR_START -->' + html + '<!-- ADMIN_SIDEBAR_END -->';
+            document.querySelectorAll('#adminSidebar [data-nav]').forEach((a) => {
+                const nav = a.getAttribute('data-nav');
+                const on = nav === 'marketing.html';
+                a.classList.toggle('bg-indigo-50', on);
+                a.classList.toggle('text-indigo-600', on);
+                a.classList.toggle('text-gray-700', !on);
+                a.classList.toggle('hover:bg-gray-50', !on);
+            });
+            // Re-bind collapse from injected sidebar scripts already ran via outerHTML... scripts in fetched HTML may not execute.
+            // Fallback: load collapse behaviour if missing
+            if (!window.__adminSidebarBound && typeof document !== 'undefined') {
+                const KEY = 'admin_sidebar_collapsed';
+                const btn = document.getElementById('adminSidebarToggle');
+                btn?.addEventListener('click', () => {
+                    const next = !document.documentElement.classList.contains('admin-sidebar-collapsed');
+                    document.documentElement.classList.toggle('admin-sidebar-collapsed', next);
+                    try { localStorage.setItem(KEY, next ? '1' : '0'); } catch (e) {}
+                });
+            }
+        } catch (e) {
+            console.warn('Sidebar load failed', e);
+        }
+    })();
+    </script>
+</body>
+</html>

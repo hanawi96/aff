@@ -111,6 +111,12 @@ import {
 import { getPackagingConfig } from '../services/settings/packaging.js';
 import { getCurrentTaxRate } from '../services/settings/tax.js';
 import { getDefaultAdSpend } from '../services/settings/ad-spend.js';
+import {
+    getMarketingTracking,
+    getPublicMarketingTracking,
+    listLandingPages,
+    getPublicLandingPage
+} from '../services/settings/marketing.js';
 
 // Backup
 import { 
@@ -575,6 +581,20 @@ export async function handleGet(action, url, request, env, corsHeaders) {
 
         case 'getDefaultAdSpend':
             return await getDefaultAdSpend(env, corsHeaders);
+
+        case 'getMarketingTracking':
+            return await getMarketingTracking(env, corsHeaders);
+
+        case 'getPublicMarketingTracking':
+            return await getPublicMarketingTracking(env, corsHeaders);
+
+        case 'listLandingPages':
+            return await listLandingPages(env, corsHeaders);
+
+        case 'getPublicLandingPage': {
+            const landingSlug = url.searchParams.get('slug') || '';
+            return await getPublicLandingPage(landingSlug, env, corsHeaders);
+        }
 
         case 'getAdAnalytics': {
             const adPeriod = url.searchParams.get('period') || 'yesterday';

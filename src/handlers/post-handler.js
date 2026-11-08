@@ -115,6 +115,11 @@ import {
 import { getPackagingConfig, updatePackagingConfig } from '../services/settings/packaging.js';
 import { updateTaxRate } from '../services/settings/tax.js';
 import { updateDefaultAdSpend, updateDailyAdSpend } from '../services/settings/ad-spend.js';
+import {
+    updateMarketingTracking,
+    saveLandingPage,
+    deleteLandingPage
+} from '../services/settings/marketing.js';
 
 // Backup & Restore
 import { restoreFromBackup, validateBackupFile } from '../services/backup/restore-service.js';
@@ -277,6 +282,12 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
             return await updateDefaultAdSpend(data, env, corsHeaders);
         case 'updateDailyAdSpend':
             return await updateDailyAdSpend(data, env, corsHeaders);
+        case 'updateMarketingTracking':
+            return await updateMarketingTracking(data, env, corsHeaders);
+        case 'saveLandingPage':
+            return await saveLandingPage(data, env, corsHeaders);
+        case 'deleteLandingPage':
+            return await deleteLandingPage(data, env, corsHeaders);
 
         case 'deleteBackup': {
             const gate = await requireBackupAdmin(request, env, corsHeaders);
@@ -580,6 +591,12 @@ export async function handlePost(path, request, env, corsHeaders) {
                 return await updateDefaultAdSpend(data, env, corsHeaders);
             case 'updateDailyAdSpend':
                 return await updateDailyAdSpend(data, env, corsHeaders);
+            case 'updateMarketingTracking':
+                return await updateMarketingTracking(data, env, corsHeaders);
+            case 'saveLandingPage':
+                return await saveLandingPage(data, env, corsHeaders);
+            case 'deleteLandingPage':
+                return await deleteLandingPage(data, env, corsHeaders);
             case 'getProfitReport':
                 return await getProfitReport(data, env, corsHeaders);
             case 'learnAddress':

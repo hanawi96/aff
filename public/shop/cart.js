@@ -1051,6 +1051,22 @@ const cart = {
         const formData = state.validator.getFormData();
         const phone = formData.cartPhone;
         const name = formData.cartName;
+
+        try {
+            if (window.ShopvdMarketing && typeof ShopvdMarketing.trackBeginCheckout === 'function') {
+                const contents = (state.cart || []).map((item) => ({
+                    id: item.id,
+                    quantity: item.quantity || 1,
+                    item_price: item.price || 0
+                }));
+                ShopvdMarketing.trackBeginCheckout({
+                    value: Number(state.total) || 0,
+                    currency: 'VND',
+                    num_items: contents.reduce((s, c) => s + (c.quantity || 0), 0),
+                    contents
+                });
+            }
+        } catch (e) { /* ignore tracking errors */ }
         
         // Validate address (HierarchicalAddressSelector — dùng chung Quickbuy)
         if (!window.cartAddressSelector) {
@@ -1157,7 +1173,18 @@ const cart = {
             total: state.total,
             totalAmount: state.total,
             cart: cartItems,
-            notes: state.orderNote || null,
+            notes: (() => {
+                const base = state.orderNote || '';
+                let lp = '';
+                try {
+                    lp = (window.ShopvdMarketing && ShopvdMarketing.getLandingPageKey)
+                        ? ShopvdMarketing.getLandingPageKey()
+                        : (sessionStorage.getItem('vd_landing_page') || '');
+                } catch (e) { /* ignore */ }
+                if (!lp) return base || null;
+                const tag = `[lp:${lp}]`;
+                return base ? `${base} ${tag}` : tag;
+            })(),
             discount_id: state.discount ? state.discount.id : null,
             discountCode: state.discount ? state.discount.code : null,
             discount_code: state.discount ? state.discount.code : null,
@@ -1203,6 +1230,11 @@ const cart = {
                         localStorage.setItem('shop_last_success_order', JSON.stringify({
                             orderId: String(orderId),
                             total: total ?? null,
+                            contents: (state.cart || []).map((item) => ({
+                                id: item.id,
+                                quantity: item.quantity || 1,
+                                item_price: item.price || 0
+                            })),
                             savedAt: Date.now()
                         }));
                     } catch (e) {}
