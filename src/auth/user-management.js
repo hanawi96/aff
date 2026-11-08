@@ -312,18 +312,10 @@ export async function handleUpdateUser(data, request, env, corsHeaders) {
             return jsonResponse({ success: false, error: 'ID user không hợp lệ' }, 400, corsHeaders);
         }
 
-        const { username: rawUsername, full_name, role, password } = data;
-        const username = String(rawUsername || '').trim();
+        const { full_name, role, password } = data;
 
-        if (!username || !full_name) {
-            return jsonResponse({ success: false, error: 'Username và họ tên là bắt buộc' }, 400, corsHeaders);
-        }
-
-        if (!/^[a-zA-Z0-9_]{3,32}$/.test(username)) {
-            return jsonResponse({
-                success: false,
-                error: 'Tên đăng nhập không hợp lệ: dùng 3–32 ký tự, chỉ chữ Latin không dấu, số và dấu _'
-            }, 400, corsHeaders);
+        if (!full_name || !String(full_name).trim()) {
+            return jsonResponse({ success: false, error: 'Họ tên là bắt buộc' }, 400, corsHeaders);
         }
 
         if (role && !['admin'].includes(role)) {
@@ -348,30 +340,24 @@ export async function handleUpdateUser(data, request, env, corsHeaders) {
             return jsonResponse({ success: false, error: 'Tài khoản đã bị vô hiệu hóa, không thể sửa' }, 400, corsHeaders);
         }
 
-        if (username !== target.username) {
-            const conflict = await env.DB.prepare(`
-                SELECT id FROM users WHERE username = ? AND id != ?
-            `).bind(username, targetId).first();
-            if (conflict) {
-                return jsonResponse({ success: false, error: 'Username đã tồn tại, vui lòng chọn tên khác' }, 400, corsHeaders);
-            }
-        }
-
+        // Username là định danh cố định — không cho đổi qua API (bỏ qua payload.username)
+        const username = target.username;
+        const nextFullName = String(full_name).trim();
         const now = Math.floor(Date.now() / 1000);
 
         if (password !== undefined && password !== null && password !== '') {
             const passwordHash = await bcrypt.hash(String(password), 10);
             await env.DB.prepare(`
                 UPDATE users
-                SET username = ?, full_name = ?, role = ?, password_hash = ?, updated_at = ?
+                SET full_name = ?, role = ?, password_hash = ?, updated_at = ?
                 WHERE id = ?
-            `).bind(username, full_name.trim(), role || 'admin', passwordHash, now, targetId).run();
+            `).bind(nextFullName, role || 'admin', passwordHash, now, targetId).run();
         } else {
             await env.DB.prepare(`
                 UPDATE users
-                SET username = ?, full_name = ?, role = ?, updated_at = ?
+                SET full_name = ?, role = ?, updated_at = ?
                 WHERE id = ?
-            `).bind(username, full_name.trim(), role || 'admin', now, targetId).run();
+            `).bind(nextFullName, role || 'admin', now, targetId).run();
         }
 
         return jsonResponse({
@@ -380,7 +366,7 @@ export async function handleUpdateUser(data, request, env, corsHeaders) {
             user: {
                 id: targetId,
                 username,
-                full_name: full_name.trim(),
+                full_name: nextFullName,
                 role: role || 'admin'
             }
         }, 200, corsHeaders);

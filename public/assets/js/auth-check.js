@@ -100,16 +100,24 @@
             avatar.textContent = initials;
         }
         
-        // Update full name
-        const fullName = document.getElementById('userFullName');
-        if (fullName) {
-            fullName.textContent = userInfo.full_name || 'Administrator';
+        const displayName = (userInfo.full_name || '').trim() || userInfo.username || 'Administrator';
+
+        // Footer sidebar: họ và tên (fallback username nếu chưa có full_name)
+        const usernameEl = document.getElementById('userUsername');
+        if (usernameEl) {
+            usernameEl.textContent = displayName;
+            usernameEl.title = displayName;
         }
-        
-        // Update username
-        const username = document.getElementById('userUsername');
-        if (username) {
-            username.textContent = userInfo.username || 'admin';
+
+        // Panel menu: họ và tên + username phụ
+        const fullNameEl = document.getElementById('userFullName');
+        if (fullNameEl) {
+            fullNameEl.textContent = displayName;
+        }
+        const usernameHint = document.getElementById('userUsernameHint');
+        if (usernameHint) {
+            const uname = (userInfo.username || '').trim();
+            usernameHint.textContent = uname ? `@${uname}` : 'Tài khoản';
         }
     }
 

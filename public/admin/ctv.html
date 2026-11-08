@@ -398,7 +398,7 @@ try {
                 aria-expanded="false" aria-haspopup="menu" aria-controls="adminUserMenuPanel" title="Tài khoản">
                 <div id="userAvatar" class="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-md">AD</div>
                 <div class="admin-sidebar-label flex-1 min-w-0">
-                    <p id="userUsername" class="text-sm font-semibold text-gray-900 truncate leading-tight">admin</p>
+                    <p id="userUsername" class="text-sm font-semibold text-gray-900 truncate leading-tight">Administrator</p>
                 </div>
                 <svg class="admin-sidebar-label w-3.5 h-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
@@ -407,7 +407,7 @@ try {
             <div id="adminUserMenuPanel" role="menu" class="hidden absolute left-3 right-3 bottom-full mb-2 z-[60] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg shadow-gray-900/10">
                 <div class="border-b border-gray-100 px-3 py-2.5">
                     <p id="userFullName" class="text-sm font-semibold text-gray-900 truncate">Administrator</p>
-                    <p class="text-xs text-gray-500">Tài khoản</p>
+                    <p id="userUsernameHint" class="text-xs text-gray-500 truncate">Tài khoản</p>
                 </div>
                 <div class="p-1.5">
                     <button type="button" role="menuitem" onclick="logout()"
@@ -424,6 +424,26 @@ try {
 </aside>
 <script>
 (function () {
+    // Paint họ tên ngay từ localStorage (tránh flash "Administrator" chờ auth-check)
+    try {
+        var info = JSON.parse(localStorage.getItem('user_info') || '{}') || {};
+        var name = String(info.full_name || '').trim() || String(info.username || '').trim() || 'Administrator';
+        var uname = String(info.username || '').trim();
+        var nameEl = document.getElementById('userUsername');
+        if (nameEl) { nameEl.textContent = name; nameEl.title = name; }
+        var fullEl = document.getElementById('userFullName');
+        if (fullEl) fullEl.textContent = name;
+        var hintEl = document.getElementById('userUsernameHint');
+        if (hintEl) hintEl.textContent = uname ? ('@' + uname) : 'Tài khoản';
+        var avatar = document.getElementById('userAvatar');
+        if (avatar) {
+            var words = name.split(/\s+/).filter(Boolean);
+            avatar.textContent = words.length >= 2
+                ? (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
+                : name.substring(0, 2).toUpperCase();
+        }
+    } catch (e) {}
+
     var KEY = 'admin_sidebar_collapsed';
     var root = document.documentElement;
 
