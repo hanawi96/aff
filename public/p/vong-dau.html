@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vòng dâu tằm by Ánh — Bảo vệ con yêu bằng tình yêu thủ công</title>
+    <meta name="description" content="Vòng dâu tằm ta làm thủ công, mài tay, không hóa chất. Dành cho mẹ muốn trao bé yêu sự dịu dàng và an tâm mỗi ngày.">
+    <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/marketing-loader.js?v=6"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #3d2c26;
+            --soft: #6f5a50;
+            --muted: #9a8579;
+            --cream: #f7f1ea;
+            --blush: #f0e4d8;
+            --petal: #e8cfc0;
+            --clay: #b07a5a;
+            --clay-deep: #8f5e42;
+            --foam: rgba(255, 252, 248, 0.88);
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            font-family: Nunito, system-ui, sans-serif;
+            background: var(--cream);
+            overflow-x: hidden;
+        }
+
+        /* Full-bleed hero atmosphere */
+        .stage {
+            position: relative;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            isolation: isolate;
+        }
+
+        .stage-bg {
+            position: absolute;
+            inset: 0;
+            z-index: -2;
+            background:
+                linear-gradient(115deg, rgba(61, 44, 38, 0.55) 0%, rgba(61, 44, 38, 0.22) 42%, rgba(61, 44, 38, 0.08) 100%),
+                url("https://ctv-api.yendev96.workers.dev/cdn/image/width=1600,quality=78,format=auto/https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/vong-that/1.jpg") center / cover no-repeat;
+            transform: scale(1.02);
+            animation: drift 18s ease-in-out infinite alternate;
+        }
+
+        .stage-bg::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 70% 55% at 75% 40%, transparent 20%, rgba(247, 241, 234, 0.15) 70%),
+                linear-gradient(to top, rgba(247, 241, 234, 0.92) 0%, transparent 38%);
+        }
+
+        @keyframes drift {
+            from { transform: scale(1.02) translate3d(0, 0, 0); }
+            to { transform: scale(1.06) translate3d(-1.2%, -0.8%, 0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .stage-bg { animation: none; }
+            .reveal, .cta, .brand { animation: none !important; opacity: 1 !important; transform: none !important; }
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.1rem 1.35rem;
+            max-width: 72rem;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .brand {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            color: #fff8f3;
+            text-decoration: none;
+            text-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
+            animation: rise 0.9s ease both;
+        }
+
+        .brand em {
+            font-style: italic;
+            font-weight: 500;
+            opacity: 0.92;
+        }
+
+        .shop-link {
+            color: rgba(255, 248, 243, 0.88);
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-decoration: none;
+            animation: rise 0.9s ease 0.08s both;
+        }
+        .shop-link:hover { color: #fff; }
+
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            max-width: 72rem;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 1.35rem 2.75rem;
+        }
+
+        .hero-copy {
+            max-width: 34rem;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            animation: rise 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        .reveal-1 { animation-delay: 0.18s; }
+        .reveal-2 { animation-delay: 0.34s; }
+        .reveal-3 { animation-delay: 0.5s; }
+
+        @keyframes rise {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            margin: 0;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 600;
+            font-size: clamp(2.35rem, 7.5vw, 3.85rem);
+            line-height: 1.08;
+            letter-spacing: -0.02em;
+            color: #fffaf6;
+            text-shadow: 0 2px 28px rgba(0, 0, 0, 0.28);
+        }
+
+        h1 span {
+            display: block;
+            font-style: italic;
+            font-weight: 500;
+            color: #f3e2d4;
+        }
+
+        .lead {
+            margin: 1rem 0 0;
+            max-width: 28rem;
+            font-size: clamp(1rem, 2.4vw, 1.125rem);
+            line-height: 1.65;
+            color: rgba(255, 246, 238, 0.9);
+            font-weight: 500;
+            text-shadow: 0 1px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.6rem;
+            align-items: center;
+        }
+
+        .cta {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 3rem;
+            padding: 0.85rem 1.45rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, var(--clay), var(--clay-deep));
+            color: #fffaf6;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-decoration: none;
+            box-shadow: 0 10px 28px rgba(143, 94, 66, 0.35);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+        }
+        .cta:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+            box-shadow: 0 14px 32px rgba(143, 94, 66, 0.42);
+        }
+        .cta:active { transform: translateY(0); }
+
+        .ghost {
+            color: rgba(255, 248, 243, 0.92);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255, 248, 243, 0.35);
+            padding-bottom: 0.1rem;
+        }
+        .ghost:hover { border-bottom-color: rgba(255, 248, 243, 0.8); }
+
+        /* Quiet trust strip — below first viewport on short phones; part of flow on tall */
+        .soft-panel {
+            background: var(--cream);
+            padding: 2.5rem 1.35rem 3.25rem;
+        }
+
+        .soft-inner {
+            max-width: 40rem;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .soft-inner h2 {
+            margin: 0;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-size: clamp(1.6rem, 4vw, 2.1rem);
+            font-weight: 600;
+            letter-spacing: -0.015em;
+            color: var(--ink);
+        }
+
+        .soft-inner p {
+            margin: 0.75rem auto 0;
+            max-width: 32rem;
+            color: var(--soft);
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+
+        .photo-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-top: 1.75rem;
+        }
+
+        .photo-row figure {
+            margin: 0;
+            border-radius: 1.1rem;
+            overflow: hidden;
+            aspect-ratio: 1;
+            background: var(--blush);
+        }
+
+        .photo-row img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.8s ease;
+        }
+        .photo-row figure:hover img { transform: scale(1.04); }
+
+        .foot {
+            padding: 0 1.35rem 2rem;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.8rem;
+            background: var(--cream);
+        }
+
+        @media (min-width: 900px) {
+            .hero {
+                justify-content: center;
+                padding-bottom: 4rem;
+                padding-top: 2rem;
+            }
+            .hero-copy { max-width: 38rem; }
+            .soft-panel { padding-top: 3.5rem; padding-bottom: 4rem; }
+            .photo-row {
+                grid-template-columns: repeat(2, minmax(0, 14rem));
+                justify-content: center;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stage">
+        <div class="stage-bg" aria-hidden="true"></div>
+        <header class="topbar">
+            <a class="brand" href="../">Vòng dâu tằm <em>by Ánh</em></a>
+            <a class="shop-link" href="../#products">Cửa hàng</a>
+        </header>
+
+        <main class="hero">
+            <div class="hero-copy">
+                <h1 class="reveal reveal-1">
+                    Bảo vệ con yêu
+                    <span>bằng tình yêu thủ công</span>
+                </h1>
+                <p class="lead reveal reveal-2">
+                    Vòng dâu tằm ta nhà trồng, mài tay từng hạt — dịu dàng cho da bé, an tâm cho mẹ mỗi ngày.
+                </p>
+                <div class="actions reveal reveal-3">
+                    <a class="cta" href="../#products">Xem vòng cho bé</a>
+                    <a class="ghost" href="../#about">Câu chuyện của Ánh</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <section class="soft-panel" aria-label="Cam kết">
+        <div class="soft-inner">
+            <h2>Làm chậm, làm thật</h2>
+            <p>
+                Không sơn bóng, không tẩy màu, không tẩm hóa chất.
+                Chỉ dâu tằm ta và đôi tay tỉ mỉ — để mẹ trao bé một món quà ấm áp từ thiên nhiên.
+            </p>
+            <div class="photo-row">
+                <figure>
+                    <img
+                        src="https://ctv-api.yendev96.workers.dev/cdn/image/width=640,quality=75,format=auto/https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/vong-that/6.jpg"
+                        alt="Hạt dâu tằm thật được mài tay"
+                        width="640" height="640"
+                        loading="lazy" decoding="async">
+                </figure>
+                <figure>
+                    <img
+                        src="https://ctv-api.yendev96.workers.dev/cdn/image/width=640,quality=75,format=auto/https://pub-857086f8ce7248b6ab3b37c688164fb1.r2.dev/quy-trinh-lam-vong/6.webp"
+                        alt="Xỏ vòng dâu tằm thủ công"
+                        width="640" height="640"
+                        loading="lazy" decoding="async">
+                </figure>
+            </div>
+        </div>
+    </section>
+
+    <footer class="foot">Vòng dâu tằm by Ánh · Làm thủ công với tình yêu</footer>
+
+    <script>
+    (function () {
+        try {
+            if (window.ShopvdMarketing && ShopvdMarketing.setLandingPageKey) {
+                ShopvdMarketing.setLandingPageKey('vong-dau');
+            } else {
+                sessionStorage.setItem('vd_landing_page', 'vong-dau');
+            }
+            if (window.ShopvdMarketing && ShopvdMarketing.trackEvent) {
+                ShopvdMarketing.trackEvent('vd_landing_view', {
+                    page_key: 'vong-dau',
+                    page_name: 'Vòng dâu tằm'
+                });
+            }
+        } catch (e) { /* ignore */ }
+    })();
+    </script>
+</body>
+</html>

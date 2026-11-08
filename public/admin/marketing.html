@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marketing — Mã theo dõi &amp; Trang bán</title>
+    <title>Marketing — Mã theo dõi</title>
     <link rel="icon" type="image/svg+xml" href="../shop/favicon.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="../assets/css/admin.css">
@@ -226,14 +226,9 @@
             <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <h1 class="text-2xl font-bold tracking-tight text-slate-900">Marketing</h1>
-                    <p class="mt-1 text-sm text-slate-500">Dán ID Pixel / GTM một lần · Tạo trang bán chạy ads · Copy link là xong</p>
+                    <p class="mt-1 text-sm text-slate-500">Dán ID Pixel / GTM / Google Ads một lần — site tự gắn. Landing ads = file HTML trong <code class="text-slate-600">/p/</code></p>
                 </div>
                 <a href="ads.html" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">← Hiệu quả QC</a>
-            </div>
-
-            <div class="mb-6 inline-flex rounded-xl bg-slate-100 p-1 gap-0.5" role="tablist">
-                <button type="button" data-mkt-tab="tracking" class="mkt-tab mkt-tab--active" role="tab" aria-selected="true">Mã theo dõi</button>
-                <button type="button" data-mkt-tab="pages" class="mkt-tab" role="tab" aria-selected="false">Trang bán</button>
             </div>
 
             <!-- Tracking -->
@@ -293,90 +288,12 @@
                     Có GTM thì ưu tiên quản lý thẻ trong GTM. Pixel/Ads ID ở đây dùng khi chưa gắn GTM hoặc cần fallback.
                 </div>
             </section>
-
-            <!-- Landing pages -->
-            <section id="mktPanelPages" class="hidden space-y-5">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2 class="text-lg font-semibold text-slate-900">Trang bán chạy ads</h2>
-                        <p class="mt-0.5 text-sm text-slate-500">Mỗi trang một link riêng · Chung một Pixel/GTM · Dễ đo theo URL</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span id="mktPagesStatus" class="text-xs text-slate-400">—</span>
-                        <button type="button" id="mktCreatePageBtn" class="mkt-btn-primary">+ Tạo trang</button>
-                    </div>
-                </div>
-
-                <div id="mktPagesEmpty" class="mkt-card hidden px-6 py-12 text-center">
-                    <p class="text-base font-medium text-slate-800">Chưa có trang bán nào</p>
-                    <p class="mt-1 text-sm text-slate-500">Tạo trang đầu tiên, copy link đưa vào Facebook/Google Ads.</p>
-                </div>
-                <div id="mktPagesList" class="space-y-3"></div>
-            </section>
         </main>
-    </div>
-
-    <!-- Page modal -->
-    <div id="mktPageModal" class="mkt-modal hidden" role="dialog" aria-modal="true" aria-labelledby="mktPageModalTitle">
-        <div id="mktPageModalBackdrop" class="mkt-modal-backdrop"></div>
-        <div class="mkt-modal-panel">
-            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                <h3 id="mktPageModalTitle" class="text-lg font-semibold text-slate-900">Tạo trang bán</h3>
-                <button type="button" id="mktPageModalClose" class="mkt-icon-btn" aria-label="Đóng">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <form id="mktPageForm" class="space-y-4 px-5 py-4">
-                <div class="mkt-field">
-                    <label for="mktPageName">Tên trang (nội bộ)</label>
-                    <input type="text" id="mktPageName" required placeholder="Landing Tết 2026" maxlength="120">
-                </div>
-                <div class="mkt-field">
-                    <label for="mktPageSlug">Đường dẫn (slug)</label>
-                    <input type="text" id="mktPageSlug" required placeholder="tet-2026" maxlength="64" spellcheck="false">
-                    <p class="hint">Link public: <span id="mktSlugPreview" class="font-medium text-slate-600">—</span></p>
-                </div>
-                <div class="mkt-field">
-                    <label for="mktPageHeadline">Tiêu đề lớn trên trang</label>
-                    <input type="text" id="mktPageHeadline" placeholder="Vòng dâu tằm bảo vệ bé yêu" maxlength="160">
-                </div>
-                <div class="mkt-field">
-                    <label for="mktPageSub">Mô tả ngắn</label>
-                    <textarea id="mktPageSub" rows="2" placeholder="Thủ công · An toàn · Giao nhanh" maxlength="280"></textarea>
-                </div>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="mkt-field">
-                        <label for="mktPageCtaText">Nút CTA</label>
-                        <input type="text" id="mktPageCtaText" placeholder="Xem sản phẩm" maxlength="40">
-                    </div>
-                    <div class="mkt-field">
-                        <label for="mktPageCtaUrl">Link nút CTA</label>
-                        <input type="text" id="mktPageCtaUrl" placeholder="/#products" maxlength="200">
-                    </div>
-                </div>
-                <div class="mkt-field">
-                    <label for="mktPageImage">Ảnh hero (URL, tuỳ chọn)</label>
-                    <input type="text" id="mktPageImage" placeholder="https://…" maxlength="500">
-                </div>
-                <div class="mkt-field">
-                    <label for="mktPageNotes">Ghi chú nội bộ</label>
-                    <input type="text" id="mktPageNotes" placeholder="FB ads · ngân sách X" maxlength="200">
-                </div>
-                <div class="mkt-switch">
-                    <span>Đang bật (hiển thị public)</span>
-                    <input type="checkbox" id="mktPageActive" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" checked>
-                </div>
-                <div class="flex justify-end gap-2 border-t border-slate-100 pt-4 pb-1">
-                    <button type="button" class="mkt-btn-ghost" id="mktPageModalClose2" onclick="document.getElementById('mktPageModalClose').click()">Huỷ</button>
-                    <button type="submit" id="mktSavePageBtn" class="mkt-btn-primary">Lưu trang</button>
-                </div>
-            </form>
-        </div>
     </div>
 
     <script src="../assets/js/config.js"></script>
     <script src="../assets/js/toast-manager.js"></script>
-    <script src="../assets/js/marketing-admin.js?v=1"></script>
+    <script src="../assets/js/marketing-admin.js?v=3"></script>
     <script src="../assets/js/auth-check.js"></script>
     <script>
     (async function mountSidebar() {

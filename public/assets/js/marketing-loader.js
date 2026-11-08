@@ -90,9 +90,10 @@
 
       var path = (global.location.pathname || '').replace(/\/+$/, '');
       var parts = path.split('/').filter(Boolean);
-      // /p/tet or /p/index.html with folder tet — prefer query; also /p/tet/
+      // /p/vong-dau.html hoặc /p/tet — lấy tên file (bỏ .html)
       if (parts[0] === 'p' && parts[1] && parts[1] !== 'index.html') {
-        return decodeURIComponent(parts[1]).toLowerCase();
+        var key = decodeURIComponent(parts[1]).toLowerCase().replace(/\.html?$/i, '');
+        return key || '';
       }
 
       var stored = sessionStorage.getItem(LANDING_KEY);
