@@ -185,7 +185,7 @@ function getInvoiceExportedBadge(order) {
             fileName ? `File: ${fileName}` : null,
             timeLabel ? `Tải lúc: ${timeLabel}` : null,
             '',
-            'Bấm để mở danh sách HĐĐT'
+            'Bấm để mở trang Hóa đơn điện tử'
         ].filter(Boolean).join('\n');
         const titleAttr = escapeHtml(tooltipLines);
         const labelText = count > 1 ? `Đã xuất HĐ ×${count}` : 'Đã xuất HĐ';
@@ -212,7 +212,7 @@ function getInvoiceExportedBadge(order) {
             fileName ? `File: ${fileName}` : null,
             timeLabel ? `Tải lúc: ${timeLabel}` : null,
             '',
-            'Bấm để mở danh sách HĐĐT'
+            'Bấm để mở trang Hóa đơn điện tử'
         ].filter(Boolean).join('\n');
         const titleAttr = escapeHtml(tooltipLines);
         const labelText = count > 1 ? `Đã xuất HĐ ×${count}` : 'Đã xuất HĐ';
@@ -256,38 +256,20 @@ function getInvoiceExportedBadge(order) {
 }
 
 /**
- * Mở modal DS HDDT và highlight đúng file.
- * Nếu list không có last_invoice_export_id → lazy fetch 1 lần theo orderId.
+ * Chuyển sang trang Hóa đơn điện tử (quản lý file HĐĐT).
+ * Nếu có exportId → mở lịch sử và highlight file tương ứng.
  * @param {number} exportId
  * @param {number} [orderId]
  */
-async function openInvoiceHistoryForExport(exportId, orderId) {
-    let id = Number(exportId) || 0;
+function openInvoiceHistoryForExport(exportId, orderId) {
+    const id = Number(exportId) || 0;
     const oid = Number(orderId) || 0;
-
-    if (!id && oid) {
-        try {
-            const res = await fetch(`${CONFIG.API_URL}?action=getLastInvoiceExportForOrder&orderId=${oid}`);
-            const data = await res.json();
-            if (data?.success && data.last_invoice_export_id) {
-                id = Number(data.last_invoice_export_id) || 0;
-                const row = allOrdersData?.find((o) => Number(o.id) === oid);
-                if (row) {
-                    row.last_invoice_export_id = id;
-                    row.last_invoice_export_file_name = data.last_invoice_export_file_name || null;
-                    row.last_invoice_downloaded_at = data.last_invoice_downloaded_at || null;
-                }
-            }
-        } catch (err) {
-            console.warn('Lazy load last invoice export failed:', err);
-        }
-    }
-
-    if (!id) {
-        await showInvoiceHistoryModal();
-        return;
-    }
-    await showInvoiceHistoryModal({ highlightExportId: id });
+    const params = new URLSearchParams();
+    if (id > 0) params.set('exportId', String(id));
+    else if (oid > 0) params.set('orderId', String(oid));
+    else params.set('history', '1');
+    const qs = params.toString();
+    window.location.href = qs ? `invoices.html?${qs}` : 'invoices.html';
 }
 
 // ============================================
@@ -460,11 +442,6 @@ async function confirmToggleInvoiceStatus() {
             console.log('[DEBUG] calling filterOrdersData(true) — filteredOrdersData BEFORE:', filteredOrdersData.length, 'first item:', JSON.stringify(filteredOrdersData[0]));
             filterOrdersData(true);
             console.log('[DEBUG] filteredOrdersData AFTER filterOrdersData:', filteredOrdersData.length, 'first item:', JSON.stringify(filteredOrdersData[0]));
-        }
-
-        // Re-render badge HDDT trên toolbar (số pending file)
-        if (typeof updateInvoiceHistoryBadge === 'function') {
-            updateInvoiceHistoryBadge();
         }
     } catch (err) {
         console.error('Toggle invoice error:', err);

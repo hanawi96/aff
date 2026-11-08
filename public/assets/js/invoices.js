@@ -1329,9 +1329,43 @@ function _initInvSearch() {
 // ============================================
 // INIT
 // ============================================
+/**
+ * Deep-link từ trang đơn hàng: ?exportId= / ?orderId= / ?history=1
+ * → mở modal lịch sử HĐĐT (và highlight file nếu có).
+ */
+async function _invOpenHistoryFromQuery() {
+    const params = new URLSearchParams(window.location.search || '');
+    let exportId = Number(params.get('exportId')) || 0;
+    const orderId = Number(params.get('orderId')) || 0;
+    const openHistory = params.get('history') === '1' || exportId > 0 || orderId > 0;
+    if (!openHistory) return;
+
+    if (!exportId && orderId > 0) {
+        try {
+            const res = await fetch(`${CONFIG.API_URL}?action=getLastInvoiceExportForOrder&orderId=${orderId}`);
+            const data = await res.json();
+            if (data?.success && data.last_invoice_export_id) {
+                exportId = Number(data.last_invoice_export_id) || 0;
+            }
+        } catch (_) { /* bỏ qua — vẫn mở list */ }
+    }
+
+    try {
+        await openInvoiceHistory(exportId > 0 ? exportId : null);
+    } catch (err) {
+        console.warn('Open invoice history from query failed:', err);
+    }
+
+    // Dọn query để F5 không mở lại modal
+    if (window.history?.replaceState) {
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     _syncInvFilterButtons();
     _initInvSearch();
     _invWarmTabs();
     invLoadFirstPage();
+    void _invOpenHistoryFromQuery();
 });

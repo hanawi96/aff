@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', function () {
     void loadCurrentTaxRate();
     void loadPackagingConfig();
     void updateExportHistoryBadge();
-    void updateInvoiceHistoryBadge();
     if (allDiscountsList.length === 0 && typeof loadActiveDiscounts === 'function') void loadActiveDiscounts();
 
     // Hoãn tải dữ liệu địa chỉ (tree_2.json ~615KB) tới lúc rảnh: không tranh
@@ -148,7 +147,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     setInterval(() => {
         updateExportHistoryBadge();
-        updateInvoiceHistoryBadge();
     }, 30000);
 });
 
