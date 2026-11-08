@@ -4,7 +4,19 @@ let filteredProducts = [];
 let allCategories = [];
 let viewMode = 'grid'; // 'grid' or 'list'
 let currentPage = 1;
+/** Số SP hiển thị mỗi trang */
 const itemsPerPage = 10;
+/** Lúc đầu / mỗi lần prefetch: load sẵn thêm 1 trang kế tiếp */
+const prefetchPages = 1;
+const initialFetchLimit = itemsPerPage * (1 + prefetchPages); // 20
+/** Cache theo số trang (1-based) cho bộ lọc hiện tại */
+let productPageCache = new Map();
+/** Tổng SP khớp filter/sort hiện tại (từ server) */
+let filteredTotal = 0;
+/** Stats toàn cục (không phụ thuộc filter trang) */
+let productStats = { total: 0, avgPrice: 0, activeCount: 0, categoryCount: 0 };
+let productsFetchSeq = 0;
+let prefetchInFlight = null;
 /** Tồn kho mặc định khi mở form thêm sản phẩm mới */
 const DEFAULT_NEW_PRODUCT_STOCK = 99;
 /** Đánh giá mặc định (0–5) khi thêm sản phẩm mới */
@@ -224,29 +236,22 @@ function populateCategoryFilter() {
     const container = document.getElementById('categoryFilterButtons');
     if (!container) return;
 
-    const activeProducts = allProducts.filter(p => Number(p?.is_active ?? 1) !== 0);
-    const getCategoryCount = (categoryId) => {
-        const normalizedCategoryId = parseInt(categoryId);
-        if (isNaN(normalizedCategoryId)) return 0;
-
-        return activeProducts.filter(product => {
-            if (Array.isArray(product.category_ids) && product.category_ids.length > 0) {
-                return product.category_ids.some(id => parseInt(id) === normalizedCategoryId);
-            }
-            return parseInt(product.category_id) === normalizedCategoryId;
-        }).length;
-    };
+    const totalActive = productStats.total
+        || allCategories.reduce((sum, c) => sum + (Number(c.product_count) || 0), 0)
+        || filteredTotal
+        || 0;
 
     // Clear existing buttons
     container.innerHTML = '';
 
     // Create "Tất cả" button
-    const allButton = createCategoryButton('', 'Tất cả', activeProducts.length, true);
+    const allButton = createCategoryButton('', 'Tất cả', totalActive, true);
     container.appendChild(allButton);
 
-    // Create category buttons
+    // Create category buttons — product_count từ API categories
     allCategories.forEach(category => {
-        const button = createCategoryButton(category.id, category.name, getCategoryCount(category.id), false);
+        const count = Number(category.product_count) || 0;
+        const button = createCategoryButton(category.id, category.name, count, false);
         container.appendChild(button);
     });
 }
@@ -301,134 +306,213 @@ function selectCategoryFilter(categoryId) {
     searchAndSort();
 }
 
-// Load all products
-async function loadProducts() {
+function resetProductPageCache() {
+    productPageCache = new Map();
+    allProducts = [];
+    filteredProducts = [];
+}
+
+function syncAllProductsFromCache() {
+    const byId = new Map();
+    for (const pageProducts of productPageCache.values()) {
+        (pageProducts || []).forEach((p) => {
+            if (p && p.id != null) byId.set(Number(p.id), p);
+        });
+    }
+    allProducts = Array.from(byId.values());
+}
+
+function storeProductsChunk(startPage, products) {
+    const list = Array.isArray(products) ? products : [];
+    for (let i = 0; i < list.length; i += itemsPerPage) {
+        const pageNum = startPage + Math.floor(i / itemsPerPage);
+        productPageCache.set(pageNum, list.slice(i, i + itemsPerPage));
+    }
+    syncAllProductsFromCache();
+}
+
+function buildProductsPageQuery({ page, limit, includeStats = false }) {
+    const params = new URLSearchParams({
+        action: 'getProductsPage',
+        admin: '1',
+        page: String(page),
+        limit: String(limit),
+        timestamp: String(Date.now())
+    });
+
+    if (includeStats) params.set('includeStats', '1');
+
+    const searchTerm = (currentFilters.searchTerm || '').trim();
+    if (searchTerm) params.set('search', searchTerm);
+
+    if (currentFilters.categoryId) {
+        params.set('categoryId', String(currentFilters.categoryId));
+    }
+
+    if (currentFilters.stockFilter) {
+        params.set('stockFilter', currentFilters.stockFilter);
+    }
+
+    const sortField = currentSort.field || 'purchases';
+    const sortDir = currentSort.direction || 'desc';
+    params.set('sortField', sortField);
+    params.set('sortDir', sortDir);
+
+    return params;
+}
+
+async function fetchProductsPage({ page, limit, includeStats = false }) {
+    const params = buildProductsPageQuery({ page, limit, includeStats });
+    const response = await fetch(`${CONFIG.API_URL}?${params.toString()}`);
+    const data = await response.json();
+    if (!data.success) {
+        throw new Error(data.error || 'Failed to load products page');
+    }
+    return data;
+}
+
+function applyProductStats(stats) {
+    if (!stats) return;
+    productStats = {
+        total: Number(stats.total) || 0,
+        avgPrice: Number(stats.avgPrice) || 0,
+        activeCount: Number(stats.activeCount != null ? stats.activeCount : stats.total) || 0,
+        categoryCount: Number(stats.categoryCount) || 0
+    };
+}
+
+async function ensureProductPageLoaded(page, { includeStats = false } = {}) {
+    const totalPages = Math.max(1, Math.ceil((filteredTotal || 0) / itemsPerPage) || 1);
+    if (page < 1) return;
+    if (filteredTotal > 0 && page > totalPages) return;
+    if (productPageCache.has(page)) return;
+
+    const data = await fetchProductsPage({
+        page,
+        limit: itemsPerPage,
+        includeStats
+    });
+    filteredTotal = Number(data.total) || 0;
+    if (data.stats) applyProductStats(data.stats);
+    storeProductsChunk(page, data.products || []);
+}
+
+async function prefetchNextProductPage(fromPage) {
+    const nextPage = fromPage + 1;
+    const totalPages = Math.max(1, Math.ceil((filteredTotal || 0) / itemsPerPage) || 1);
+    if (nextPage > totalPages || productPageCache.has(nextPage)) return;
+
+    if (prefetchInFlight) return prefetchInFlight;
+
+    prefetchInFlight = ensureProductPageLoaded(nextPage)
+        .catch((err) => console.warn('Prefetch products page failed:', err))
+        .finally(() => {
+            prefetchInFlight = null;
+        });
+
+    return prefetchInFlight;
+}
+
+/**
+ * Load chunk đầu (20 SP = trang 1 + sẵn trang 2), hoặc reload quanh trang hiện tại.
+ */
+async function loadProductsWindow({ resetPage = true, keepPage = false, includeStats = true } = {}) {
+    const seq = ++productsFetchSeq;
     try {
         showLoading();
 
-        const response = await fetch(`${CONFIG.API_URL}?action=getAllProducts&timestamp=${Date.now()}`);
-        const data = await response.json();
-
-        if (data.success) {
-            allProducts = data.products || [];
-            outdatedProductsCache = null;
-            shouldShowMaterialOutdatedWarnings = null;
-
-            console.log('📦 Loaded products:', allProducts.length);
-            // Refresh category preset counts (especially "Tất cả")
-            // after products data is available.
-            populateCategoryFilter();
-
-            // Re-apply current filters (skip URL update to avoid duplicate history entries)
-            searchAndSort(true);
-            
-            hideLoading();
-        } else {
-            throw new Error(data.error || 'Failed to load products');
+        if (resetPage && !keepPage) {
+            currentPage = 1;
         }
+
+        resetProductPageCache();
+
+        // page/limit API: offset=(page-1)*limit — chỉ fetch limit=20 khi bắt đầu từ trang 1
+        let startPage = keepPage ? Math.max(1, currentPage) : 1;
+        const fetchLimit = startPage === 1 ? initialFetchLimit : itemsPerPage;
+        const data = await fetchProductsPage({
+            page: startPage,
+            limit: fetchLimit,
+            includeStats
+        });
+
+        if (seq !== productsFetchSeq) return;
+
+        filteredTotal = Number(data.total) || 0;
+        if (data.stats) applyProductStats(data.stats);
+
+        storeProductsChunk(startPage, data.products || []);
+
+        const totalPages = Math.max(1, Math.ceil(filteredTotal / itemsPerPage) || 1);
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+            startPage = currentPage;
+            if (!productPageCache.has(currentPage)) {
+                const again = await fetchProductsPage({
+                    page: currentPage,
+                    limit: currentPage === 1 ? initialFetchLimit : itemsPerPage,
+                    includeStats: false
+                });
+                if (seq !== productsFetchSeq) return;
+                filteredTotal = Number(again.total) || 0;
+                storeProductsChunk(currentPage === 1 ? 1 : currentPage, again.products || []);
+            }
+        }
+
+        // Pin SP mới tạo lên đầu lần render đầu
+        if (pinnedProductId && currentPage === 1) {
+            const pinned = allProducts.find(p => Number(p.id) === Number(pinnedProductId));
+            const page1 = productPageCache.get(1) || [];
+            if (pinned) {
+                const without = page1.filter(p => Number(p.id) !== Number(pinnedProductId));
+                productPageCache.set(1, [pinned, ...without].slice(0, itemsPerPage));
+                syncAllProductsFromCache();
+            } else {
+                try {
+                    const one = await fetch(`${CONFIG.API_URL}?action=getProduct&id=${pinnedProductId}&timestamp=${Date.now()}`);
+                    const oneData = await one.json();
+                    if (oneData.success && oneData.product) {
+                        productPageCache.set(1, [oneData.product, ...page1].slice(0, itemsPerPage));
+                        syncAllProductsFromCache();
+                    }
+                } catch (e) {
+                    console.warn('Could not pin new product:', e);
+                }
+            }
+            pinnedProductId = null;
+        }
+
+        outdatedProductsCache = null;
+        shouldShowMaterialOutdatedWarnings = null;
+
+        filteredProducts = productPageCache.get(currentPage) || [];
+        populateCategoryFilter();
+        renderProducts();
+        hideLoading();
+
+        prefetchNextProductPage(currentPage);
     } catch (error) {
+        if (seq !== productsFetchSeq) return;
         console.error('❌ Error loading products:', error);
         hideLoading();
         showError('Không thể tải danh sách sản phẩm');
     }
 }
 
-// Reload products while keeping current page
-async function reloadProductsKeepPage() {
-    try {
-        showLoading();
-
-        const response = await fetch(`${CONFIG.API_URL}?action=getAllProducts&timestamp=${Date.now()}`);
-        const data = await response.json();
-
-        if (data.success) {
-            allProducts = data.products || [];
-            outdatedProductsCache = null;
-            shouldShowMaterialOutdatedWarnings = null;
-
-            console.log('📦 Reloaded products (keeping page):', allProducts.length);
-            // Keep category counters in sync with latest product list.
-            populateCategoryFilter();
-
-            // Re-apply current filters without resetting page
-            const searchInput = document.getElementById('searchInput');
-            const searchTerm = searchInput?.value || '';
-            
-            // Don't reset currentPage here - keep it as is
-            currentFilters.searchTerm = searchTerm.trim();
-            
-            let results = [...allProducts];
-
-            // Apply category filter - Support multi-category products
-            if (currentFilters.categoryId) {
-                results = results.filter(product => {
-                    // Check if product has multiple categories (new system)
-                    if (product.category_ids && product.category_ids.length > 0) {
-                        return product.category_ids.includes(currentFilters.categoryId);
-                    }
-                    // Fallback to single category (old system)
-                    return product.category_id === currentFilters.categoryId;
-                });
-            }
-
-            // Apply search filter
-            if (currentFilters.searchTerm) {
-                const normalizedSearch = currentFilters.searchTerm.toLowerCase();
-                results = results.filter(product => {
-                    if (product.name && product.name.toLowerCase().includes(normalizedSearch)) return true;
-                    if (product.sku && product.sku.toLowerCase().includes(normalizedSearch)) return true;
-                    if (!isNaN(normalizedSearch)) {
-                        const searchPrice = parseFloat(normalizedSearch);
-                        if (product.price === searchPrice || product.cost_price === searchPrice) return true;
-                    }
-                    return false;
-                });
-            }
-
-            // Apply sorting (mặc định: purchases desc)
-            const sortField = currentSort.field || 'purchases';
-            const sortDir = currentSort.direction || 'desc';
-            results.sort((a, b) => {
-                let aVal, bVal;
-
-                switch (sortField) {
-                    case 'price':
-                        aVal = a.price || 0;
-                        bVal = b.price || 0;
-                        break;
-                    case 'margin':
-                        aVal = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price) * 100 : 0;
-                        bVal = b.price > 0 ? ((b.price - (b.cost_price || 0)) / b.price) * 100 : 0;
-                        break;
-                    case 'profit':
-                        aVal = (a.price || 0) - (a.cost_price || 0);
-                        bVal = (b.price || 0) - (b.cost_price || 0);
-                        break;
-                    case 'purchases':
-                        aVal = a.purchases || 0;
-                        bVal = b.purchases || 0;
-                        break;
-                    default:
-                        return 0;
-                }
-
-                return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
-            });
-
-            filteredProducts = results;
-            renderProducts();
-            
-            hideLoading();
-        } else {
-            throw new Error(data.error || 'Failed to reload products');
-        }
-    } catch (error) {
-        console.error('❌ Error reloading products:', error);
-        hideLoading();
-        showError('Không thể tải lại danh sách sản phẩm');
+// Load products (initial)
+async function loadProducts() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        currentFilters.searchTerm = (searchInput.value || '').trim();
     }
+    await loadProductsWindow({ resetPage: true, includeStats: true });
 }
 
+// Reload products while keeping current page
+async function reloadProductsKeepPage() {
+    await loadProductsWindow({ resetPage: false, keepPage: true, includeStats: true });
+    await loadCategories();
+}
 
 // Toggle filters panel
 function toggleFilters() {
@@ -543,105 +627,19 @@ function updateSortBadge() {
     }
 }
 
-// Search and sort (combined)
-function searchAndSort(skipURLUpdate = false) {
+// Search and sort (combined) — server-side filter/sort + prefetch
+async function searchAndSort(skipURLUpdate = false) {
     const searchInput = document.getElementById('searchInput');
     const searchTerm = searchInput?.value || '';
-    
-    currentPage = 1;
 
+    currentPage = 1;
     currentFilters.searchTerm = searchTerm.trim();
-    // categoryId is already set by selectCategoryFilter function
-    
-    // Update URL with current filters (skip if called from loadProducts on initial load)
+
     if (!skipURLUpdate) {
         updateURL();
     }
 
-    let results = [...allProducts];
-
-    // Apply category filter - Support multi-category products
-    if (currentFilters.categoryId) {
-        results = results.filter(product => {
-            // Check if product has multiple categories (new system)
-            if (product.category_ids && product.category_ids.length > 0) {
-                return product.category_ids.includes(currentFilters.categoryId);
-            }
-            // Fallback to single category (old system)
-            return product.category_id === currentFilters.categoryId;
-        });
-    }
-
-    // Apply search filter
-    if (currentFilters.searchTerm) {
-        const normalizedSearch = currentFilters.searchTerm.toLowerCase();
-        results = results.filter(product => {
-            if (product.name && product.name.toLowerCase().includes(normalizedSearch)) return true;
-            if (product.sku && product.sku.toLowerCase().includes(normalizedSearch)) return true;
-            if (!isNaN(normalizedSearch)) {
-                const searchPrice = parseFloat(normalizedSearch);
-                if (product.price === searchPrice || product.cost_price === searchPrice) return true;
-            }
-            return false;
-        });
-    }
-
-    // Apply stock filter
-    if (currentFilters.stockFilter === 'out_of_stock') {
-        results = results.filter(p => (p.stock_quantity || 0) === 0);
-    } else if (currentFilters.stockFilter === 'low_stock') {
-        results = results.filter(p => {
-            const s = p.stock_quantity || 0;
-            return s > 0 && s <= 10;
-        });
-    }
-
-    // Apply sorting (mặc định: purchases desc)
-    const sortField = currentSort.field || 'purchases';
-    const sortDir = currentSort.direction || 'desc';
-    results.sort((a, b) => {
-        let aVal, bVal;
-
-        switch (sortField) {
-            case 'price':
-                aVal = a.price || 0;
-                bVal = b.price || 0;
-                break;
-            case 'margin':
-                aVal = a.price > 0 ? ((a.price - (a.cost_price || 0)) / a.price) * 100 : 0;
-                bVal = b.price > 0 ? ((b.price - (b.cost_price || 0)) / b.price) * 100 : 0;
-                break;
-            case 'profit':
-                aVal = (a.price || 0) - (a.cost_price || 0);
-                bVal = (b.price || 0) - (b.cost_price || 0);
-                break;
-            case 'purchases':
-                aVal = a.purchases || 0;
-                bVal = b.purchases || 0;
-                break;
-            case 'stock':
-                aVal = a.stock_quantity !== undefined ? (a.stock_quantity || 0) : 0;
-                bVal = b.stock_quantity !== undefined ? (b.stock_quantity || 0) : 0;
-                break;
-            default:
-                return 0;
-        }
-
-        return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
-    });
-
-    // Pin newly created product to top once (after filtering/sorting).
-    if (pinnedProductId) {
-        const pinnedIndex = results.findIndex(p => Number(p.id) === Number(pinnedProductId));
-        if (pinnedIndex > 0) {
-            const [pinned] = results.splice(pinnedIndex, 1);
-            results.unshift(pinned);
-        }
-        pinnedProductId = null;
-    }
-
-    filteredProducts = results;
-    renderProducts();
+    await loadProductsWindow({ resetPage: true, includeStats: false });
 }
 
 // Legacy function for backward compatibility
@@ -658,58 +656,25 @@ function renderProducts() {
         return;
     }
 
-    // Update stats
-    updateStats();
+    const totalPages = Math.max(1, Math.ceil((filteredTotal || 0) / itemsPerPage) || 1);
+    const pageProducts = productPageCache.get(currentPage) || filteredProducts || [];
+    filteredProducts = pageProducts;
 
-    if (filteredProducts.length === 0) {
+    if (!filteredTotal || pageProducts.length === 0) {
         grid.innerHTML = '';
         showEmptyState();
         hidePagination();
         return;
     }
 
-    // Calculate pagination
-    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageProducts = filteredProducts.slice(startIndex, endIndex);
-
-    // Render products for current page
     grid.innerHTML = pageProducts.map(product => createProductCard(product)).join('');
 
-    // Render pagination
     renderPagination(totalPages);
-
     showGrid();
 
-    // Scroll to top of grid only if not on first page
     if (currentPage > 1) {
         grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-}
-
-// Update statistics
-function updateStats() {
-    // Total products
-    document.getElementById('totalProducts').textContent = allProducts.length;
-
-    // Categories count - check both category and category_id
-    const categories = new Set(
-        allProducts
-            .map(p => p.category || p.category_id || p.category_name)
-            .filter(Boolean)
-    );
-    document.getElementById('totalCategories').textContent = categories.size;
-
-    // Average price
-    const avgPrice = allProducts.length > 0
-        ? allProducts.reduce((sum, p) => sum + (p.price || 0), 0) / allProducts.length
-        : 0;
-    document.getElementById('avgPrice').textContent = formatCurrency(avgPrice);
-
-    // Active products
-    const activeCount = allProducts.filter(p => p.is_active !== 0).length;
-    document.getElementById('activeProducts').textContent = activeCount;
 }
 
 // Set view mode
@@ -2438,14 +2403,14 @@ function renderPagination(totalPages) {
 
     paginationContainer.classList.remove('hidden');
 
-    const startItem = (currentPage - 1) * itemsPerPage + 1;
-    const endItem = Math.min(currentPage * itemsPerPage, filteredProducts.length);
+    const startItem = filteredTotal === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredTotal);
 
     let html = '<div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">';
 
     // Info text
     html += `<div class="text-sm text-gray-700">
-        Hiển thị <span class="font-medium">${startItem}</span> đến <span class="font-medium">${endItem}</span> trong tổng số <span class="font-medium">${filteredProducts.length}</span> sản phẩm
+        Hiển thị <span class="font-medium">${startItem}</span> đến <span class="font-medium">${endItem}</span> trong tổng số <span class="font-medium">${filteredTotal}</span> sản phẩm
     </div>`;
 
     // Pagination buttons
@@ -2503,12 +2468,24 @@ function renderPagination(totalPages) {
     paginationContainer.innerHTML = html;
 }
 
-function goToPage(page) {
-    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+async function goToPage(page) {
+    const totalPages = Math.max(1, Math.ceil((filteredTotal || 0) / itemsPerPage) || 1);
     if (page < 1 || page > totalPages) return;
 
     currentPage = page;
-    renderProducts();
+    try {
+        if (!productPageCache.has(page)) {
+            showLoading();
+            await ensureProductPageLoaded(page);
+            hideLoading();
+        }
+        renderProducts();
+        prefetchNextProductPage(page);
+    } catch (error) {
+        console.error('goToPage error:', error);
+        hideLoading();
+        showToast('Không thể tải trang sản phẩm', 'error');
+    }
 }
 
 function hidePagination() {
@@ -2630,19 +2607,25 @@ function handleProductCheckbox(productId, isChecked) {
     updateBulkActionsUI();
 }
 
+function getCurrentPageProducts() {
+    return productPageCache.get(currentPage) || filteredProducts || [];
+}
+
+function getLoadedPageProducts() {
+    return Array.from(productPageCache.values()).flat();
+}
+
 // Update bulk actions UI
 function updateBulkActionsUI() {
     const count = selectedProductIds.size;
-    const total = filteredProducts.length;
+    const total = filteredTotal || getLoadedPageProducts().length;
     const bulkActionsBar = document.getElementById('bulkActionsBar');
     const selectedCount = document.getElementById('selectedCount');
     const totalCount = document.getElementById('totalCount');
     const selectCurrentPageLabel = document.getElementById('selectCurrentPageLabel');
     const selectCurrentPageBtn = document.getElementById('selectCurrentPageBtn');
 
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageProducts = filteredProducts.slice(startIndex, endIndex);
+    const pageProducts = getCurrentPageProducts();
     const allPageSelected = pageProducts.length > 0 && pageProducts.every(p => selectedProductIds.has(p.id));
 
     if (count > 0) {
@@ -2682,21 +2665,19 @@ function updateBulkActionsUI() {
     }
 }
 
-// Select all products (on current page or all filtered products)
+// Select all products currently loaded in cache
 function selectAllProducts() {
-    // Check if all are already selected
-    const allSelected = filteredProducts.every(p => selectedProductIds.has(p.id));
+    const loaded = getLoadedPageProducts();
+    const allSelected = loaded.length > 0 && loaded.every(p => selectedProductIds.has(p.id));
     
     if (allSelected) {
-        // Deselect all
-        filteredProducts.forEach(p => selectedProductIds.delete(p.id));
+        loaded.forEach(p => selectedProductIds.delete(p.id));
         document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
-        showToast('Đã bỏ chọn tất cả sản phẩm', 'info');
+        showToast('Đã bỏ chọn tất cả sản phẩm đã tải', 'info');
     } else {
-        // Select all filtered products
-        filteredProducts.forEach(p => selectedProductIds.add(p.id));
+        loaded.forEach(p => selectedProductIds.add(p.id));
         document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = true);
-        showToast(`Đã chọn tất cả ${filteredProducts.length} sản phẩm`, 'success');
+        showToast(`Đã chọn ${loaded.length}/${filteredTotal || loaded.length} sản phẩm đã tải`, 'success');
     }
     
     updateBulkActionsUI();
@@ -2704,10 +2685,7 @@ function selectAllProducts() {
 
 // Select products on current page only
 function selectCurrentPage() {
-    // Get products on current page
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageProducts = filteredProducts.slice(startIndex, endIndex);
+    const pageProducts = getCurrentPageProducts();
     
     // Check if all on current page are selected
     const allPageSelected = pageProducts.every(p => selectedProductIds.has(p.id));
@@ -2737,30 +2715,27 @@ function selectCurrentPage() {
     updateBulkActionsUI();
 }
 
-// Select all filtered products (across all pages)
+// Select all filtered products currently loaded (prefetch cache)
 function selectAllFiltered() {
-    // Check if all filtered products are selected
-    const allSelected = filteredProducts.every(p => selectedProductIds.has(p.id));
+    const loaded = getLoadedPageProducts();
+    const allSelected = loaded.length > 0 && loaded.every(p => selectedProductIds.has(p.id));
     
     if (allSelected) {
-        // Deselect all filtered products
-        filteredProducts.forEach(p => selectedProductIds.delete(p.id));
+        loaded.forEach(p => selectedProductIds.delete(p.id));
         document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
-        showToast(`Đã bỏ chọn tất cả ${filteredProducts.length} sản phẩm`, 'info');
+        showToast(`Đã bỏ chọn ${loaded.length} sản phẩm đã tải`, 'info');
     } else {
-        // Select all filtered products
-        filteredProducts.forEach(p => selectedProductIds.add(p.id));
+        loaded.forEach(p => selectedProductIds.add(p.id));
         
-        // Only check checkboxes for products on current page
         document.querySelectorAll('.product-checkbox').forEach(cb => {
             const productId = parseInt(cb.dataset.productId);
-            if (filteredProducts.find(p => p.id === productId)) {
+            if (loaded.find(p => p.id === productId)) {
                 cb.checked = true;
             }
         });
         
-        const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-        showToast(`Đã chọn tất cả ${filteredProducts.length} sản phẩm (${totalPages} trang)`, 'success');
+        const totalPages = Math.max(1, Math.ceil((filteredTotal || 0) / itemsPerPage) || 1);
+        showToast(`Đã chọn ${loaded.length}/${filteredTotal || loaded.length} sản phẩm đã tải (${totalPages} trang lọc)`, 'success');
     }
     
     updateBulkActionsUI();
@@ -4114,11 +4089,13 @@ async function saveProductStockEdit(productId, input) {
             throw new Error(data.error || 'Không thể cập nhật tồn kho');
         }
 
-        // Update local cache then re-render
+        // Update local cache then reload window (giữ trang hiện tại)
         const localProduct = allProducts.find(p => p.id === productId);
         if (localProduct) localProduct.stock_quantity = newStock;
-        filteredProducts = [...allProducts];
-        searchAndSort();
+        const pageProducts = getCurrentPageProducts();
+        const pageItem = pageProducts.find(p => p.id === productId);
+        if (pageItem) pageItem.stock_quantity = newStock;
+        await reloadProductsKeepPage();
         showToast('Đã cập nhật tồn kho', 'success');
     } catch (error) {
         console.error('Error updating stock inline:', error);

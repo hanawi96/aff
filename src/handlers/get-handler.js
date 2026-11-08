@@ -317,7 +317,14 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             const page = parseInt(url.searchParams.get('page') || '1', 10);
             const limit = Math.min(parseInt(url.searchParams.get('limit') || '16', 10), 100);
             return await getProductsPage(env, corsHeaders, page, limit, {
-                inStock: url.searchParams.get('inStock') === '1'
+                inStock: url.searchParams.get('inStock') === '1',
+                admin: url.searchParams.get('admin') === '1',
+                search: url.searchParams.get('search') || '',
+                categoryId: url.searchParams.get('categoryId'),
+                stockFilter: url.searchParams.get('stockFilter') || '',
+                sortField: url.searchParams.get('sortField') || '',
+                sortDir: url.searchParams.get('sortDir') || '',
+                includeStats: url.searchParams.get('includeStats') === '1'
             });
         }
 

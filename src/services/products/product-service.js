@@ -131,31 +131,128 @@ export async function getAllProducts(env, corsHeaders, options = {}) {
 }
 
 /**
- * Shop home: paginated products (same shape as getAllProducts, smaller payload per request).
- * ORDER BY name ASC — must match client merge order.
+ * Paginated products (shop + admin).
+ * Shop mặc định: ORDER BY name ASC, chỉ inStock.
+ * Admin: search / category / stockFilter / sort + includeStats.
  */
 export async function getProductsPage(env, corsHeaders, page = 1, limit = 16, options = {}) {
     try {
         const pageNum = Math.max(1, parseInt(page, 10) || 1);
         const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 16), 100);
         const offset = (pageNum - 1) * limitNum;
+
         const inStockOnly = options.inStock === true;
-        const stockClause = inStockOnly ? ' AND CAST(stock_quantity AS INTEGER) > 0' : '';
-        const stockClauseAliased = inStockOnly ? ' AND CAST(p.stock_quantity AS INTEGER) > 0' : '';
+        const searchTerm = String(options.search || '').trim();
+        const categoryId = options.categoryId != null && options.categoryId !== ''
+            ? parseInt(options.categoryId, 10)
+            : null;
+        const stockFilter = String(options.stockFilter || '').trim();
+        const sortField = String(options.sortField || '').trim();
+        const sortDir = String(options.sortDir || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+        const includeStats = options.includeStats === true;
+
+        const whereParts = ['p.is_active = 1'];
+        const whereParams = [];
+
+        if (inStockOnly) {
+            whereParts.push('CAST(p.stock_quantity AS INTEGER) > 0');
+        }
+
+        if (stockFilter === 'out_of_stock') {
+            whereParts.push('CAST(p.stock_quantity AS INTEGER) = 0');
+        } else if (stockFilter === 'low_stock') {
+            whereParts.push('CAST(p.stock_quantity AS INTEGER) > 0');
+            whereParts.push('CAST(p.stock_quantity AS INTEGER) <= 10');
+        }
+
+        if (!isNaN(categoryId) && categoryId != null) {
+            whereParts.push(`(
+                EXISTS (
+                    SELECT 1 FROM product_categories pc
+                    WHERE pc.product_id = p.id AND pc.category_id = ?
+                )
+                OR p.category_id = ?
+            )`);
+            whereParams.push(categoryId, categoryId);
+        }
+
+        if (searchTerm) {
+            const like = `%${searchTerm.toLowerCase()}%`;
+            const numericSearch = Number(searchTerm.replace(/\./g, '').replace(/,/g, ''));
+            const isNumeric = searchTerm !== '' && !isNaN(numericSearch) && /^-?\d+(\.\d+)?$/.test(searchTerm.replace(/\./g, '').replace(/,/g, ''));
+
+            if (isNumeric) {
+                whereParts.push(`(
+                    LOWER(IFNULL(p.name, '')) LIKE ?
+                    OR LOWER(IFNULL(p.sku, '')) LIKE ?
+                    OR CAST(p.price AS INTEGER) = ?
+                    OR CAST(IFNULL(p.cost_price, 0) AS INTEGER) = ?
+                )`);
+                whereParams.push(like, like, numericSearch, numericSearch);
+            } else {
+                whereParts.push(`(
+                    LOWER(IFNULL(p.name, '')) LIKE ?
+                    OR LOWER(IFNULL(p.sku, '')) LIKE ?
+                )`);
+                whereParams.push(like, like);
+            }
+        }
+
+        const whereSql = whereParts.join(' AND ');
+
+        let orderSql = 'p.name COLLATE NOCASE ASC';
+        if (sortField === 'price') {
+            orderSql = `CAST(IFNULL(p.price, 0) AS REAL) ${sortDir}, p.name COLLATE NOCASE ASC`;
+        } else if (sortField === 'purchases') {
+            orderSql = `CAST(IFNULL(p.purchases, 0) AS INTEGER) ${sortDir}, p.name COLLATE NOCASE ASC`;
+        } else if (sortField === 'stock') {
+            orderSql = `CAST(IFNULL(p.stock_quantity, 0) AS INTEGER) ${sortDir}, p.name COLLATE NOCASE ASC`;
+        } else if (sortField === 'profit') {
+            orderSql = `(CAST(IFNULL(p.price, 0) AS REAL) - CAST(IFNULL(p.cost_price, 0) AS REAL)) ${sortDir}, p.name COLLATE NOCASE ASC`;
+        } else if (sortField === 'margin') {
+            orderSql = `(CASE
+                WHEN CAST(IFNULL(p.price, 0) AS REAL) > 0
+                THEN ((CAST(IFNULL(p.price, 0) AS REAL) - CAST(IFNULL(p.cost_price, 0) AS REAL)) * 100.0 / CAST(p.price AS REAL))
+                ELSE 0
+            END) ${sortDir}, p.name COLLATE NOCASE ASC`;
+        } else if (options.admin === true) {
+            // Admin mặc định: lượt bán cao → thấp (khớp UI cũ)
+            orderSql = `CAST(IFNULL(p.purchases, 0) AS INTEGER) DESC, p.name COLLATE NOCASE ASC`;
+        }
 
         const countRow = await env.DB.prepare(`
-            SELECT COUNT(*) as cnt FROM products WHERE is_active = 1${stockClause}
-        `).first();
+            SELECT COUNT(*) as cnt
+            FROM products p
+            WHERE ${whereSql}
+        `).bind(...whereParams).first();
         const total = countRow?.cnt ?? 0;
 
         const { results: products } = await env.DB.prepare(`
             SELECT p.*, c.name as category_name, c.icon as category_icon, c.color as category_color
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.id
-            WHERE p.is_active = 1${stockClauseAliased}
-            ORDER BY name ASC
+            WHERE ${whereSql}
+            ORDER BY ${orderSql}
             LIMIT ? OFFSET ?
-        `).bind(limitNum, offset).all();
+        `).bind(...whereParams, limitNum, offset).all();
+
+        let stats = null;
+        if (includeStats) {
+            const statsRow = await env.DB.prepare(`
+                SELECT
+                    COUNT(*) as total,
+                    AVG(CAST(IFNULL(price, 0) AS REAL)) as avg_price,
+                    COUNT(DISTINCT category_id) as category_count
+                FROM products
+                WHERE is_active = 1
+            `).first();
+            stats = {
+                total: statsRow?.total ?? 0,
+                avgPrice: statsRow?.avg_price ?? 0,
+                activeCount: statsRow?.total ?? 0,
+                categoryCount: statsRow?.category_count ?? 0
+            };
+        }
 
         if (!products.length) {
             return jsonResponse({
@@ -164,7 +261,8 @@ export async function getProductsPage(env, corsHeaders, page = 1, limit = 16, op
                 total,
                 page: pageNum,
                 limit: limitNum,
-                hasMore: false
+                hasMore: false,
+                ...(stats ? { stats } : {})
             }, 200, corsHeaders);
         }
 
@@ -214,7 +312,8 @@ export async function getProductsPage(env, corsHeaders, page = 1, limit = 16, op
             total,
             page: pageNum,
             limit: limitNum,
-            hasMore
+            hasMore,
+            ...(stats ? { stats } : {})
         }, 200, corsHeaders);
     } catch (error) {
         console.error('Error getting products page:', error);
