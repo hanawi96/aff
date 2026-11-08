@@ -100,33 +100,6 @@ import {
     toggleCampaignStatus
 } from '../services/campaigns/campaign-service.js';
 
-// Flash Sales
-import {
-    createFlashSale,
-    updateFlashSale,
-    deleteFlashSale,
-    updateFlashSaleStatus
-} from '../services/flash-sales/flash-sale-service.js';
-
-import {
-    addProductToFlashSale,
-    addMultipleProductsToFlashSale,
-    updateFlashSaleProduct,
-    removeProductFromFlashSale,
-    removeAllProductsFromFlashSale
-} from '../services/flash-sales/flash-sale-products.js';
-
-// Flash Sale Bulk Update
-import {
-    updateFlashSaleProducts
-} from '../services/flash-sales/flash-sale-bulk-update.js';
-
-// Flash Sale Purchase Tracking
-import {
-    recordFlashSalePurchase,
-    cancelFlashSalePurchase
-} from '../services/flash-sales/flash-sale-purchase-tracking.js';
-
 // Export History
 import { 
     saveExport, 
@@ -182,18 +155,6 @@ import {
 
 // Customer Notes
 import { saveCustomerNote } from '../services/customers/customer-service.js';
-
-// Featured Products
-import {
-    getFeaturedProducts,
-    addFeaturedProduct,
-    addMultipleFeaturedProducts,
-    removeFeaturedProduct,
-    removeMultipleFeaturedProducts,
-    reorderFeaturedProducts,
-    getFeaturedStats,
-    clearFeaturedCache
-} from '../services/featured/featured-service.js';
 
 // ============================================
 // POST WITH ACTION (Query String)
@@ -398,35 +359,6 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
         case 'toggleCampaignStatus':
             return await toggleCampaignStatus(data, env, corsHeaders);
         
-        // Flash Sales
-        case 'createFlashSale':
-            return await createFlashSale(data, env, corsHeaders);
-        case 'updateFlashSale':
-            return await updateFlashSale(data.id, data, env, corsHeaders);
-        case 'deleteFlashSale':
-            return await deleteFlashSale(data.id, env, corsHeaders);
-        case 'updateFlashSaleStatus':
-            return await updateFlashSaleStatus(data.id, data.status, env, corsHeaders);
-        case 'addProductToFlashSale':
-            return await addProductToFlashSale(data.flashSaleId, data, env, corsHeaders);
-        case 'addMultipleProductsToFlashSale':
-            return await addMultipleProductsToFlashSale(data.flashSaleId, data.products, env, corsHeaders);
-        case 'updateFlashSaleProduct':
-            return await updateFlashSaleProduct(data.id, data, env, corsHeaders);
-        case 'removeProductFromFlashSale':
-            return await removeProductFromFlashSale(data.id, env, corsHeaders);
-        case 'removeAllProductsFromFlashSale':
-            return await removeAllProductsFromFlashSale(data.flashSaleId, env, corsHeaders);
-        case 'updateFlashSaleProducts':
-            return await updateFlashSaleProducts(data.flashSaleId, data.products, env, corsHeaders);
-
-        // Flash Sale Purchase Tracking
-        case 'recordFlashSalePurchase':
-            return await recordFlashSalePurchase(data, env, corsHeaders);
-
-        case 'cancelFlashSalePurchase':
-            return await cancelFlashSalePurchase(data.orderId, env, corsHeaders);
-        
         case 'saveExport':
             return await saveExport(data, env).then(result => jsonResponse(result, 200, corsHeaders));
         case 'saveInvoiceExport':
@@ -445,24 +377,6 @@ export async function handlePostWithAction(action, request, env, corsHeaders) {
         // Categories
         case 'reorderCategories':
             return await reorderCategories(data, env, corsHeaders);
-        
-        // Featured Products
-        case 'getFeaturedProducts':
-            return await getFeaturedProducts(env, corsHeaders);
-        case 'addFeaturedProduct':
-            return await addFeaturedProduct(data, env, corsHeaders);
-        case 'addMultipleFeaturedProducts':
-            return await addMultipleFeaturedProducts(data, env, corsHeaders);
-        case 'removeFeaturedProduct':
-            return await removeFeaturedProduct(data, env, corsHeaders);
-        case 'removeMultipleFeaturedProducts':
-            return await removeMultipleFeaturedProducts(data, env, corsHeaders);
-        case 'reorderFeaturedProducts':
-            return await reorderFeaturedProducts(data, env, corsHeaders);
-        case 'getFeaturedStats':
-            return await getFeaturedStats(env, corsHeaders);
-        case 'clearFeaturedCache':
-            return await clearFeaturedCache(env, corsHeaders);
         
         default:
             return jsonResponse({
@@ -698,22 +612,6 @@ export async function handlePost(path, request, env, corsHeaders) {
             case 'updateUser':
                 return await handleUpdateUser(data, request, env, corsHeaders);
             
-            // Featured Products
-            case 'addFeaturedProduct':
-                return await addFeaturedProduct(data, env, corsHeaders);
-            case 'addMultipleFeaturedProducts':
-                return await addMultipleFeaturedProducts(data, env, corsHeaders);
-            case 'removeFeaturedProduct':
-                return await removeFeaturedProduct(data, env, corsHeaders);
-            case 'removeMultipleFeaturedProducts':
-                return await removeMultipleFeaturedProducts(data, env, corsHeaders);
-            case 'reorderFeaturedProducts':
-                return await reorderFeaturedProducts(data, env, corsHeaders);
-            case 'getFeaturedStats':
-                return await getFeaturedStats(env, corsHeaders);
-            case 'clearFeaturedCache':
-                return await clearFeaturedCache(env, corsHeaders);
-
             // Customer Notes
             case 'saveCustomerNote':
                 return await saveCustomerNote(

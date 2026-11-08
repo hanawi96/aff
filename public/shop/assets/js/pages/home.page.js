@@ -6,7 +6,6 @@ import { apiService } from '../shared/services/api.service.js?v=5';
 import { cartService } from '../shared/services/cart.service.js?v=2';
 import { ProductGrid, ProductActions } from '../features/products/index.js?v=41';
 import { renderCategories, CategoryActions } from '../features/categories/index.js?v=8';
-import { FlashSaleActions, FlashSaleTimer, createFlashSaleCard } from '../features/flash-sale/index.js?v=6';
 import { QuickCheckout } from '../features/checkout/index.js?v=2025o';
 import { BabyWeightModal } from '../shared/components/baby-weight-modal.js?v=2';
 import { throttle, rafThrottle } from '../shared/utils/performance.js';
@@ -21,7 +20,6 @@ export class HomePage {
         this.products = [];
         this.allProducts = []; // All products for filtering
         this.categories = [];
-        this.flashSales = [];
         this.currentPage = 1;
         this.hasMoreProducts = false;
         
@@ -29,9 +27,6 @@ export class HomePage {
         this.productGrid = null;
         this.productActions = null;
         this.categoryActions = null;
-        this.flashSaleCarousel = null;
-        this.flashSaleActions = null;
-        this.flashSaleTimer = null;
         this.quickCheckout = null;
         /** @type {HTMLElement|null} */
         this._shopPerfHudEl = null;
@@ -209,7 +204,7 @@ export class HomePage {
             // Hide skeleton and show critical content
             this.showCriticalContent();
             
-            // Phase 2: Load remaining content in background (flash sale, …)
+            // Phase 2: Load remaining content in background
             this.loadRemainingContent();
             
             // Phase 3: Pre-load bundle products for quick checkout (in background)
@@ -453,21 +448,6 @@ export class HomePage {
      */
     async loadRemainingContent() {
         // Danh mục đã tải song song trong init() (trước loadRemainingContent)
-
-        // Load flash sales after primary content is shown.
-        setTimeout(async () => {
-            try {
-                this.flashSales = await apiService.getActiveFlashSales();
-                this.initializeFlashSaleComponentsIfNeeded();
-                this.renderFlashSales();
-            } catch (error) {
-                console.warn('Flash sales load failed:', error);
-                this.hideFlashSaleSection();
-            } finally {
-                this.hideFlashSaleSkeleton();
-            }
-        }, 150);
-        
         // Sản phẩm: trang đầu đã load ở loadCriticalContent; phần còn lại nối trong background
     }
     
@@ -489,7 +469,7 @@ export class HomePage {
     }
     
     /**
-     * Show critical content (Flash Sales + First Products)
+     * Show critical content (first products)
      */
     showCriticalContent() {
         // Initialize components for critical content
@@ -517,20 +497,17 @@ export class HomePage {
      * Load data from API
      */
     async loadData() {
-        const [products, categories, flashSales] = await Promise.all([
+        const [products, categories] = await Promise.all([
             apiService.getAllProducts(),
-            apiService.getAllCategories(),
-            apiService.getActiveFlashSales()
+            apiService.getAllCategories()
         ]);
         
         this.products = products;
         this.categories = categories;
-        this.flashSales = flashSales;
         
         console.log('Data loaded:', {
             products: this.products.length,
-            categories: this.categories.length,
-            flashSales: this.flashSales.length
+            categories: this.categories.length
         });
     }
     
@@ -556,12 +533,6 @@ export class HomePage {
         this.productActions.setBabyWeightModal(this.babyWeightModal);
         window.productActions = this.productActions;
         console.log('✅ HomePage: ProductActions initialized and linked to BabyWeightModal');
-        
-        // Flash Sale Components - DISABLED (using vertical scroll instead)
-        const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
-        if (activeFlashSale && activeFlashSale.products) {
-            this.initializeFlashSaleComponentsIfNeeded();
-        }
         
         // Quick Checkout
         this.quickCheckout = new QuickCheckout();
@@ -591,21 +562,6 @@ export class HomePage {
         
         console.log('🎉 HomePage: All critical components initialized successfully');
     }
-
-    initializeFlashSaleComponentsIfNeeded() {
-        const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
-        if (!activeFlashSale || !activeFlashSale.products) return;
-
-        if (!this.flashSaleActions) {
-            this.flashSaleActions = new FlashSaleActions(this.flashSales);
-            this.flashSaleActions.setBabyWeightModal(this.babyWeightModal);
-            window.flashSaleActions = this.flashSaleActions;
-        }
-
-        // Always refresh timer with latest active sale payload
-        this.flashSaleTimer = new FlashSaleTimer(activeFlashSale);
-        console.log('✅ HomePage: FlashSale components initialized/refreshed');
-    }
     
     /**
      * Render page content
@@ -616,80 +572,6 @@ export class HomePage {
         // Render products
         const productsToRender = this.allProducts.length > 0 ? this.allProducts : this.products;
         this.productGrid.setAllProducts(productsToRender);
-        
-        // Render flash sales - NO CAROUSEL
-        // Flash sales are rendered directly in renderFlashSales()
-    }
-    
-    /**
-     * Render flash sales
-     * Section #flash-sale mặc định ẩn trong HTML — chỉ hiện khi có CTKM + ít nhất 1 SP active (tránh skeleton rồi biến mất).
-     */
-    renderFlashSales() {
-        console.log('🔥 Rendering flash sales:', this.flashSales);
-        
-        if (!this.flashSales || this.flashSales.length === 0) {
-            console.warn('🔥 No flash sales data available');
-            this.hideFlashSaleSection();
-            return;
-        }
-        
-        const activeFlashSale = this.flashSales.find(fs => fs.status === 'active');
-        console.log('🔥 Active flash sale found:', activeFlashSale);
-        
-        if (!activeFlashSale || !activeFlashSale.products || activeFlashSale.products.length === 0) {
-            console.warn('🔥 No active flash sale or no products');
-            this.hideFlashSaleSection();
-            return;
-        }
-        
-        const activeProducts = activeFlashSale.products.filter(p => p.is_active === 1);
-        if (activeProducts.length === 0) {
-            console.warn('🔥 No active products in flash sale');
-            this.hideFlashSaleSection();
-            return;
-        }
-        
-        const container = document.getElementById('flashSaleProducts');
-        if (!container) {
-            console.warn('🔥 Container #flashSaleProducts not found');
-            this.hideFlashSaleSection();
-            return;
-        }
-        
-        console.log('🔥 Active products to render:', activeProducts.length);
-        container.innerHTML = activeProducts.map(createFlashSaleCard).join('');
-        this.showFlashSaleSection();
-        
-        if (this.flashSaleTimer) {
-            this.flashSaleTimer.start();
-        }
-    }
-    
-    /**
-     * Hide flash sale section if no active sales
-     */
-    hideFlashSaleSection() {
-        const section = document.getElementById('flash-sale');
-        if (section) {
-            section.classList.add('hidden');
-            section.setAttribute('aria-hidden', 'true');
-            section.style.removeProperty('display');
-            console.log('🔥 Flash sale section hidden');
-        }
-    }
-    
-    /**
-     * Show flash sale section
-     */
-    showFlashSaleSection() {
-        const section = document.getElementById('flash-sale');
-        if (section) {
-            section.classList.remove('hidden');
-            section.setAttribute('aria-hidden', 'false');
-            section.style.removeProperty('display');
-            console.log('🔥 Flash sale section shown');
-        }
     }
     
     /**
@@ -1550,22 +1432,8 @@ export class HomePage {
      * Hide skeleton and show real content with fade-in animation
      */
     hideSkeletonAndShowContent() {
-        this.hideFlashSaleSkeleton();
         this.hideCategoriesSkeleton();
         this.hideProductsSkeleton();
-    }
-    
-    /**
-     * Hide flash sale skeleton
-     */
-    hideFlashSaleSkeleton() {
-        const flashSaleSkeleton = document.getElementById('flashSaleSkeleton');
-        const flashSaleProducts = document.getElementById('flashSaleProducts');
-        if (flashSaleSkeleton && flashSaleProducts) {
-            flashSaleSkeleton.style.display = 'none';
-            flashSaleProducts.classList.remove('hidden');
-            flashSaleProducts.classList.add('fade-in');
-        }
     }
     
     /**

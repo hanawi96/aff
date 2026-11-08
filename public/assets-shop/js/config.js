@@ -17,11 +17,6 @@ const API_CONFIG = {
         // Categories
         GET_ALL_CATEGORIES: '/?action=getAllCategories',
         
-        // Flash Sales
-        GET_ALL_FLASH_SALES: '/?action=getAllFlashSales',
-        GET_ACTIVE_FLASH_SALES: '/?action=getActiveFlashSales',
-        GET_FLASH_SALE: '/?action=getFlashSale',
-        
         // Discounts
         VALIDATE_DISCOUNT: '/?action=validateDiscount',
         

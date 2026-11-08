@@ -4,12 +4,13 @@
  */
 (function () {
     let activePeriod = 'today';
-    let activeCustomDate = null;
+    let activeCustomStart = null;
+    let activeCustomEnd = null;
     let loading = false;
     let editDate = null;
     let lastAnalyticsData = null;
     let trendChart = null;
-    let adsDayPickView = { y: 0, m: 0 };
+    let adsDayPickView = { y: 0, m: 0, start: null, end: null };
 
     const fmtN = (n) => new Intl.NumberFormat('vi-VN').format(n || 0);
     const fmt = (n) => `${fmtN(n)}đ`;
@@ -308,13 +309,52 @@
             const on = btn.dataset.period === period;
             btn.classList.toggle('ads-period-tab--active', on);
         });
+        updateCustomTabLabel();
+    }
+
+    function fmtShortDate(iso) {
+        if (!iso) return '';
+        const [y, m, d] = iso.split('-');
+        return `${d}/${m}`;
+    }
+
+    function updateCustomTabLabel() {
+        const span = document.querySelector('#adsPeriodCustomBtn span');
+        if (!span) return;
+        if (activePeriod === 'custom' && activeCustomStart) {
+            const end = activeCustomEnd || activeCustomStart;
+            span.textContent = end !== activeCustomStart
+                ? `${fmtShortDate(activeCustomStart)} – ${fmtShortDate(end)}`
+                : fmtDateLabel(activeCustomStart);
+            return;
+        }
+        span.textContent = 'Chọn ngày';
+    }
+
+    function updateAdsDayPickHint() {
+        const hint = document.getElementById('adsDayPickHint');
+        if (!hint) return;
+        const { start, end } = adsDayPickView;
+        if (start && !end) {
+            hint.textContent = `Từ ${fmtDateLabel(start)} · chọn ngày kết thúc (hoặc bấm lại cùng ngày)`;
+            return;
+        }
+        if (start && end) {
+            hint.textContent = start === end
+                ? `Đã chọn ${fmtDateLabel(start)}`
+                : `Đã chọn ${fmtDateLabel(start)} – ${fmtDateLabel(end)}`;
+            return;
+        }
+        hint.textContent = 'Bấm ngày bắt đầu, rồi ngày kết thúc';
     }
 
     function openAdsDayPick() {
         const today = vnTodayIso();
-        const src = activeCustomDate || today;
-        const [y, m] = src.split('-').map(Number);
-        adsDayPickView = { y, m: m - 1, selected: src };
+        const start = activeCustomStart || null;
+        const end = activeCustomEnd || null;
+        const focus = end || start || today;
+        const [y, m] = focus.split('-').map(Number);
+        adsDayPickView = { y, m: m - 1, start, end };
         renderAdsDayPickCal();
         const modal = document.getElementById('adsDayPickModal');
         if (modal) {
@@ -357,54 +397,92 @@
         const monthStr = String(m + 1).padStart(2, '0');
         const firstWd = (new Date(`${y}-${monthStr}-01T12:00:00+07:00`).getDay() + 6) % 7;
         const daysInMonth = new Date(y, m + 1, 0).getDate();
-        const selected = adsDayPickView.selected || activeCustomDate;
+        let rangeStart = adsDayPickView.start || null;
+        let rangeEnd = adsDayPickView.end || null;
+        if (rangeStart && rangeEnd && rangeEnd < rangeStart) {
+            const tmp = rangeStart;
+            rangeStart = rangeEnd;
+            rangeEnd = tmp;
+        }
         const wds = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
         let html = wds.map((w) => `<span class="ads-daypick-wd">${w}</span>`).join('');
         for (let i = 0; i < firstWd; i += 1) html += '<span aria-hidden="true"></span>';
         for (let day = 1; day <= daysInMonth; day += 1) {
             const iso = `${y}-${monthStr}-${String(day).padStart(2, '0')}`;
             const isFuture = y > ty || (y === ty && m + 1 > tm) || (y === ty && m + 1 === tm && day > td);
+            const isStart = rangeStart && iso === rangeStart;
+            const isEnd = rangeEnd && iso === rangeEnd;
+            const inRange = rangeStart && rangeEnd && iso > rangeStart && iso < rangeEnd;
             const cls = [
                 'ads-daypick-day',
                 iso === today ? 'is-today' : '',
-                iso === selected ? 'is-selected' : ''
+                inRange ? 'is-in-range' : '',
+                isStart ? 'is-range-start' : '',
+                isEnd ? 'is-range-end' : '',
+                isStart && !rangeEnd ? 'is-selected' : ''
             ].filter(Boolean).join(' ');
             html += `<button type="button" class="${cls}" ${isFuture ? 'disabled' : ''} data-ads-day="${iso}">${day}</button>`;
         }
         grid.innerHTML = html;
         grid.querySelectorAll('[data-ads-day]').forEach((btn) => {
-            btn.addEventListener('click', () => applyAdsCustomDay(btn.dataset.adsDay));
+            btn.addEventListener('click', () => onAdsDayPickClick(btn.dataset.adsDay));
         });
+        updateAdsDayPickHint();
     }
 
-    function applyAdsCustomDay(iso) {
+    function onAdsDayPickClick(iso) {
         if (!iso) return;
+        const { start, end } = adsDayPickView;
+        if (!start || (start && end)) {
+            adsDayPickView.start = iso;
+            adsDayPickView.end = null;
+            renderAdsDayPickCal();
+            return;
+        }
+        let a = start;
+        let b = iso;
+        if (b < a) {
+            const tmp = a;
+            a = b;
+            b = tmp;
+        }
+        adsDayPickView.start = a;
+        adsDayPickView.end = b;
+        renderAdsDayPickCal();
+        applyAdsCustomRange(a, b);
+    }
+
+    function applyAdsCustomRange(start, end) {
+        if (!start) return;
+        const endDate = end || start;
         closeAdsDayPick();
-        load('custom', { customDate: iso });
+        load('custom', { startDate: start, endDate });
     }
 
     function adsDayPickQuick(kind) {
         const today = vnTodayIso();
         if (kind === 'today') {
-            applyAdsCustomDay(today);
+            applyAdsCustomRange(today, today);
             return;
         }
         const prev = new Date(`${today}T12:00:00+07:00`);
         prev.setTime(prev.getTime() - 86400000);
-        applyAdsCustomDay(prev.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }));
+        const yday = prev.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+        applyAdsCustomRange(yday, yday);
     }
 
-    function buildAdAnalyticsUrl(period, customDate, ts) {
+    function buildAdAnalyticsUrl(period, startDate, endDate, ts) {
         const base = `${CONFIG.API_URL}?action=getAdAnalytics&timestamp=${ts}`;
-        if (period === 'custom' && customDate) {
-            return `${base}&start_date=${encodeURIComponent(customDate)}&end_date=${encodeURIComponent(customDate)}`;
+        if (period === 'custom' && startDate) {
+            const end = endDate || startDate;
+            return `${base}&start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(end)}`;
         }
         return `${base}&period=${encodeURIComponent(period)}`;
     }
 
     function reloadAds() {
-        if (activePeriod === 'custom' && activeCustomDate) {
-            load('custom', { customDate: activeCustomDate });
+        if (activePeriod === 'custom' && activeCustomStart) {
+            load('custom', { startDate: activeCustomStart, endDate: activeCustomEnd || activeCustomStart });
         } else {
             load(activePeriod);
         }
@@ -526,8 +604,9 @@
         const insightsEl = document.getElementById('adsPeriodInsights');
         if (!section || !canvas) return;
 
-        const showTrend = data.period === '7d' || data.period === 'month';
-        if (!showTrend || !(data.days || []).length) {
+        const dayCount = (data.days || []).length;
+        const showTrend = dayCount > 1 && (data.period === '7d' || data.period === 'month' || data.period === 'custom');
+        if (!showTrend) {
             section.classList.add('hidden');
             destroyTrendChart();
             return;
@@ -726,16 +805,20 @@
         loading = true;
 
         if (period === 'custom') {
-            if (!opts.customDate) {
+            const startDate = opts.startDate || opts.customDate;
+            const endDate = opts.endDate || opts.customDate || startDate;
+            if (!startDate) {
                 loading = false;
                 openAdsDayPick();
                 return;
             }
             activePeriod = 'custom';
-            activeCustomDate = opts.customDate;
+            activeCustomStart = startDate;
+            activeCustomEnd = endDate;
         } else {
             activePeriod = period;
-            activeCustomDate = null;
+            activeCustomStart = null;
+            activeCustomEnd = null;
         }
 
         setPeriodTab(activePeriod);
@@ -744,7 +827,7 @@
         try {
             const ts = Date.now();
             const [res, res10d] = await Promise.all([
-                fetch(buildAdAnalyticsUrl(activePeriod, activeCustomDate, ts)),
+                fetch(buildAdAnalyticsUrl(activePeriod, activeCustomStart, activeCustomEnd, ts)),
                 fetch(`${CONFIG.API_URL}?action=getAdAnalytics&period=10d&timestamp=${ts}`)
             ]);
             const data = await res.json();

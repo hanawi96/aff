@@ -97,21 +97,6 @@ class ApiService {
         return this.get(API_CONFIG.ENDPOINTS.GET_ALL_CATEGORIES);
     }
 
-    // Get all flash sales
-    async getAllFlashSales() {
-        return this.get(API_CONFIG.ENDPOINTS.GET_ALL_FLASH_SALES);
-    }
-
-    // Get active flash sales
-    async getActiveFlashSales() {
-        return this.get(API_CONFIG.ENDPOINTS.GET_ACTIVE_FLASH_SALES);
-    }
-
-    // Get single flash sale
-    async getFlashSale(id) {
-        return this.get(`${API_CONFIG.ENDPOINTS.GET_FLASH_SALE}&id=${id}`);
-    }
-
     // Validate discount code
     async validateDiscount(code, orderAmount, customerPhone) {
         return this.post(API_CONFIG.ENDPOINTS.VALIDATE_DISCOUNT, {

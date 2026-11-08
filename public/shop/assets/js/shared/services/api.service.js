@@ -26,7 +26,6 @@ class ApiService {
         this.cache = {
             products: null,
             categories: null,
-            flashSales: null,
             timestamp: {}
         };
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
@@ -93,7 +92,6 @@ class ApiService {
             this.cache = {
                 products: parsed.products || null,
                 categories: parsed.categories || null,
-                flashSales: parsed.flashSales || null,
                 timestamp: parsed.timestamp || {}
             };
         } catch (error) {
@@ -241,7 +239,6 @@ class ApiService {
             this.cache = {
                 products: null,
                 categories: null,
-                flashSales: null,
                 timestamp: {}
             };
             console.log('🗑️ Cleared all cache');
@@ -288,34 +285,6 @@ class ApiService {
         this.setCache('categories', categories);
         
         return categories;
-    }
-    
-    // Flash Sale APIs with caching
-    async getActiveFlashSales() {
-        // Check cache first
-        if (this.isCacheValid('flashSales')) {
-            console.log('📦 Using cached flash sales');
-            return this.cache.flashSales;
-        }
-        
-        console.log('🌐 Fetching flash sales from API');
-        const data = await this.get('/get', { action: 'getActiveFlashSales' });
-        
-        const salesArray = data.flashSales || data || [];
-
-        // Load products for each flash sale in parallel to reduce total wait time.
-        await Promise.all(salesArray.map(async (flashSale) => {
-            const productsData = await this.get('/get', {
-                action: 'getFlashSaleProducts',
-                flashSaleId: flashSale.id
-            });
-            flashSale.products = productsData.products || productsData || [];
-        }));
-        
-        // Cache the result
-        this.setCache('flashSales', salesArray);
-
-        return salesArray;
     }
     
     // Order APIs

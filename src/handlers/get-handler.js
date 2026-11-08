@@ -71,14 +71,6 @@ import { getProductCategories } from '../services/products/product-categories.js
 // Address Learning
 import { searchLearning, getLearningStats } from '../services/address-learning/address-learning-service.js';
 
-// Featured Products
-import {
-    getFeaturedProducts,
-    getFeaturedProductsForAdmin,
-    getFeaturedStats,
-    clearFeaturedCache
-} from '../services/featured/featured-service.js';
-
 // Materials
 import { getAllMaterials, getProductMaterials, getAllMaterialCategories } from '../services/materials/material-service.js';
 
@@ -114,26 +106,6 @@ import {
     getDiscountUsageHistory, 
     validateDiscount 
 } from '../services/discounts/discount-usage.js';
-
-// Flash Sales
-import {
-    getAllFlashSales,
-    getFlashSale,
-    getActiveFlashSales
-} from '../services/flash-sales/flash-sale-service.js';
-
-import {
-    getFlashSaleProducts,
-    checkProductInFlashSale,
-    getFlashSaleStats
-} from '../services/flash-sales/flash-sale-products.js';
-
-// Flash Sale Purchase Tracking
-import {
-    canPurchaseFlashSaleProduct,
-    getCustomerFlashSalePurchases,
-    getFlashSalePurchaseStats
-} from '../services/flash-sales/flash-sale-purchase-tracking.js';
 
 // Settings
 import { getPackagingConfig } from '../services/settings/packaging.js';
@@ -423,18 +395,6 @@ export async function handleGet(action, url, request, env, corsHeaders) {
             } catch (e) {
                 return jsonResponse({ success: false, error: e.message }, 500, corsHeaders);
             }
-
-        case 'getFeaturedProducts':
-            return await getFeaturedProducts(env, corsHeaders);
-
-        case 'getFeaturedProductsForAdmin':
-            return await getFeaturedProductsForAdmin(env, corsHeaders);
-
-        case 'getFeaturedStats':
-            return await getFeaturedStats(env, corsHeaders);
-
-        case 'clearFeaturedCache':
-            return await clearFeaturedCache(env, corsHeaders);
 
         case 'checkOutdatedProducts':
             return await checkOutdatedProducts(env, corsHeaders);
@@ -741,45 +701,6 @@ export async function handleGet(action, url, request, env, corsHeaders) {
         case 'getProductMaterials':
             const materialProductId = url.searchParams.get('product_id');
             return await getProductMaterials(materialProductId, env, corsHeaders);
-
-        // Flash Sales
-        case 'getAllFlashSales':
-            return await getAllFlashSales(env, corsHeaders);
-
-        case 'getFlashSale':
-            const flashSaleId = url.searchParams.get('id');
-            return await getFlashSale(flashSaleId, env, corsHeaders);
-
-        case 'getActiveFlashSales':
-            return await getActiveFlashSales(env, corsHeaders);
-
-        case 'getFlashSaleProducts':
-            const fsId = url.searchParams.get('flashSaleId');
-            return await getFlashSaleProducts(fsId, env, corsHeaders);
-
-        case 'checkProductInFlashSale':
-            const checkProductId = url.searchParams.get('productId');
-            return await checkProductInFlashSale(checkProductId, env, corsHeaders);
-
-        case 'getFlashSaleStats':
-            const statsFlashSaleId = url.searchParams.get('flashSaleId');
-            return await getFlashSaleStats(statsFlashSaleId, env, corsHeaders);
-
-        // Flash Sale Purchase Tracking
-        case 'canPurchaseFlashSaleProduct':
-            const canPurchaseProductId = url.searchParams.get('flashSaleProductId');
-            const canPurchasePhone = url.searchParams.get('customerPhone');
-            const canPurchaseQty = parseInt(url.searchParams.get('quantity') || '1');
-            return await canPurchaseFlashSaleProduct(canPurchaseProductId, canPurchasePhone, canPurchaseQty, env, corsHeaders);
-
-        case 'getCustomerFlashSalePurchases':
-            const flashSaleCustomerPhone = url.searchParams.get('customerPhone');
-            const filterFlashSaleId = url.searchParams.get('flashSaleId');
-            return await getCustomerFlashSalePurchases(flashSaleCustomerPhone, filterFlashSaleId, env, corsHeaders);
-
-        case 'getFlashSalePurchaseStats':
-            const purchaseStatsFlashSaleId = url.searchParams.get('flashSaleId');
-            return await getFlashSalePurchaseStats(purchaseStatsFlashSaleId, env, corsHeaders);
 
         // Backup & Restore
         case 'createBackup': {

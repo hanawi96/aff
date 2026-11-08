@@ -63,23 +63,6 @@ class ApiService {
         return data.categories || data || [];
     }
     
-    // Flash Sale APIs
-    async getActiveFlashSales() {
-        const data = await this.get('/get', { action: 'getActiveFlashSales' });
-        const salesArray = data.flashSales || data || [];
-        
-        // Load products for each flash sale
-        for (let flashSale of salesArray) {
-            const productsData = await this.get('/get', {
-                action: 'getFlashSaleProducts',
-                flashSaleId: flashSale.id
-            });
-            flashSale.products = productsData.products || productsData || [];
-        }
-        
-        return salesArray;
-    }
-    
     // Order APIs
     async createOrder(orderData) {
         return await this.post('/post', {
