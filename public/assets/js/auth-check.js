@@ -150,30 +150,62 @@
         const link = document.querySelector('a[href="invoices.html"]');
         if (!link) return;
         const n = Number(count) || 0;
-        const label = link.querySelector('span');
         let badge = link.querySelector('[data-inv-due-badge]');
+        let iconWrap = link.querySelector('[data-inv-icon-wrap]');
+
         if (n <= 0) {
             if (badge) badge.remove();
-            link.style.paddingRight = '';
-            if (label) label.style.whiteSpace = '';
+            // Giữ wrap icon nếu đã tạo — không cần tháo SVG lại
             return;
         }
-        if (getComputedStyle(link).position === 'static') link.style.position = 'relative';
-        link.style.paddingRight = '2.35rem';
-        if (label) label.style.whiteSpace = 'nowrap';
+
+        // Bọc SVG trong relative wrap để badge gắn góc phải trên của icon
+        if (!iconWrap) {
+            const svg = link.querySelector(':scope > svg');
+            if (!svg) return;
+            iconWrap = document.createElement('span');
+            iconWrap.setAttribute('data-inv-icon-wrap', '1');
+            iconWrap.style.cssText = 'position:relative;display:inline-flex;flex-shrink:0;line-height:0;';
+            svg.parentNode.insertBefore(iconWrap, svg);
+            iconWrap.appendChild(svg);
+        }
+
         if (!document.getElementById('inv-due-badge-style')) {
             const style = document.createElement('style');
             style.id = 'inv-due-badge-style';
-            style.textContent = '@keyframes invDueNavPulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}50%{box-shadow:0 0 0 4px rgba(16,185,129,0)}}';
+            style.textContent = '@keyframes invDueNavPulse{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.45)}50%{box-shadow:0 0 0 3px rgba(16,185,129,0)}}';
             document.head.appendChild(style);
         }
+
         if (!badge) {
             badge = document.createElement('span');
             badge.setAttribute('data-inv-due-badge', '1');
-            badge.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;min-width:1.25rem;height:1.25rem;padding:0 5px;border-radius:999px;background:#10b981;color:#fff;font-size:11px;font-weight:700;line-height:1;animation:invDueNavPulse 1.8s ease-in-out infinite;';
-            link.appendChild(badge);
+            badge.style.cssText = [
+                'position:absolute',
+                'top:-5px',
+                'right:-7px',
+                'z-index:1',
+                'display:inline-flex',
+                'align-items:center',
+                'justify-content:center',
+                'min-width:14px',
+                'height:14px',
+                'padding:0 3px',
+                'border-radius:999px',
+                'background:#10b981',
+                'color:#fff',
+                'font-size:9px',
+                'font-weight:700',
+                'line-height:1',
+                'box-sizing:border-box',
+                'border:1.5px solid #fff',
+                'animation:invDueNavPulse 1.8s ease-in-out infinite',
+                'pointer-events:none'
+            ].join(';');
+            iconWrap.appendChild(badge);
         }
-        badge.textContent = n > 999 ? '999+' : String(n);
+
+        badge.textContent = n > 99 ? '99+' : String(n);
         badge.title = n + ' hóa đơn đã đến hạn xuất';
     }
 

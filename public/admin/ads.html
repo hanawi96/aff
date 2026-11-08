@@ -258,96 +258,262 @@
     </style>
 </head>
 <body class="ctv-page-bg min-h-screen antialiased">
-    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-50">
-        <div class="flex flex-col h-full">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                        <svg class="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-gray-900 font-bold text-lg">Admin Panel</h2>
-                        <p class="text-gray-500 text-xs">Quản lý hệ thống</p>
-                    </div>
+    <!-- ADMIN_SIDEBAR_START -->
+<script>
+/* Apply collapsed state before paint to avoid width flash */
+try {
+    if (localStorage.getItem('admin_sidebar_collapsed') === '1') {
+        document.documentElement.classList.add('admin-sidebar-collapsed');
+    }
+} catch (e) {}
+</script>
+<style>
+    /* Sidebar collapse — CSS only, ~180ms */
+    #adminSidebar {
+        width: 16rem;
+        transition: width 0.18s ease;
+    }
+    .ml-64 {
+        transition: margin-left 0.18s ease;
+    }
+    html.admin-sidebar-collapsed #adminSidebar {
+        width: 4.5rem;
+    }
+    html.admin-sidebar-collapsed .ml-64 {
+        margin-left: 4.5rem !important;
+    }
+    html.admin-sidebar-collapsed [class*="w-[calc(100%-16rem)]"] {
+        width: calc(100% - 4.5rem) !important;
+    }
+    html.admin-sidebar-collapsed .admin-sidebar-label {
+        display: none !important;
+    }
+    html.admin-sidebar-collapsed #adminSidebar nav a {
+        justify-content: center;
+        padding-left: 0.625rem;
+        padding-right: 0.625rem;
+        gap: 0;
+    }
+    html.admin-sidebar-collapsed #adminSidebar .admin-brand-row {
+        justify-content: center;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    html.admin-sidebar-collapsed #adminSidebar .admin-brand-copy {
+        display: none !important;
+    }
+    html.admin-sidebar-collapsed #adminUserMenuBtn {
+        justify-content: center;
+        gap: 0;
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+    html.admin-sidebar-collapsed #adminUserMenuPanel {
+        left: 0.5rem;
+        right: auto;
+        min-width: 11.5rem;
+        width: max-content;
+    }
+    html.admin-sidebar-collapsed #adminSidebarToggle svg {
+        transform: rotate(180deg);
+    }
+    #adminSidebarToggle svg {
+        transition: transform 0.18s ease;
+    }
+    #adminSidebar nav a svg {
+        flex-shrink: 0;
+    }
+</style>
+<aside id="adminSidebar" class="fixed left-0 top-0 h-full bg-white border-r border-gray-200 z-50">
+    <div class="flex flex-col h-full">
+        <!-- h-16 khớp header trang -->
+        <div class="admin-brand-row relative h-16 min-h-[4rem] shrink-0 border-b border-gray-200 px-4 flex items-center">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 shrink-0 bg-indigo-100 rounded-xl flex items-center justify-center" title="Admin Panel">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <div class="admin-brand-copy min-w-0 leading-tight">
+                    <h2 class="text-gray-900 font-bold text-base truncate">Admin Panel</h2>
+                    <p class="text-gray-500 text-xs truncate">Quản lý hệ thống</p>
                 </div>
             </div>
-            <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-                <a href="index.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-                    <span>Đơn hàng</span>
-                </a>
-                <a href="invoices.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    <span>Hóa đơn điện tử</span>
-                </a>
-                <a href="payments.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    <span>Thanh toán CTV</span>
-                </a>
-                <a href="ctv.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                    <span>Danh sách CTV</span>
-                </a>
-                <a href="products.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                    <span>Sản phẩm</span>
-                </a>
-                <a href="materials.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                    <span>Nguyên liệu</span>
-                </a>
-                <a href="categories.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-                    <span>Danh mục</span>
-                </a>
-                <a href="discounts.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                    <span>Mã giảm giá</span>
-                </a>
-                <a href="profit-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                    <span>Thống kê</span>
-                </a>
-                <a href="ads.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl bg-indigo-50 text-indigo-600 font-medium transition-all">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
-                    <span>Quảng cáo</span>
-                </a>
-                <a href="location-report.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    <span>Địa lý</span>
-                </a>
-                <a href="settings.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    <span>Cài đặt</span>
-                </a>
-                <a href="customers.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    <span>Khách hàng</span>
-                </a>
-                <a href="users.html" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 font-medium transition-all hover:bg-gray-50">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    <span>Quản lý Admin</span>
-                </a>
-            </nav>
-
-            <!-- User Profile -->
-            <div class="mt-auto border-t border-gray-200 p-4">
-                <div class="flex items-center gap-3 mb-3">
-                    <div id="userAvatar" class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">AD</div>
-                    <div class="flex-1 min-w-0">
-                        <p id="userFullName" class="text-sm font-semibold text-gray-900 truncate">Administrator</p>
-                        <p id="userUsername" class="text-xs text-gray-500 truncate">admin</p>
-                    </div>
+            <button type="button" id="adminSidebarToggle"
+                class="absolute -right-3 top-1/2 z-[70] flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+                title="Thu gọn / Mở rộng menu" aria-label="Thu gọn sidebar" aria-expanded="true">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+        </div>
+        <nav class="flex-1 p-2 space-y-1 overflow-y-auto overflow-x-hidden">
+            <a href="index.html" data-nav="index.html" title="Đơn hàng" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                <span class="admin-sidebar-label truncate">Đơn hàng</span>
+            </a>
+            <a href="invoices.html" data-nav="invoices.html" title="Hóa đơn điện tử" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <span class="admin-sidebar-label truncate">Hóa đơn điện tử</span>
+            </a>
+            <a href="payments.html" data-nav="payments.html" title="Thanh toán CTV" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <span class="admin-sidebar-label truncate">Thanh toán CTV</span>
+            </a>
+            <a href="ctv.html" data-nav="ctv.html" title="Danh sách CTV" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                <span class="admin-sidebar-label truncate">Danh sách CTV</span>
+            </a>
+            <a href="products.html" data-nav="products.html" title="Sản phẩm" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                <span class="admin-sidebar-label truncate">Sản phẩm</span>
+            </a>
+            <a href="materials.html" data-nav="materials.html" title="Nguyên liệu" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                <span class="admin-sidebar-label truncate">Nguyên liệu</span>
+            </a>
+            <a href="categories.html" data-nav="categories.html" title="Danh mục" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                <span class="admin-sidebar-label truncate">Danh mục</span>
+            </a>
+            <a href="discounts.html" data-nav="discounts.html" title="Mã giảm giá" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                <span class="admin-sidebar-label truncate">Mã giảm giá</span>
+            </a>
+            <a href="profit-report.html" data-nav="profit-report.html" title="Thống kê" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                <span class="admin-sidebar-label truncate">Thống kê</span>
+            </a>
+            <a href="ads.html" data-nav="ads.html" title="Quảng cáo" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-indigo-50 text-indigo-600 font-medium transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+                <span class="admin-sidebar-label truncate">Quảng cáo</span>
+            </a>
+            <a href="location-report.html" data-nav="location-report.html" title="Địa lý" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <span class="admin-sidebar-label truncate">Địa lý</span>
+            </a>
+            <a href="settings.html" data-nav="settings.html" title="Cài đặt" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <span class="admin-sidebar-label truncate">Cài đặt</span>
+            </a>
+            <a href="customers.html" data-nav="customers.html" title="Khách hàng" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <span class="admin-sidebar-label truncate">Khách hàng</span>
+            </a>
+            <a href="users.html" data-nav="users.html" title="Quản lý Admin" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <span class="admin-sidebar-label truncate">Quản lý Admin</span>
+            </a>
+            <div class="border-t border-gray-200 my-2"></div>
+            <a href="m.html" data-nav="m.html" title="Mobile" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-700 font-medium transition-colors hover:bg-gray-50">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                <span class="admin-sidebar-label truncate">Mobile</span>
+            </a>
+        </nav>
+        <div class="mt-auto border-t border-gray-200 px-2.5 py-1.5 relative" id="adminUserMenu">
+            <button type="button" id="adminUserMenuBtn"
+                class="w-full flex items-center gap-2.5 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
+                aria-expanded="false" aria-haspopup="menu" aria-controls="adminUserMenuPanel" title="Tài khoản">
+                <div id="userAvatar" class="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-md">AD</div>
+                <div class="admin-sidebar-label flex-1 min-w-0">
+                    <p id="userUsername" class="text-sm font-semibold text-gray-900 truncate leading-tight">admin</p>
                 </div>
-                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg transition-all font-medium text-sm">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                    <span>Đăng xuất</span>
-                </button>
+                <svg class="admin-sidebar-label w-3.5 h-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+                </svg>
+            </button>
+            <div id="adminUserMenuPanel" role="menu" class="hidden absolute left-3 right-3 bottom-full mb-2 z-[60] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg shadow-gray-900/10">
+                <div class="border-b border-gray-100 px-3 py-2.5">
+                    <p id="userFullName" class="text-sm font-semibold text-gray-900 truncate">Administrator</p>
+                    <p class="text-xs text-gray-500">Tài khoản</p>
+                </div>
+                <div class="p-1.5">
+                    <button type="button" role="menuitem" onclick="logout()"
+                        class="w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50">
+                        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Đăng xuất</span>
+                    </button>
+                </div>
             </div>
         </div>
-    </aside>
+    </div>
+</aside>
+<script>
+(function () {
+    var KEY = 'admin_sidebar_collapsed';
+    var root = document.documentElement;
+
+    function isCollapsed() {
+        return root.classList.contains('admin-sidebar-collapsed');
+    }
+
+    function setCollapsed(on) {
+        root.classList.toggle('admin-sidebar-collapsed', on);
+        try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+        var btn = document.getElementById('adminSidebarToggle');
+        if (btn) {
+            btn.setAttribute('aria-expanded', on ? 'false' : 'true');
+            btn.title = on ? 'Mở rộng menu' : 'Thu gọn menu';
+        }
+    }
+
+    function bindToggle() {
+        var btn = document.getElementById('adminSidebarToggle');
+        if (!btn || btn.dataset.bound === '1') return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            setCollapsed(!isCollapsed());
+        });
+        setCollapsed(isCollapsed());
+    }
+
+    function bindAdminUserMenu() {
+        if (window.__adminUserMenuBound) return;
+        window.__adminUserMenuBound = true;
+
+        var menuRoot = document.getElementById('adminUserMenu');
+        var menuBtn = document.getElementById('adminUserMenuBtn');
+        var panel = document.getElementById('adminUserMenuPanel');
+        if (!menuRoot || !menuBtn || !panel || menuBtn.dataset.bound === '1') return;
+        menuBtn.dataset.bound = '1';
+
+        function closeMenu() {
+            panel.classList.add('hidden');
+            menuBtn.setAttribute('aria-expanded', 'false');
+        }
+
+        menuBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden', !open);
+            menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', function (e) {
+            if (!menuRoot.contains(e.target)) closeMenu();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeMenu();
+        });
+    }
+
+    function init() {
+        bindToggle();
+        bindAdminUserMenu();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+</script>
+<!-- ADMIN_SIDEBAR_END -->
 
     <div class="ml-64 min-h-screen w-[calc(100%-16rem)] min-w-0 max-w-none">
         <main class="w-full min-w-0 px-6 py-8 lg:px-8">
