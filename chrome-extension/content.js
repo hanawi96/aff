@@ -252,10 +252,94 @@ function watchPageUrlChanges() {
     replaceState.apply(this, args);
     check();
   };
+
+  // SPA đôi khi đổi URL ngoài pushState/replaceState — poll nhẹ làm backup
+  setInterval(check, 1000);
 }
 
-if (isAllowedPage()) {
-} else {
+/** Phục hồi sidebar nếu site remount DOM xóa node của extension */
+let shopvdSidebarAliveObserver = null;
+let shopvdSidebarAliveTimer = 0;
+let shopvdSidebarBootRetryScheduled = false;
+let shopvdSidebarPresenceTimer = 0;
+
+function scheduleEnsureSidebarAlive() {
+  if (shopvdSidebarAliveTimer) clearTimeout(shopvdSidebarAliveTimer);
+  shopvdSidebarAliveTimer = setTimeout(() => {
+    shopvdSidebarAliveTimer = 0;
+    ensureSidebarPresence({ forceRemount: false });
+  }, 280);
+}
+
+function observeSidebarHost() {
+  if (!shopvdSidebarAliveObserver) return;
+  const body = document.body;
+  if (!body || body.dataset.shopvdAliveObserved === '1') return;
+  body.dataset.shopvdAliveObserved = '1';
+  try {
+    shopvdSidebarAliveObserver.observe(body, { childList: true });
+  } catch (_) { /* ignore */ }
+}
+
+/** Zalo boot/login remount rất muộn; giữ sidebar ở cuối body + class layout */
+function ensureSidebarPresence({ forceRemount = false } = {}) {
+  if (!isAllowedPage()) return;
+  if (!document.body) return;
+
+  const sidebar = document.getElementById('shopvd-sidebar');
+  const rail = document.getElementById('shopvd-expand-rail');
+
+  if (!sidebar || !rail) {
+    syncSidebarWithPageUrl();
+    observeSidebarHost();
+    return;
+  }
+
+  if (isZaloPage()) {
+    if (!document.documentElement.classList.contains('shopvd-zalo-page')) {
+      applyPancakeHeaderOffset();
+    }
+    // Layer Zalo inject sau sidebar → đẩy node về cuối body để không bị “mất” theo paint-order
+    const last = document.body.lastElementChild;
+    if (forceRemount || (last !== rail && last !== sidebar)) {
+      document.body.appendChild(sidebar);
+      document.body.appendChild(rail);
+    }
+    syncZaloChatLayoutOffset();
+  }
+}
+
+function startSidebarAliveGuard() {
+  if (shopvdSidebarAliveObserver) return;
+
+  shopvdSidebarAliveObserver = new MutationObserver(() => {
+    if (!isAllowedPage()) return;
+    if (document.getElementById('shopvd-sidebar') && document.getElementById('shopvd-expand-rail')) return;
+    scheduleEnsureSidebarAlive();
+  });
+
+  try {
+    shopvdSidebarAliveObserver.observe(document.documentElement, { childList: true });
+  } catch (_) { /* ignore */ }
+  observeSidebarHost();
+
+  if (!shopvdSidebarBootRetryScheduled) {
+    shopvdSidebarBootRetryScheduled = true;
+    // Pancake remount sớm; Zalo login/app boot có thể >10s
+    const delays = isZaloPage()
+      ? [400, 1000, 2000, 4000, 8000, 12000, 20000]
+      : [400, 1000, 2000];
+    delays.forEach((ms) => {
+      setTimeout(() => ensureSidebarPresence({ forceRemount: isZaloPage() }), ms);
+    });
+  }
+
+  if (!shopvdSidebarPresenceTimer) {
+    // Heartbeat nhẹ — bắt remount bỏ sót MutationObserver (đặc biệt Zalo)
+    shopvdSidebarPresenceTimer = setInterval(() => {
+      ensureSidebarPresence({ forceRemount: false });
+    }, isZaloPage() ? 1500 : 2500);
+  }
 }
 
 // API Configuration
@@ -284,6 +368,8 @@ let smartPasteBusy = false;
 
 // Create sidebar HTML
 function createSidebar() {
+  if (!document.body) return null;
+
   const sidebar = document.createElement('div');
   sidebar.id = 'shopvd-sidebar';
   sidebar.dataset.shopvdVersion = SHOPVD_EXT_VERSION;
@@ -2178,20 +2264,30 @@ function sanitizeStreetAddressText(raw) {
   return normalizeDetectedAddressText(raw);
 }
 
+const SHOPVD_GEO_HINT_RE = /(phường|phuong|xã|xa\b|quận|quan|huyện|huyen|tỉnh|tinh\b|thành phố|thanh pho|tp\.|đường|duong|ấp\b|ap\b|thôn|thon|sn\s|số\s|so\s|khu phố|khu pho|khu vực|khu vuc|tổ dân|to dan|địa chỉ|dia chi|cần thơ|can tho|hà nội|ha noi|\bhcm\b|sài gòn|sai gon|đà nẵng|da nang)/i;
+
+function hasPendingGeoHint(text) {
+  return SHOPVD_GEO_HINT_RE.test(String(text || '')) || textHasAddressHint(text);
+}
+
 function isUsableDetectedAddress(text) {
   const value = normalizeDetectedAddressText(text);
   if (!value || value.length < 8) return false;
   if (isJunkPendingAddress(value)) return false;
-  const words = value.split(/\s+/).filter(Boolean);
-  if (words.length < 3 && !textHasAddressHint(value)) return false;
-  return textHasAddressHint(value) || looksLikeFreeformAddress(value) || words.length >= 4;
+  // Bắt buộc có geo hint — tránh tin chào/pitch dài bị coi là địa chỉ
+  return hasPendingGeoHint(value);
 }
 
-/** Text preview Facebook / list — không coi là đơn chốt thật. */
+/** Text preview Facebook / list / tin shop — không coi là đơn chốt thật. */
 function isJunkPendingAddress(address, source = '') {
-  const a = String(address || '').trim().toLowerCase();
+  const raw = String(address || '').trim();
+  const a = raw.toLowerCase();
   if (!a) return true;
   if (a.startsWith('sđt từ list') || a.startsWith('sdt tu list')) return true;
+  if (a.startsWith('sđt từ pancake') || a.startsWith('sdt tu pancake')) return true;
+  if (/^\[(sticker|image|video|file|audio|attachment|\d+\s*photos?)\]$/i.test(raw)) return true;
+  if (/[❤❤️💕💗💖💘💞💟]/.test(raw)) return true;
+  if (/^\[[^\]]{0,40}\]\s*(da|dạ|ok|oke|vâng|vang)?\s*$/i.test(raw)) return true;
 
   const junkPatterns = [
     /bạn đang phản hồi/,
@@ -2207,15 +2303,22 @@ function isJunkPendingAddress(address, source = '') {
     /preview:/,
     /^\s*sđt\s*[:：]/,
     /^\s*sdt\s*[:：]/,
+    /^\[botcake\]/i,
+    /^dạ,?\s*e\s+gửi/,
+    /^da,?\s*e\s+gui/,
+    /^dạ,?\s*em\s+gửi/,
+    /e\s+gửi\s+c\s+xem\s+các\s+mẫu/,
+    /gửi\s+c\s+xem\s+các\s+mẫu/,
+    /các\s+mẫu\s+và\s+giá/,
+    /mau\s+va\s+gia/,
+    /em\s+thấy\s+a\/c\s+cần\s+mua/,
+    /tham\s+khảo/,
+    /^(em|e|dạ|da)[\s,]+(chào|chao)/,
   ];
   if (junkPatterns.some((re) => re.test(a))) return true;
 
-  const src = String(source || '').trim();
-  if (src === 'auto-detect' || src === 'extension') {
-    const hasGeoHint = /(phường|xã|quận|huyện|tỉnh|thành phố|tp\.|đường|ấp|thôn|sn |số |khu phố|tổ dân)/i.test(a);
-    const words = a.split(/\s+/).filter(Boolean);
-    if (!hasGeoHint && words.length < 4) return true;
-  }
+  // Mọi nguồn: không geo → junk (đồng bộ server)
+  if (!hasPendingGeoHint(a)) return true;
   return false;
 }
 
@@ -11470,14 +11573,12 @@ function normalizeDraftPhone(phone) {
 function isCustomerSnapshotWorthy(snap, { ignoreKnownOrdered = false } = {}) {
   if (!snap || !isValidDraftPhone(snap.phone)) return false;
   if (!ignoreKnownOrdered && isPhoneKnownOrdered(snap.phone)) return false;
-  if (snap.provinceId && snap.wardId) {
-    return !isJunkPendingAddress(snap.address, snap.source);
-  }
+  // Đồng bộ isValidUnsavedPending server: tỉnh+phường HOẶC địa chỉ có geo thật
+  if (snap.provinceId && snap.wardId) return true;
   const address = String(snap.address || '').trim();
-  if (isJunkPendingAddress(address, snap.source)) return false;
   if (address.length >= 10 && isUsableDetectedAddress(address)) return true;
   const street = String(snap.street || '').trim();
-  return street.length >= 8 && Boolean(snap.provinceId);
+  return street.length >= 8 && Boolean(snap.provinceId) && hasPendingGeoHint(street);
 }
 
 function getCurrentCustomerSnapshot() {
@@ -13097,13 +13198,16 @@ function init() {
   }
 
   if (!document.getElementById('shopvd-sidebar')) {
+    if (!document.body) return;
     createSidebar();
+    if (!document.getElementById('shopvd-sidebar')) return;
     applySidebarWidth(shopvdSidebarWidthPx, { persist: false });
     bindPancakeHeaderOffsetSync();
     renderProducts();
     loadProducts();
     loadAddressData();
     loadShippingFees();
+    observeSidebarHost();
   } else if (existing) {
     existing.dataset.shopvdVersion = SHOPVD_EXT_VERSION;
     applySidebarWidth(shopvdSidebarWidthPx, { persist: false });
@@ -13136,3 +13240,4 @@ if (document.readyState === 'loading') {
 }
 
 watchPageUrlChanges();
+startSidebarAliveGuard();

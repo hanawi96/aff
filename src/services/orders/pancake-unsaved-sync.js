@@ -11,6 +11,8 @@ import { normalizeOrderPhone } from '../../utils/order-duplicate-check.js';
 import {
     ensurePendingTable,
     evaluatePhoneSavedState,
+    isJunkPendingAddress,
+    isValidUnsavedPending,
     POST_SHIP_GRACE_MS,
 } from './pending-unsaved-service.js';
 
@@ -483,11 +485,18 @@ function isBotcakeGreetingAddress(address) {
     const text = String(address || '').trim();
     if (!text) return false;
     if (/^\[Botcake\]/i.test(text)) return true;
+    // Reaction Facebook
+    if (/[❤❤️💕💗💖💘💞💟]/.test(text)) return true;
+    if (/^\[[^\]]{0,40}\]\s*(da|dạ|ok|oke|vâng|vang)?\s*$/i.test(text)) return true;
 
     // Greeting tự động kiểu: "Dạ, e chào X, em vừa nhận/inbox/ib a/c rồi"
     if (/^dạ,?\s*e\s+chào/i.test(text) && /(vừa\s+(nhận|inbox|ib)|a\/c\s+rồi)/i.test(text)) {
         return true;
     }
+
+    // Pitch gửi mẫu/giá (không chữ "chào") — case ảnh Đơn chưa lưu ảo
+    if (/^dạ,?\s*e\s+gửi/i.test(text) || /^dạ,?\s*em\s+gửi/i.test(text)) return true;
+    if (/e\s+gửi\s+c\s+xem\s+các\s+mẫu/i.test(text) || /các\s+mẫu\s+và\s+giá/i.test(text)) return true;
 
     // Botcake / script chào bán hàng (không có địa chỉ)
     const isGreetingOpen = /^(em|e|dạ|da)[\s,]+(chào|chao)\b/i.test(text)
@@ -500,6 +509,7 @@ function isBotcakeGreetingAddress(address) {
 
     if (isGreetingOpen && isPitch && !hasRealAddress) return true;
     if (isGreetingOpen && !hasRealAddress && text.length > 40) return true;
+    if (isPitch && !hasRealAddress && /^(dạ|da|em|e)[\s,]/i.test(text) && text.length > 40) return true;
 
     return false;
 }
@@ -508,6 +518,7 @@ function isNoisePendingAddress(address) {
     const text = String(address || '').trim();
     if (!text) return true;
     if (isBotcakeGreetingAddress(text)) return true;
+    if (isJunkPendingAddress(text, 'pancake-api')) return true;
     if (/^SĐT từ Pancake:/i.test(text)) return true;
     // Chỉ có SĐT / tên — chưa có địa chỉ khách gửi
     if (/^SĐT từ (Pancake|list):/i.test(text)) return true;
@@ -790,7 +801,8 @@ function phoneSavedDecision(unshippedByPhone, lastShippedByPhone, phone, intentA
 async function cleanupFalsePositivePendings(env, pageId, stats) {
     try {
         const { results } = await env.DB.prepare(`
-            SELECT id, customer_phone, address, source, updated_at_unix
+            SELECT id, customer_phone, address, source, updated_at_unix,
+                   province_id, ward_id, street_address
             FROM pending_unsaved_orders
             WHERE status = ?
             ORDER BY id DESC
@@ -801,11 +813,19 @@ async function cleanupFalsePositivePendings(env, pageId, stats) {
         const now = Date.now();
         for (const row of results || []) {
             const phone = normalizeOrderPhone(row.customer_phone);
-            // Chỉ dọn: SĐT giả (page_id) hoặc greeting Botcake / địa chỉ nhiễu
-            // Giữ pending dù tin cuối là [Photos] nếu SĐT hợp lệ + địa chỉ thật (case Linh Huỳnh)
+            // Dọn: SĐT giả (page_id) hoặc không đạt chuẩn pending (geo / junk / pitch)
             const address = String(row.address || '');
+            const validPending = isValidUnsavedPending({
+                phone,
+                address,
+                source: row.source || 'pancake-api',
+                provinceId: row.province_id,
+                wardId: row.ward_id,
+                street: row.street_address,
+            });
             if (
                 !isFalsePositivePhone(phone, pageId)
+                && validPending
                 && !isBotcakeGreetingAddress(address)
                 && !isNoisePendingAddress(address)
             ) continue;
@@ -1029,12 +1049,17 @@ async function queueConversationPhones({
 
     const snippet = String(conv.snippet || '').trim().slice(0, 220);
     const addressHint = phoneInfo.addressFromMessages || snippet;
+    const strongMsgAddress = isStrongCustomerAddress(
+        phoneInfo.addressFromMessages,
+        phoneInfo.phones
+    );
     const snippetLooksLikeOrder = isLikelyOrderIntentSnippet(addressHint, phoneInfo.phones)
-        || Boolean(phoneInfo.addressFromMessages);
+        || strongMsgAddress;
     stats.withPhone += 1;
     const name = conversationDisplayName(conv);
     const conversationKey = String(conv.id || '');
     const intentAtMs = snippetLooksLikeOrder ? conversationIntentAtMs(conv) : null;
+    const apiPhoneSet = new Set(phoneInfo.apiPhones || []);
 
     for (const phone of phoneInfo.phones) {
         if (seenPhones.has(phone)) {
@@ -1043,6 +1068,14 @@ async function queueConversationPhones({
             continue;
         }
         seenPhones.add(phone);
+
+        // Chỉ tin SĐT từ API/customer profile. SĐT chỉ bắt từ snippet → cần địa chỉ mạnh từ messages.
+        const fromApi = apiPhoneSet.has(phone);
+        if (!fromApi && !strongMsgAddress) {
+            stats.skipped += 1;
+            if (debugTrace) debugTrace.skippedSnippetOnlyPhone = phone;
+            continue;
+        }
 
         const decision = phoneSavedDecision(
             unshippedByPhone,
@@ -1060,6 +1093,7 @@ async function queueConversationPhones({
                 reason: decision.reason,
                 intentAtMs,
                 snippetLooksLikeOrder,
+                fromApi,
                 matchedOrderId: decision.matchedOrder?.order_id || null,
                 matchedStatus: decision.matchedOrder?.status || null,
             };
@@ -1083,14 +1117,14 @@ async function queueConversationPhones({
             || isNoisePendingAddress(addressHint)
         ) {
             // Vẫn cho qua nếu đã có địa chỉ khách thật từ messages
-            if (!isStrongCustomerAddress(phoneInfo.addressFromMessages, phoneInfo.phones)) {
+            if (!strongMsgAddress) {
                 stats.skipped += 1;
                 if (debugTrace) debugTrace.skippedNoise = true;
                 continue;
             }
         }
 
-        const resolvedAddress = isStrongCustomerAddress(phoneInfo.addressFromMessages, phoneInfo.phones)
+        const resolvedAddress = strongMsgAddress
             ? phoneInfo.addressFromMessages
             : (isStrongCustomerAddress(addressHint, phoneInfo.phones) ? addressHint : '');
 
@@ -1109,15 +1143,24 @@ async function queueConversationPhones({
             continue;
         }
 
+        const address = String(resolvedAddress).slice(0, 220);
+        if (!isValidUnsavedPending({
+            phone,
+            address,
+            source: 'pancake-api',
+        })) {
+            stats.skipped += 1;
+            if (debugTrace) debugTrace.skippedInvalidPending = true;
+            continue;
+        }
+
         toUpsert.push({
             phone,
             name,
             conversationKey,
-            address: resolvedAddress.slice(0, 220),
+            address,
             intentAtMs,
-            forceReopen: Boolean(
-                isStrongCustomerAddress(phoneInfo.addressFromMessages, phoneInfo.phones)
-            ),
+            forceReopen: strongMsgAddress,
         });
         if (debugTrace) debugTrace.queued = true;
     }

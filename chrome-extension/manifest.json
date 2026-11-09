@@ -1,15 +1,14 @@
 {
   "manifest_version": 3,
   "name": "ShopVD Order Helper",
-  "version": "1.5.83",
+  "version": "1.5.86",
   "description": "Tạo đơn hàng nhanh từ pancake.vn sang ShopVD",
   "permissions": [
     "storage",
     "tabs"
   ],
   "host_permissions": [
-    "https://pancake.vn/vongdautambyvui",
-    "https://pancake.vn/vongdautambyvui/*",
+    "https://pancake.vn/*",
     "https://pos.pancake.vn/*",
     "https://chat.zalo.me/*",
     "https://ctv-api.yendev96.workers.dev/*"
@@ -20,8 +19,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://pancake.vn/vongdautambyvui",
-        "https://pancake.vn/vongdautambyvui/*",
+        "https://pancake.vn/*",
         "https://chat.zalo.me/*"
       ],
       "js": [

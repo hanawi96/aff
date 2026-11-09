@@ -91,22 +91,24 @@ export async function loadPhoneOrderState(env, phone) {
     return { unshippedOrder: unshippedOrder || null, lastShippedOrder: lastShippedOrder || null };
 }
 
-function hasEnoughAddress(data = {}, source = '') {
-    // Sync từ Pancake API: chỉ cần SĐT (list đã có recent_phone_numbers)
-    if (source === 'pancake-api') return true;
-    if (data.province_id && data.ward_id) return !isJunkPendingAddress(data.address, source);
-    const address = String(data.address || '').trim();
-    if (isJunkPendingAddress(address, source)) return false;
-    if (address.length >= 10) return true;
-    const street = String(data.street_address || data.street || '').trim();
-    return street.length >= 8 && Boolean(data.province_id);
+const GEO_HINT_RE = /(phường|phuong|xã|xa\b|quận|quan|huyện|huyen|tỉnh|tinh\b|thành phố|thanh pho|tp\.|đường|duong|ấp\b|ap\b|thôn|thon|sn\s|số\s|so\s|khu phố|khu pho|khu vực|khu vuc|tổ dân|to dan|địa chỉ|dia chi|cần thơ|can tho|hà nội|ha noi|\bhcm\b|sài gòn|sai gon|đà nẵng|da nang)/i;
+
+export function hasPendingGeoHint(text) {
+    return GEO_HINT_RE.test(String(text || ''));
 }
 
-/** Loại text preview/list hoặc UI Facebook — không phải địa chỉ chốt đơn thật. */
-function isJunkPendingAddress(address, source = '') {
-    const a = String(address || '').trim().toLowerCase();
+/** Loại text preview/list/UI Facebook / tin shop — không phải địa chỉ chốt đơn thật. */
+export function isJunkPendingAddress(address, source = '') {
+    const raw = String(address || '').trim();
+    const a = raw.toLowerCase();
     if (!a) return true;
     if (a.startsWith('sđt từ list') || a.startsWith('sdt tu list')) return true;
+    if (a.startsWith('sđt từ pancake') || a.startsWith('sdt tu pancake')) return true;
+    if (/^\[(sticker|image|video|file|audio|attachment|\d+\s*photos?)\]$/i.test(raw)) return true;
+
+    // Reaction / sticker Facebook
+    if (/[❤❤️💕💗💖💘💞💟]/.test(raw)) return true;
+    if (/^\[[^\]]{0,40}\]\s*(da|dạ|ok|oke|vâng|vang)?\s*$/i.test(raw)) return true;
 
     const junkPatterns = [
         /bạn đang phản hồi/,
@@ -122,16 +124,59 @@ function isJunkPendingAddress(address, source = '') {
         /preview:/,
         /^\s*sđt\s*[:：]/,
         /^\s*sdt\s*[:：]/,
+        /^\[botcake\]/i,
+        // Pitch / chào bán của shop (không phải địa chỉ khách)
+        /^dạ,?\s*e\s+gửi/,
+        /^da,?\s*e\s+gui/,
+        /^dạ,?\s*em\s+gửi/,
+        /e\s+gửi\s+c\s+xem\s+các\s+mẫu/,
+        /gửi\s+c\s+xem\s+các\s+mẫu/,
+        /các\s+mẫu\s+và\s+giá/,
+        /mau\s+va\s+gia/,
+        /em\s+thấy\s+a\/c\s+cần\s+mua/,
+        /tham\s+khảo/,
+        /^(em|e|dạ|da)[\s,]+(chào|chao)/,
     ];
     if (junkPatterns.some((re) => re.test(a))) return true;
 
-    const src = String(source || '').trim();
-    if (AUTO_SOURCES.has(src) || src === 'auto-detect') {
-        const hasGeoHint = /(phường|xã|quận|huyện|tỉnh|thành phố|tp\.|đường|ấp|thôn|sn |số |khu phố|tổ dân)/i.test(a);
-        const words = a.split(/\s+/).filter(Boolean);
-        if (!hasGeoHint && words.length < 4) return true;
-    }
+    // Mọi nguồn (kể cả pancake-api): không có geo → không phải địa chỉ chốt
+    if (!hasPendingGeoHint(a)) return true;
     return false;
+}
+
+function hasEnoughAddress(data = {}, source = '') {
+    // Đã chọn tỉnh/phường trên form → đủ bằng chứng địa chỉ
+    if (data.province_id && data.ward_id) return true;
+
+    const address = String(data.address || '').trim();
+    if (address && !isJunkPendingAddress(address, source) && address.length >= 10) return true;
+
+    const street = String(data.street_address || data.street || '').trim();
+    return street.length >= 8 && Boolean(data.province_id) && hasPendingGeoHint(street);
+}
+
+/**
+ * Chuẩn chung: pending chỉ hợp lệ khi SĐT VN đúng + có bằng chứng địa chỉ chốt đơn.
+ * Dùng chung upsert / list / pancake-sync.
+ */
+export function isValidUnsavedPending({
+    phone,
+    address = '',
+    source = '',
+    provinceId = '',
+    wardId = '',
+    street = '',
+} = {}) {
+    const normalized = normalizeOrderPhone(phone);
+    if (!isValidPendingPhone(normalized)) return false;
+
+    return hasEnoughAddress({
+        address,
+        province_id: provinceId || null,
+        ward_id: wardId || null,
+        street_address: street || null,
+        street: street || null,
+    }, source);
 }
 
 async function resolvePendingAsOrdered(env, row, matchedOrder, now) {
@@ -154,13 +199,15 @@ async function resolvePendingAsOrdered(env, row, matchedOrder, now) {
     ).run();
 }
 
-async function dismissPendingRow(env, row, now) {
+async function dismissPendingRow(env, row, now, { bypassCooldown = false } = {}) {
     if (!row) return;
+    // bypassCooldown: dọn ghost hệ thống — backdate để auto-source không bị khóa 24h
+    const ts = bypassCooldown ? (now - DISMISS_COOLDOWN_MS - 60_000) : now;
     await env.DB.prepare(`
         UPDATE pending_unsaved_orders
         SET status = ?, updated_at_unix = ?, resolved_at_unix = ?
         WHERE id = ?
-    `).bind(DISMISSED_STATUS, now, now, row.id).run();
+    `).bind(DISMISSED_STATUS, ts, ts, row.id).run();
 }
 
 function rowToPending(row) {
@@ -278,11 +325,15 @@ export async function upsertPendingUnsavedCore(env, data = {}) {
         source,
     };
 
-    if (!hasEnoughAddress(payload, source)) {
-        return { ok: false, error: 'Thiếu địa chỉ (cần tỉnh/phường hoặc địa chỉ đủ)' };
-    }
-    if (isJunkPendingAddress(payload.address, source)) {
-        return { ok: false, error: 'Địa chỉ không hợp lệ (preview/UI)' };
+    if (!isValidUnsavedPending({
+        phone,
+        address: payload.address,
+        source,
+        provinceId: payload.province_id,
+        wardId: payload.ward_id,
+        street: payload.street_address,
+    })) {
+        return { ok: false, error: 'Thiếu địa chỉ chốt đơn hợp lệ (cần tỉnh/phường hoặc địa chỉ có phường/xã/tỉnh…)' };
     }
 
     const now = Date.now();
@@ -497,8 +548,17 @@ export async function listPendingUnsaved(env, corsHeaders) {
         const items = [];
         for (const row of rows?.results || []) {
             const phone = normalizeOrderPhone(row.customer_phone);
-            if (!isValidPendingPhone(phone) || isJunkPendingAddress(row.address, row.source)) {
-                await dismissPendingRow(env, row, now);
+            const valid = isValidUnsavedPending({
+                phone,
+                address: row.address,
+                source: row.source,
+                provinceId: row.province_id,
+                wardId: row.ward_id,
+                street: row.street_address,
+            });
+            if (!valid) {
+                // Ghost / pitch / reaction — dọn ngay, không khóa cooldown
+                await dismissPendingRow(env, row, now, { bypassCooldown: true });
                 continue;
             }
 

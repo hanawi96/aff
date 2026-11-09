@@ -42,6 +42,12 @@ html.shopvd-zalo-page #shopvd-sidebar {
   top: 0;
   height: 100vh;
   height: 100dvh;
+  /* Zalo Web dùng layer cố định rất cao — 90 bị đè, nhìn như extension “mất” */
+  z-index: 2147483000;
+}
+
+html.shopvd-zalo-page .shopvd-expand-rail {
+  z-index: 2147483001;
 }
 
 /* Zalo Web: co #chatViewContainer theo đúng chiều rộng sidebar */
